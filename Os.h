@@ -8,7 +8,16 @@ typedef struct Os_ConfigType {
     const Os_TaskConfigType (*tasks)[OS_TASK_COUNT];
 } Os_ConfigType;
 
-void       Os_Start(void);
+
+extern Os_TaskControlType              Os_TaskControls        [OS_TASK_COUNT];
+extern Os_ReadyListType                Os_TaskReady           [OS_PRIO_COUNT];
+extern Os_TaskType                     Os_TaskRunning;
+extern Os_ContextType                  Os_CallContext;
+extern const Os_TaskConfigType *       Os_TaskConfigs;
+
+void       Os_Init(const Os_ConfigType* config);
+void       Os_Isr(void);
+StatusType Os_Schedule(void);
 StatusType Os_TerminateTask(void);
 StatusType Os_ActivateTask(Os_TaskType task);
 

@@ -37,10 +37,19 @@
 							<tool id="cdt.managedbuild.tool.gnu.c.compiler.macosx.exe.debug.1628642568" name="GCC C Compiler" superClass="cdt.managedbuild.tool.gnu.c.compiler.macosx.exe.debug">
 								<option defaultValue="gnu.c.optimization.level.none" id="gnu.c.compiler.macosx.exe.debug.option.optimization.level.1378171411" name="Optimization Level" superClass="gnu.c.compiler.macosx.exe.debug.option.optimization.level" valueType="enumerated"/>
 								<option id="gnu.c.compiler.macosx.exe.debug.option.debugging.level.2090868928" name="Debug Level" superClass="gnu.c.compiler.macosx.exe.debug.option.debugging.level" value="gnu.c.debugging.level.max" valueType="enumerated"/>
+								<option id="gnu.c.compiler.option.preprocessor.def.symbols.1258213499" name="Defined symbols (-D)" superClass="gnu.c.compiler.option.preprocessor.def.symbols" valueType="definedSymbols">
+									<listOptionValue builtIn="false" value="_XOPEN_SOURCE=600"/>
+								</option>
 								<inputType id="cdt.managedbuild.tool.gnu.c.compiler.input.1880055657" superClass="cdt.managedbuild.tool.gnu.c.compiler.input"/>
 							</tool>
 						</toolChain>
 					</folderInfo>
+					<fileInfo id="cdt.managedbuild.config.gnu.macosx.exe.debug.368379231.915302629" name="Os_Arch_Posix.c" rcbsApplicability="disable" resourcePath="Os_Arch_Posix.c" toolsToInvoke="cdt.managedbuild.tool.gnu.c.compiler.macosx.exe.debug.1628642568.1646489739">
+						<tool id="cdt.managedbuild.tool.gnu.c.compiler.macosx.exe.debug.1628642568.1646489739" name="GCC C Compiler" superClass="cdt.managedbuild.tool.gnu.c.compiler.macosx.exe.debug.1628642568">
+							<option id="gnu.c.compiler.option.misc.other.2066088361" superClass="gnu.c.compiler.option.misc.other" value="-c -fmessage-length=0 -Wno-deprecated-declarations" valueType="string"/>
+							<inputType id="cdt.managedbuild.tool.gnu.c.compiler.input.1967732616" superClass="cdt.managedbuild.tool.gnu.c.compiler.input"/>
+						</tool>
+					</fileInfo>
 				</configuration>
 			</storageModule>
 			<storageModule moduleId="org.eclipse.cdt.core.externalSettings"/>
@@ -62,7 +71,7 @@
 					<folderInfo id="cdt.managedbuild.config.macosx.exe.release.611190765." name="/" resourcePath="">
 						<toolChain id="cdt.managedbuild.toolchain.gnu.macosx.exe.release.940315680" name="MacOSX GCC" superClass="cdt.managedbuild.toolchain.gnu.macosx.exe.release">
 							<targetPlatform id="cdt.managedbuild.target.gnu.platform.macosx.exe.release.1214854537" name="Debug Platform" superClass="cdt.managedbuild.target.gnu.platform.macosx.exe.release"/>
-							<builder buildPath="${workspace_loc:/OsekOs}/Release" id="cdt.managedbuild.target.gnu.builder.macosx.exe.release.1906915941" managedBuildOn="true" name="Gnu Make Builder.Release" superClass="cdt.managedbuild.target.gnu.builder.macosx.exe.release"/>
+							<builder buildPath="${workspace_loc:/OsekOs}/Release" id="cdt.managedbuild.target.gnu.builder.macosx.exe.release.1906915941" keepEnvironmentInBuildfile="false" managedBuildOn="true" name="Gnu Make Builder" superClass="cdt.managedbuild.target.gnu.builder.macosx.exe.release"/>
 							<tool id="cdt.managedbuild.tool.macosx.c.linker.macosx.exe.release.1761015394" name="MacOS X C Linker" superClass="cdt.managedbuild.tool.macosx.c.linker.macosx.exe.release">
 								<inputType id="cdt.managedbuild.tool.macosx.c.linker.input.1995680448" superClass="cdt.managedbuild.tool.macosx.c.linker.input">
 									<additionalInput kind="additionalinputdependency" paths="$(USER_OBJS)"/>
@@ -75,12 +84,12 @@
 							</tool>
 							<tool id="cdt.managedbuild.tool.gnu.archiver.macosx.base.1153716298" name="GCC Archiver" superClass="cdt.managedbuild.tool.gnu.archiver.macosx.base"/>
 							<tool id="cdt.managedbuild.tool.gnu.cpp.compiler.macosx.exe.release.1527774863" name="GCC C++ Compiler" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.macosx.exe.release">
-								<option id="gnu.cpp.compiler.macosx.exe.release.option.optimization.level.314115500" superClass="gnu.cpp.compiler.macosx.exe.release.option.optimization.level" value="gnu.cpp.compiler.optimization.level.most" valueType="enumerated"/>
-								<option id="gnu.cpp.compiler.macosx.exe.release.option.debugging.level.130190311" superClass="gnu.cpp.compiler.macosx.exe.release.option.debugging.level" value="gnu.cpp.compiler.debugging.level.none" valueType="enumerated"/>
+								<option id="gnu.cpp.compiler.macosx.exe.release.option.optimization.level.314115500" name="Optimization Level" superClass="gnu.cpp.compiler.macosx.exe.release.option.optimization.level" value="gnu.cpp.compiler.optimization.level.most" valueType="enumerated"/>
+								<option id="gnu.cpp.compiler.macosx.exe.release.option.debugging.level.130190311" name="Debug Level" superClass="gnu.cpp.compiler.macosx.exe.release.option.debugging.level" value="gnu.cpp.compiler.debugging.level.none" valueType="enumerated"/>
 							</tool>
 							<tool id="cdt.managedbuild.tool.gnu.c.compiler.macosx.exe.release.1460157394" name="GCC C Compiler" superClass="cdt.managedbuild.tool.gnu.c.compiler.macosx.exe.release">
-								<option defaultValue="gnu.c.optimization.level.most" id="gnu.c.compiler.macosx.exe.release.option.optimization.level.1431358581" superClass="gnu.c.compiler.macosx.exe.release.option.optimization.level" valueType="enumerated"/>
-								<option id="gnu.c.compiler.macosx.exe.release.option.debugging.level.1375650719" superClass="gnu.c.compiler.macosx.exe.release.option.debugging.level" value="gnu.c.debugging.level.none" valueType="enumerated"/>
+								<option defaultValue="gnu.c.optimization.level.most" id="gnu.c.compiler.macosx.exe.release.option.optimization.level.1431358581" name="Optimization Level" superClass="gnu.c.compiler.macosx.exe.release.option.optimization.level" valueType="enumerated"/>
+								<option id="gnu.c.compiler.macosx.exe.release.option.debugging.level.1375650719" name="Debug Level" superClass="gnu.c.compiler.macosx.exe.release.option.debugging.level" value="gnu.c.debugging.level.none" valueType="enumerated"/>
 								<inputType id="cdt.managedbuild.tool.gnu.c.compiler.input.1847850113" superClass="cdt.managedbuild.tool.gnu.c.compiler.input"/>
 							</tool>
 						</toolChain>
