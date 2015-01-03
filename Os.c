@@ -74,37 +74,52 @@ void Os_TaskInit(Os_TaskType task)
     memset(&Os_TaskControls[task], 0, sizeof(Os_TaskControls[task]));
 }
 
-static __inline void Os_TaskSetReadyTail(Os_TaskType task)
-{
-    Os_PriorityType prio = Os_TaskConfigs[task].priority;
-    Os_ReadyListPushTail(&Os_TaskReady[prio], task);
-}
-
 static __inline void Os_TaskSetReadyHead(Os_TaskType task)
 {
     Os_PriorityType prio = Os_TaskConfigs[task].priority;
     Os_ReadyListPushHead(&Os_TaskReady[prio], task);
 }
 
-void Os_TaskPop(Os_PriorityType min_priority, Os_TaskType* task)
+void Os_TaskPeek(Os_PriorityType min_priority, Os_TaskType* task)
 {
     Os_PriorityType prio;
     *task = Os_TaskIdNone;
     for(prio = OS_PRIO_COUNT; prio > min_priority && *task == Os_TaskIdNone; --prio) {
-        Os_ReadyListPopHead(&Os_TaskReady[prio-1], task);
+        *task = Os_TaskReady[prio-1].head;
     }
 }
 
-void Os_TaskSwitch(Os_TaskType task)
+static __inline void Os_State_Running_To_Suspended(Os_TaskType task)
 {
-    Os_TaskType prev = Os_TaskRunning;
+    OS_ERRORCHECK(Os_TaskControls[task].state == OS_TASK_RUNNING, E_OS_STATE);
+    Os_TaskControls[task].state = OS_TASK_SUSPENDED;
+}
 
-    Os_TaskRunning = task;
-    if (prev != Os_TaskIdNone) {
-        /* put preempted task as first ready */
-        Os_TaskSetReadyHead(prev);
-    }
-    Os_Arch_SwapState(task, prev);
+static __inline void Os_State_Running_To_Ready(Os_TaskType task)
+{
+    OS_ERRORCHECK(Os_TaskControls[task].state == OS_TASK_RUNNING, E_OS_STATE);
+    Os_PriorityType prio = Os_TaskConfigs[task].priority;
+    Os_ReadyListPushHead(&Os_TaskReady[prio], task);
+    Os_TaskControls[task].state = OS_TASK_READY;
+}
+
+static __inline void Os_State_Suspended_To_Ready(Os_TaskType task)
+{
+    OS_ERRORCHECK(Os_TaskControls[task].state == OS_TASK_SUSPENDED, E_OS_STATE);
+    Os_Arch_PrepareState(task);
+    Os_PriorityType prio = Os_TaskConfigs[task].priority;
+    Os_ReadyListPushTail(&Os_TaskReady[prio], task);
+    Os_TaskControls[task].state = OS_TASK_READY;
+}
+
+static __inline void Os_State_Ready_To_Running(Os_TaskType task)
+{
+    OS_ERRORCHECK(Os_TaskControls[task].state == OS_TASK_READY   , E_OS_STATE);
+    Os_PriorityType prio = Os_TaskConfigs[task].priority;
+    Os_TaskType     task2;
+    Os_ReadyListPopHead(&Os_TaskReady[prio], &task2);
+    OS_ERRORCHECK(task2 == task, E_OS_STATE);
+    Os_TaskControls[task].state = OS_TASK_RUNNING;
 }
 
 void Os_Start(void)
@@ -126,7 +141,7 @@ StatusType Os_ScheduleInternal(void)
     }
 
     while(1) {
-        Os_TaskPop(prio, &task);
+        Os_TaskPeek(prio, &task);
 
         if (task == Os_TaskIdNone) {
             if (Os_TaskRunning != Os_TaskIdNone) {
@@ -140,9 +155,18 @@ StatusType Os_ScheduleInternal(void)
             continue;
         }
 
+        if (Os_TaskRunning != Os_TaskIdNone) {
+            /* put preempted task as first ready */
+            Os_State_Running_To_Ready(Os_TaskRunning);
+        }
+
+        Os_TaskType prev = Os_TaskRunning;
+        Os_TaskRunning = task;
+        Os_State_Ready_To_Running(task);
+
         /* no direct return if called from task
          * if called from ISR, this will just prepare next task */
-        Os_TaskSwitch(task);
+        Os_Arch_SwapState(task, prev);
         break;
     }
     return E_OK;
@@ -164,6 +188,7 @@ void Os_Isr(void)
     Os_CallContext = OS_CONTEXT_TASK;
 }
 
+
 StatusType Os_TerminateTask(void)
 {
     StatusType res;
@@ -172,11 +197,13 @@ StatusType Os_TerminateTask(void)
     OS_ERRORCHECK(Os_TaskControls[Os_TaskRunning].activation > 0, E_OS_LIMIT);
     OS_ERRORCHECK(Os_CallContext != OS_CONTEXT_ISR              , E_OS_CALLEVEL);
 
+    Os_State_Running_To_Suspended(Os_TaskRunning);
+
     Os_TaskControls[Os_TaskRunning].activation--;
     if (Os_TaskControls[Os_TaskRunning].activation) {
-        Os_Arch_PrepareState(Os_TaskRunning);
-        Os_TaskSetReadyTail(Os_TaskRunning);
+        Os_State_Suspended_To_Ready(Os_TaskRunning);
     }
+
     Os_TaskRunning = Os_TaskIdNone;
     res = Os_ScheduleInternal();
     Os_Arch_EnableAllInterrupts();
@@ -193,8 +220,7 @@ StatusType Os_ActivateTask(Os_TaskType task)
 
     Os_TaskControls[task].activation++;
     if (Os_TaskControls[task].activation == 1u) {
-        Os_Arch_PrepareState(task);
-        Os_TaskSetReadyTail(task);
+        Os_State_Suspended_To_Ready(task);
     }
     res = Os_ScheduleInternal();
     Os_Arch_EnableAllInterrupts();
@@ -222,9 +248,8 @@ void Os_Init(const Os_ConfigType* config)
         Os_TaskInit(task);
 
         if (Os_TaskConfigs[task].autostart) {
-            Os_Arch_PrepareState(task);
             Os_TaskControls[task].activation = 1;
-            Os_TaskSetReadyTail(task);
+            Os_State_Suspended_To_Ready(task);
         }
     }
 

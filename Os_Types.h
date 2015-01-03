@@ -33,6 +33,13 @@ typedef enum Os_ContextType {
     OS_CONTEXT_ISR  = 1,
 } Os_ContextType;
 
+typedef enum Os_TaskStateEnum {
+    OS_TASK_SUSPENDED = 0,
+    OS_TASK_READY     = 1,
+    OS_TASK_WAITING   = 2,
+    OS_TASK_RUNNING   = 3,
+} Os_TaskStateEnum;
+
 typedef void          (*Os_TaskEntryType)(void);
 
 typedef struct Os_TaskConfigType {
@@ -44,6 +51,7 @@ typedef struct Os_TaskConfigType {
 } Os_TaskConfigType;
 
 typedef struct Os_TaskControlType {
+    Os_TaskStateEnum state;
     uint8            activation;
     Os_TaskType      next;
 } Os_TaskControlType;
