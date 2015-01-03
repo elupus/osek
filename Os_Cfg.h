@@ -29,6 +29,7 @@
 
 #define OS_TASK_COUNT 3
 #define OS_PRIO_COUNT 3
+#define OS_RES_COUNT  1
 
 #define OS_TICK_US    1000000U
 

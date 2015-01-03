@@ -24,7 +24,8 @@
 #include "Os_Cfg.h"
 
 typedef struct Os_ConfigType {
-    const Os_TaskConfigType (*tasks)[OS_TASK_COUNT];
+    const Os_TaskConfigType     (*tasks)[OS_TASK_COUNT];
+    const Os_ResourceConfigType (*resources)[OS_RES_COUNT];
 } Os_ConfigType;
 
 
@@ -40,6 +41,9 @@ void       Os_Isr(void);
 StatusType Os_Schedule(void);
 StatusType Os_TerminateTask(void);
 StatusType Os_ActivateTask(Os_TaskType task);
+
+StatusType Os_GetResource(Os_ResourceType res);
+StatusType Os_ReleaseResource(Os_ResourceType res);
 
 static __inline StatusType Os_GetTaskId   (Os_TaskType* task)
 {

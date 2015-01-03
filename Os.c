@@ -28,6 +28,9 @@ Os_TaskType                     Os_TaskRunning;
 Os_ContextType                  Os_CallContext;
 const Os_TaskConfigType *       Os_TaskConfigs;
 
+const Os_ResourceConfigType *   Os_ResourceConfigs;
+Os_ResourceControlType          Os_ResourceControls    [OS_RES_COUNT];
+
 static void Os_ReadyListPushHead(Os_ReadyListType* list, Os_TaskType task)
 {
     Os_TaskControls[task].next = list->head;
@@ -230,6 +233,35 @@ StatusType Os_ActivateTask(Os_TaskType task)
     Os_Arch_EnableAllInterrupts();
     return res;
 }
+
+StatusType Os_GetResource(Os_ResourceType res)
+{
+    StatusType result;
+    OS_ERRORCHECK(res < OS_RES_COUNT, E_OS_ID);
+
+    if (res == OS_RES_SCHEDULER) {
+        Os_Arch_DisableAllInterrupts();
+        result = E_OK;
+    } else {
+        result = E_OS_RESOURCE;
+    }
+    return result;
+}
+
+StatusType Os_ReleaseResource(Os_ResourceType res)
+{
+    StatusType result;
+    OS_ERRORCHECK(res < OS_RES_COUNT, E_OS_ID);
+
+    if (res == OS_RES_SCHEDULER) {
+        Os_Arch_EnableAllInterrupts();
+        result = E_OK;
+    } else {
+        result = E_OS_RESOURCE;
+    }
+    return result;
+}
+
 
 void Os_Init(const Os_ConfigType* config)
 {

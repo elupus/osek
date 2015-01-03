@@ -75,13 +75,19 @@ const Os_TaskConfigType Os_DefaultTasks[OS_TASK_COUNT] = {
          }
 };
 
+const Os_ResourceConfigType Os_DefaultResources[OS_RES_COUNT] = {
+        {   .priority = OS_PRIO_COUNT
+        }
+};
+
 void errorhook(StatusType ret)
 {
     exit(ret);
 }
 
 const Os_ConfigType Os_DefaultConfig = {
-        .tasks = &Os_DefaultTasks
+        .tasks     = &Os_DefaultTasks,
+        .resources = &Os_DefaultResources,
 };
 
 int main(void)

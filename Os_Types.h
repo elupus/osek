@@ -22,6 +22,7 @@
 #include "Std_Types.h"
 
 typedef uint8 Os_TaskType;
+typedef uint8 Os_ResourceType;
 typedef uint8 Os_PriorityType;
 
 typedef uint8 StatusType;
@@ -40,6 +41,8 @@ typedef enum Os_TaskStateEnum {
     OS_TASK_RUNNING   = 3,
 } Os_TaskStateEnum;
 
+#define OS_RES_SCHEDULER (Os_ResourceType)0
+
 typedef void          (*Os_TaskEntryType)(void);
 
 typedef struct Os_TaskConfigType {
@@ -55,6 +58,14 @@ typedef struct Os_TaskControlType {
     uint8            activation;
     Os_TaskType      next;
 } Os_TaskControlType;
+
+typedef struct Os_ResourceConfigType {
+    Os_PriorityType priority; /**< priority ceiling of all task using */
+} Os_ResourceConfigType;
+
+typedef struct Os_ResourceControlType {
+    Os_ResourceType next;     /**< linked list of held resources */
+} Os_ResourceControlType;
 
 typedef struct Os_ReadyListType {
     Os_TaskType head;
