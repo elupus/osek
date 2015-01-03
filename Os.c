@@ -74,12 +74,6 @@ void Os_TaskInit(Os_TaskType task)
     memset(&Os_TaskControls[task], 0, sizeof(Os_TaskControls[task]));
 }
 
-static __inline void Os_TaskSetReadyHead(Os_TaskType task)
-{
-    Os_PriorityType prio = Os_TaskConfigs[task].priority;
-    Os_ReadyListPushHead(&Os_TaskReady[prio], task);
-}
-
 void Os_TaskPeek(Os_PriorityType min_priority, Os_TaskType* task)
 {
     Os_PriorityType prio;
@@ -92,12 +86,14 @@ void Os_TaskPeek(Os_PriorityType min_priority, Os_TaskType* task)
 static __inline void Os_State_Running_To_Suspended(Os_TaskType task)
 {
     OS_ERRORCHECK(Os_TaskControls[task].state == OS_TASK_RUNNING, E_OS_STATE);
+
     Os_TaskControls[task].state = OS_TASK_SUSPENDED;
 }
 
 static __inline void Os_State_Running_To_Ready(Os_TaskType task)
 {
     OS_ERRORCHECK(Os_TaskControls[task].state == OS_TASK_RUNNING, E_OS_STATE);
+
     Os_PriorityType prio = Os_TaskConfigs[task].priority;
     Os_ReadyListPushHead(&Os_TaskReady[prio], task);
     Os_TaskControls[task].state = OS_TASK_READY;
@@ -106,6 +102,7 @@ static __inline void Os_State_Running_To_Ready(Os_TaskType task)
 static __inline void Os_State_Suspended_To_Ready(Os_TaskType task)
 {
     OS_ERRORCHECK(Os_TaskControls[task].state == OS_TASK_SUSPENDED, E_OS_STATE);
+
     Os_Arch_PrepareState(task);
     Os_PriorityType prio = Os_TaskConfigs[task].priority;
     Os_ReadyListPushTail(&Os_TaskReady[prio], task);
@@ -115,10 +112,13 @@ static __inline void Os_State_Suspended_To_Ready(Os_TaskType task)
 static __inline void Os_State_Ready_To_Running(Os_TaskType task)
 {
     OS_ERRORCHECK(Os_TaskControls[task].state == OS_TASK_READY   , E_OS_STATE);
+
     Os_PriorityType prio = Os_TaskConfigs[task].priority;
     Os_TaskType     task2;
     Os_ReadyListPopHead(&Os_TaskReady[prio], &task2);
+
     OS_ERRORCHECK(task2 == task, E_OS_STATE);
+
     Os_TaskControls[task].state = OS_TASK_RUNNING;
 }
 
