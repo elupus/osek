@@ -42,10 +42,16 @@ void busy(void)
     for(i = 0; i < 10000; i++) {
         /* NOP */
     }
+    Os_GetResource(OS_RES_SCHEDULER);
     Os_ActivateTask(2);
     for(i = 0; i < 10000; i++) {
         /* NOP */
     }
+    Os_ReleaseResource(OS_RES_SCHEDULER);
+    for(i = 0; i < 10000; i++) {
+        /* NOP */
+    }
+
     Os_TerminateTask();
 }
 

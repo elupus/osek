@@ -27,7 +27,8 @@ typedef uint8 Os_PriorityType;
 
 typedef uint8 StatusType;
 
-static const Os_TaskType Os_TaskIdNone = (Os_TaskType)(-1);
+static const Os_TaskType     Os_TaskIdNone      = (Os_TaskType)(-1);
+static const Os_ResourceType Os_ResourceIdNone  = (Os_ResourceType)(-1);
 
 typedef enum Os_ContextType {
     OS_CONTEXT_TASK = 0,
@@ -57,6 +58,7 @@ typedef struct Os_TaskControlType {
     Os_TaskStateEnum state;
     uint8            activation;
     Os_TaskType      next;
+    Os_ResourceType  resource;
 } Os_TaskControlType;
 
 typedef struct Os_ResourceConfigType {
@@ -64,7 +66,8 @@ typedef struct Os_ResourceConfigType {
 } Os_ResourceConfigType;
 
 typedef struct Os_ResourceControlType {
-    Os_ResourceType next;     /**< linked list of held resources */
+    Os_ResourceType next;     /**< linked list of held resources   */
+    Os_TaskType     task;     /**< task currently holding resource */
 } Os_ResourceControlType;
 
 typedef struct Os_ReadyListType {
@@ -80,5 +83,7 @@ typedef struct Os_ReadyListType {
 #define E_OS_RESOURCE (StatusType)6
 #define E_OS_STATE    (StatusType)7
 #define E_OS_VALUE    (StatusType)8
+
+#define E_OS_SYS_NOT_IMPLEMENTED (StatusType)16
 
 #endif /* OS_TYPES_H_ */
