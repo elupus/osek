@@ -40,18 +40,18 @@ VOID CALLBACK Os_Arch_FiberStart(LPVOID lpParameter)
     Os_TaskConfigs[task].entry();
 }
 
-void       Os_Arch_Init(void)
+void Os_Arch_Init(void)
 {
     memset(&Os_Arch_State, 0, sizeof(Os_Arch_State));
     Os_Arch_System = ConvertThreadToFiber(NULL);
 }
 
-void       Os_Arch_DisableAllInterrupts(void)
+void Os_Arch_DisableAllInterrupts(void)
 {
 
 }
 
-void       Os_Arch_EnableAllInterrupts(void)
+void Os_Arch_EnableAllInterrupts(void)
 {
 
 }
@@ -61,7 +61,7 @@ void Os_Arch_SwapState(Os_TaskType prev, Os_TaskType task)
     SwitchToFiber(Os_Arch_State[task].fiber);
 }
 
-void Os_Arch_DeleteFiber(PVOID* fiber)
+static __inline void Os_Arch_DeleteFiber(PVOID* fiber)
 {
     if(*fiber && (*fiber != GetCurrentFiber())) {
         DeleteFiber(*fiber);
