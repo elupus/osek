@@ -11,13 +11,10 @@
 #include "Os.h"
 
 ucontext_t  Os_Arch_State[OS_TASK_COUNT];
-int         Os_Arch_Isr;
 
 void Os_Arch_Alarm(int signal)
 {
-    Os_Arch_Isr = 1;
     Os_Isr();
-    Os_Arch_Isr = 0;
 }
 
 void       Os_Arch_Init(void)
@@ -62,7 +59,7 @@ void       Os_Arch_StoreState(Os_TaskType task)
 
 void       Os_Arch_RestoreState(Os_TaskType task)
 {
-    if (Os_Arch_Isr) {
+    if (Os_CallContext == OS_CONTEXT_ISR) {
         ucontext_t ctx;
         getcontext(&ctx);
         if (ctx.uc_link != &Os_Arch_State[task]) {
