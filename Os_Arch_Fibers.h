@@ -16,18 +16,15 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#ifndef OS_CFG_H_
-#define OS_CFG_H_
+#ifndef OS_ARCH_FIBERS_H_
+#define OS_ARCH_FIBERS_H_
 
-#ifdef OS_CFG_ARCH_POSIX
-#include "Os_Arch_Posix.h"
-#endif
+void       Os_Arch_Init(void);
 
-#ifdef OS_CFG_ARCH_FIBERS
-#include "Os_Arch_Fibers.h"
-#endif
+void       Os_Arch_DisableAllInterrupts(void);
+void       Os_Arch_EnableAllInterrupts(void);
 
-#define OS_TASK_COUNT 3
-#define OS_PRIO_COUNT 3
+void       Os_Arch_SwapState   (Os_TaskType task, Os_TaskType prev);
+void       Os_Arch_PrepareState(Os_TaskType task);
 
-#endif /* OS_CFG_H_ */
+#endif /* OS_ARCH_FIBERS_H_ */
