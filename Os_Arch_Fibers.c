@@ -16,11 +16,11 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#include "Os.h"
-#include "Os_Arch_Fibers.h"
-
 #include <Windows.h>
 #include <WinBase.h>
+
+#include "Os.h"
+#include "Os_Arch_Fibers.h"
 
 typedef struct Os_Arch_StateType {
     LPVOID fiber_old;
@@ -30,6 +30,7 @@ typedef struct Os_Arch_StateType {
 LPVOID            Os_Arch_System;
 HANDLE            Os_Arch_Timer;
 CRITICAL_SECTION  Os_Arch_Section;
+uint32            Os_Arch_Section_Count;
 Os_Arch_StateType Os_Arch_State[OS_TASK_COUNT];
 
 VOID CALLBACK Os_Arch_FiberStart(LPVOID lpParameter)
@@ -54,6 +55,7 @@ void Os_Arch_Init(void)
     memset(&Os_Arch_State, 0, sizeof(Os_Arch_State));
     Os_Arch_System = ConvertThreadToFiber(NULL);
 
+    Os_Arch_Section_Count = 0;
     InitializeCriticalSection(&Os_Arch_Section);
     Os_Arch_DisableAllInterrupts();
 
@@ -70,10 +72,16 @@ void Os_Arch_Init(void)
 void Os_Arch_DisableAllInterrupts(void)
 {
     EnterCriticalSection(&Os_Arch_Section);
+    Os_Arch_Section_Count++;
+    if(Os_Arch_Section_Count != 1) {
+        Os_Arch_Section_Count = 1;
+        LeaveCriticalSection(&Os_Arch_Section);
+    }
 }
 
 void Os_Arch_EnableAllInterrupts(void)
 {
+    Os_Arch_Section_Count = 0;
     LeaveCriticalSection(&Os_Arch_Section);
 }
 
