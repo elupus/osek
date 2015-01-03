@@ -16,8 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#include <stdbool.h>
-#include <stdint.h>
+#include "Std_Types.h"
 #include <string.h>
 
 #include "Os.h"

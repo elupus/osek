@@ -16,41 +16,36 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#ifndef OS_TYPES_H_
-#define OS_TYPES_H_
+#ifndef STD_TYPES_H_
+#define STD_TYPES_H_
 
-#include "Std_Types.h"
+#include <stdint.h>
+#include <stdbool.h>
 
-typedef uint8 Os_TaskType;
-typedef uint8 Os_PriorityType;
+typedef uint8_t uint8;
+typedef uint16_t uint16;
 
-typedef uint8 StatusType;
+typedef uint32_t uint32;
+typedef uint64_t uint64;
 
-static const Os_TaskType Os_TaskIdNone = (Os_TaskType)(-1);
+#ifndef boolean
+#define boolean _Bool
+#endif
 
-typedef enum Os_ContextType {
-    OS_CONTEXT_TASK = 0,
-    OS_CONTEXT_ISR  = 1,
-} Os_ContextType;
+#ifndef TRUE
+#define TRUE true
+#endif
 
-typedef void          (*Os_TaskEntryType)(void);
+#ifndef FALSE
+#define FALSE true
+#endif
 
-typedef struct Os_TaskConfigType {
-    Os_PriorityType  priority;
-    Os_TaskEntryType entry;
-    void*            stack;
-    size_t           stack_size;
-    int              autostart;
-} Os_TaskConfigType;
+#ifndef E_OK
+#define E_OK 0u
+#endif
 
-typedef struct Os_TaskControlType {
-    uint8            activation;
-    Os_TaskType      next;
-} Os_TaskControlType;
+#ifndef E_NOT_OK
+#define E_NOT_OK 1u
+#endif
 
-typedef struct Os_ReadyListType {
-    Os_TaskType head;
-    Os_TaskType tail;
-} Os_ReadyListType;
-
-#endif /* OS_TYPES_H_ */
+#endif /* STD_TYPES_H_ */
