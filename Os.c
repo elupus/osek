@@ -212,8 +212,9 @@ void Os_Isr(void)
 
 StatusType Os_TerminateTask_Internal(void)
 {
-    OS_ERRORCHECK_R(Os_TaskControls[Os_TaskRunning].activation > 0, E_OS_LIMIT);
-    OS_ERRORCHECK_R(Os_CallContext != OS_CONTEXT_ISR              , E_OS_CALLEVEL);
+    OS_ERRORCHECK_R(Os_TaskControls[Os_TaskRunning].activation > 0               , E_OS_LIMIT);
+    OS_ERRORCHECK_R(Os_TaskControls[Os_TaskRunning].resource == Os_ResourceIdNone, E_OS_RESOURCE);
+    OS_ERRORCHECK_R(Os_CallContext != OS_CONTEXT_ISR                             , E_OS_CALLEVEL);
 
     Os_State_Running_To_Suspended(Os_TaskRunning);
 
@@ -285,8 +286,9 @@ void Os_Init(const Os_ConfigType* config)
     Os_TaskConfigs     = *config->tasks;
     Os_ResourceConfigs = *config->resources;
     Os_CallContext     = OS_CONTEXT_TASK;
+    Os_TaskRunning     = Os_TaskIdNone;
 
-    memset(&Os_TaskControls, 0u, sizeof(Os_TaskControls));
+    memset(&Os_TaskControls    , 0u, sizeof(Os_TaskControls));
     memset(&Os_ResourceControls, 0u, sizeof(Os_ResourceControls));
 
     for (prio = 0u; prio < OS_PRIO_COUNT; ++prio) {
@@ -312,9 +314,6 @@ void Os_Init(const Os_ConfigType* config)
             Os_State_Suspended_To_Ready(task);
         }
     }
-
-    /* there is no task running */
-    Os_TaskRunning = Os_TaskIdNone;
 }
 
 
