@@ -103,17 +103,8 @@ void Os_TaskSwitch(Os_TaskType task)
     if (prev != Os_TaskIdNone) {
         /* put preempted task as first ready */
         Os_TaskSetReadyHead(prev);
-
-        /* store state */
-        Os_Arch_StoreState(prev);
     }
-
-    if (Os_TaskRunning == prev) {
-        /* we have an restored state */
-    } else {
-        /* restore state */
-        Os_Arch_RestoreState(task);
-    }
+    Os_Arch_SwapState(prev, task);
 }
 
 void Os_Start(void)

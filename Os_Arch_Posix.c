@@ -28,7 +28,7 @@ void Os_Arch_Alarm(int signal)
     Os_Isr();
 }
 
-void       Os_Arch_Init(void)
+void Os_Arch_Init(void)
 {
     Os_Arch_DisableAllInterrupts();
     int res;
@@ -46,7 +46,7 @@ void       Os_Arch_Init(void)
     res = setitimer(ITIMER_REAL, &val, NULL);
 }
 
-void       Os_Arch_DisableAllInterrupts(void)
+void Os_Arch_DisableAllInterrupts(void)
 {
     sigset_t  set;
     sigemptyset(&set);
@@ -54,7 +54,7 @@ void       Os_Arch_DisableAllInterrupts(void)
     sigprocmask(SIG_BLOCK, &set, NULL);
 }
 
-void       Os_Arch_EnableAllInterrupts(void)
+void Os_Arch_EnableAllInterrupts(void)
 {
     sigset_t  set;
     sigemptyset(&set);
@@ -62,13 +62,13 @@ void       Os_Arch_EnableAllInterrupts(void)
     sigprocmask(SIG_UNBLOCK, &set, NULL);
 }
 
-void       Os_Arch_StoreState(Os_TaskType task)
+void Os_Arch_StoreState(Os_TaskType task)
 {
     ucontext_t* ctx = &Os_Arch_State[task];
     getcontext(ctx);
 }
 
-void       Os_Arch_RestoreState(Os_TaskType task)
+static void Os_Arch_RestoreState(Os_TaskType task)
 {
     if (Os_CallContext == OS_CONTEXT_ISR) {
         ucontext_t ctx;
@@ -83,7 +83,7 @@ void       Os_Arch_RestoreState(Os_TaskType task)
     }
 }
 
-void       Os_Arch_PrepareState(Os_TaskType task)
+void Os_Arch_PrepareState(Os_TaskType task)
 {
     ucontext_t* ctx = &Os_Arch_State[task];
     getcontext(ctx);
@@ -91,4 +91,15 @@ void       Os_Arch_PrepareState(Os_TaskType task)
     ctx->uc_stack.ss_size = Os_TaskConfigs[task].stack_size;
     ctx->uc_stack.ss_sp   = Os_TaskConfigs[task].stack;
     makecontext(ctx, Os_TaskConfigs[task].entry, 0);
+}
+
+void Os_Arch_SwapState(Os_TaskType task, Os_TaskType prev)
+{
+    if (prev != Os_TaskIdNone) {
+        Os_Arch_StoreState(prev);
+    }
+
+    if (prev != Os_TaskRunning) {
+        Os_Arch_RestoreState(task);
+    }
 }

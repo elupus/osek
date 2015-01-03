@@ -34,6 +34,7 @@ extern Os_ContextType                  Os_CallContext;
 extern const Os_TaskConfigType *       Os_TaskConfigs;
 
 void       Os_Init(const Os_ConfigType* config);
+void       Os_Start(void);
 void       Os_Isr(void);
 StatusType Os_Schedule(void);
 StatusType Os_TerminateTask(void);

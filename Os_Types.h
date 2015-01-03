@@ -34,12 +34,14 @@ typedef enum Os_ContextType {
     OS_CONTEXT_ISR  = 1,
 } Os_ContextType;
 
+typedef void          (*Os_TaskEntryType)(void);
+
 typedef struct Os_TaskConfigType {
-    Os_PriorityType priority;
-    void          (*entry)(void);
-    void*           stack;
-    size_t          stack_size;
-    int             autostart;
+    Os_PriorityType  priority;
+    Os_TaskEntryType entry;
+    void*            stack;
+    size_t           stack_size;
+    int              autostart;
 } Os_TaskConfigType;
 
 typedef struct Os_TaskControlType {
