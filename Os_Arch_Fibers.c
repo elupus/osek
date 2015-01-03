@@ -19,7 +19,8 @@
 #include "Os.h"
 #include "Os_Arch_Fibers.h"
 
-#include <windows.h>
+#include <Windows.h>
+#include <WinBase.h>
 
 typedef struct Os_Arch_StateType {
     LPVOID fiber_old;
@@ -27,6 +28,9 @@ typedef struct Os_Arch_StateType {
 } Os_Arch_StateType;
 
 LPVOID Os_Arch_System;
+
+HANDLE Os_Arch_Timer;
+CRITICAL_SECTION Os_Arch_Section;
 
 Os_Arch_StateType Os_Arch_State[OS_TASK_COUNT];
 
@@ -40,23 +44,42 @@ VOID CALLBACK Os_Arch_FiberStart(LPVOID lpParameter)
     Os_TaskConfigs[task].entry();
 }
 
+VOID CALLBACK Os_Arch_TimerCallback(PVOID lpParameter, BOOLEAN TimerOrWaitFired)
+{
+    Os_Arch_DisableAllInterrupts();
+    Os_Isr();
+    Os_Arch_EnableAllInterrupts();
+}
+
 void Os_Arch_Init(void)
 {
     memset(&Os_Arch_State, 0, sizeof(Os_Arch_State));
     Os_Arch_System = ConvertThreadToFiber(NULL);
+
+    InitializeCriticalSection(&Os_Arch_Section);
+    Os_Arch_DisableAllInterrupts();
+
+    CreateTimerQueueTimer( &Os_Arch_Timer
+                         , NULL
+                         , Os_Arch_TimerCallback
+                         , NULL
+                         , 100
+                         , 100
+                         , WT_EXECUTEDEFAULT);
+
 }
 
 void Os_Arch_DisableAllInterrupts(void)
 {
-
+    EnterCriticalSection(&Os_Arch_Section);
 }
 
 void Os_Arch_EnableAllInterrupts(void)
 {
-
+    LeaveCriticalSection(&Os_Arch_Section);
 }
 
-void Os_Arch_SwapState(Os_TaskType prev, Os_TaskType task)
+void Os_Arch_SwapState(Os_TaskType task, Os_TaskType prev)
 {
     SwitchToFiber(Os_Arch_State[task].fiber);
 }
