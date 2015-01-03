@@ -41,6 +41,11 @@ StatusType Os_Schedule(void);
 StatusType Os_TerminateTask(void);
 StatusType Os_ActivateTask(Os_TaskType task);
 
+static __inline StatusType Os_GetTaskId   (Os_TaskType* task)
+{
+    *task = Os_TaskRunning;
+    return E_OK;
+}
 
 #ifdef OS_ERRORHOOK
 #define OS_ERRORCHECK(_condition, _ret) do { \
