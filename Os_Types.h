@@ -53,4 +53,13 @@ typedef struct Os_ReadyListType {
     Os_TaskType tail;
 } Os_ReadyListType;
 
+#define E_OS_ACCESS   (StatusType)1
+#define E_OS_CALLEVEL (StatusType)2
+#define E_OS_ID       (StatusType)3
+#define E_OS_LIMIT    (StatusType)4
+#define E_OS_NOFUNC   (StatusType)5
+#define E_OS_RESOURCE (StatusType)6
+#define E_OS_STATE    (StatusType)7
+#define E_OS_VALUE    (StatusType)8
+
 #endif /* OS_TYPES_H_ */

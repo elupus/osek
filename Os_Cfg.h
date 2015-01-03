@@ -32,4 +32,7 @@
 
 #define OS_TICK_US    100000U
 
+extern void errorhook(StatusType ret);
+#define OS_ERRORHOOK(_ret) errorhook(_ret)
+
 #endif /* OS_CFG_H_ */

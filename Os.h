@@ -41,8 +41,15 @@ StatusType Os_Schedule(void);
 StatusType Os_TerminateTask(void);
 StatusType Os_ActivateTask(Os_TaskType task);
 
-#ifndef E_OS_LIMIT
-#define E_OS_LIMIT 2u
+
+#ifdef OS_ERRORHOOK
+#define OS_ERRORCHECK(_condition, _ret) do { \
+        if(!(_condition)) {                  \
+            OS_ERRORHOOK(_ret);              \
+        }                                    \
+    } while(0)
+#else
+#define OS_ERRORCHECK(_condition, _ret)
 #endif
 
 #endif /* OS_H_ */

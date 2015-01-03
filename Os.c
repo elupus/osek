@@ -168,6 +168,10 @@ StatusType Os_TerminateTask(void)
 {
     StatusType res;
     Os_Arch_DisableAllInterrupts();
+
+    OS_ERRORCHECK(Os_TaskControls[Os_TaskRunning].activation > 0, E_OS_LIMIT);
+    OS_ERRORCHECK(Os_CallContext != OS_CONTEXT_ISR              , E_OS_CALLEVEL);
+
     Os_TaskControls[Os_TaskRunning].activation--;
     if (Os_TaskControls[Os_TaskRunning].activation) {
         Os_Arch_PrepareState(Os_TaskRunning);
@@ -183,6 +187,10 @@ StatusType Os_ActivateTask(Os_TaskType task)
 {
     StatusType res;
     Os_Arch_DisableAllInterrupts();
+
+    OS_ERRORCHECK(task < OS_TASK_COUNT                   , E_OS_ID);
+    OS_ERRORCHECK(Os_TaskControls[task].activation <  255, E_OS_LIMIT);
+
     Os_TaskControls[task].activation++;
     if (Os_TaskControls[task].activation == 1u) {
         Os_Arch_PrepareState(task);

@@ -18,6 +18,7 @@
 
 #include "Std_Types.h"
 #include <string.h>
+#include <stdlib.h>
 
 #include "Os.h"
 #include "Os_Cfg.h"
@@ -73,6 +74,11 @@ const Os_TaskConfigType Os_DefaultTasks[OS_TASK_COUNT] = {
            .autostart   = 0
          }
 };
+
+void errorhook(StatusType ret)
+{
+    exit(ret);
+}
 
 const Os_ConfigType Os_DefaultConfig = {
         .tasks = &Os_DefaultTasks
