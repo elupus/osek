@@ -28,7 +28,7 @@ Os_TaskType                     Os_TaskRunning;
 Os_ContextType                  Os_CallContext;
 const Os_TaskConfigType *       Os_TaskConfigs;
 
-void Os_ReadyListPushHead(Os_ReadyListType* list, Os_TaskType task)
+static void Os_ReadyListPushHead(Os_ReadyListType* list, Os_TaskType task)
 {
     Os_TaskControls[task].next = list->head;
     list->head = task;
@@ -37,7 +37,7 @@ void Os_ReadyListPushHead(Os_ReadyListType* list, Os_TaskType task)
     }
 }
 
-void Os_ReadyListPopHead(Os_ReadyListType* list, Os_TaskType* task)
+static void Os_ReadyListPopHead(Os_ReadyListType* list, Os_TaskType* task)
 {
     if (list->tail == Os_TaskIdNone) {
         *task = Os_TaskIdNone;
@@ -52,7 +52,7 @@ void Os_ReadyListPopHead(Os_ReadyListType* list, Os_TaskType* task)
     Os_TaskControls[*task].next = Os_TaskIdNone;
 }
 
-void Os_ReadyListPushTail(Os_ReadyListType* list, Os_TaskType task)
+static void Os_ReadyListPushTail(Os_ReadyListType* list, Os_TaskType task)
 {
     Os_TaskControls[task].next = Os_TaskIdNone;
     if (list->head == Os_TaskIdNone) {
@@ -63,18 +63,18 @@ void Os_ReadyListPushTail(Os_ReadyListType* list, Os_TaskType task)
     list->tail = task;
 }
 
-void Os_ReadyListInit(Os_ReadyListType* list)
+static void Os_ReadyListInit(Os_ReadyListType* list)
 {
     list->head = Os_TaskIdNone;
     list->tail = Os_TaskIdNone;
 }
 
-void Os_TaskInit(Os_TaskType task)
+static void Os_TaskInit(Os_TaskType task)
 {
     memset(&Os_TaskControls[task], 0, sizeof(Os_TaskControls[task]));
 }
 
-void Os_TaskPeek(Os_PriorityType min_priority, Os_TaskType* task)
+static void Os_TaskPeek(Os_PriorityType min_priority, Os_TaskType* task)
 {
     Os_PriorityType prio;
     *task = Os_TaskIdNone;
