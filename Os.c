@@ -104,7 +104,7 @@ void Os_TaskSwitch(Os_TaskType task)
         /* put preempted task as first ready */
         Os_TaskSetReadyHead(prev);
     }
-    Os_Arch_SwapState(prev, task);
+    Os_Arch_SwapState(task, prev);
 }
 
 void Os_Start(void)
