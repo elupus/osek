@@ -63,8 +63,8 @@ void Os_Arch_Init(void)
                          , NULL
                          , Os_Arch_TimerCallback
                          , NULL
-                         , 100
-                         , 100
+                         , OS_TICK_US / 1000
+                         , OS_TICK_US / 1000
                          , WT_EXECUTEDEFAULT);
 
 }

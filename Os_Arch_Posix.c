@@ -41,8 +41,8 @@ void Os_Arch_Init(void)
 
      // start up the "interrupt"!
     struct itimerval val;
-    val.it_interval.tv_sec = val.it_value.tv_sec = 0;
-    val.it_interval.tv_usec = val.it_value.tv_usec = 100000;
+    val.it_interval.tv_sec  = val.it_value.tv_sec  = OS_TICK_US / 1000;
+    val.it_interval.tv_usec = val.it_value.tv_usec = OS_TICK_US % 1000;
     res = setitimer(ITIMER_REAL, &val, NULL);
 }
 
