@@ -133,7 +133,7 @@ void Os_Start(void)
     }
 }
 
-StatusType Os_ScheduleInternal(void)
+StatusType Os_Schedule_Internal(void)
 {
     Os_PriorityType prio;
     Os_TaskType     task, prev;
@@ -179,30 +179,18 @@ StatusType Os_ScheduleInternal(void)
     return E_OK;
 }
 
-StatusType Os_Schedule(void)
-{
-    StatusType res;
-    Os_Arch_DisableAllInterrupts();
-    res = Os_ScheduleInternal();
-    Os_Arch_EnableAllInterrupts();
-    return res;
-}
-
 void Os_Isr(void)
 {
     Os_CallContext = OS_CONTEXT_ISR;
-    Os_ScheduleInternal();
+    Os_Schedule_Internal();
     Os_CallContext = OS_CONTEXT_TASK;
 }
 
 
-StatusType Os_TerminateTask(void)
+StatusType Os_TerminateTask_Internal(void)
 {
-    StatusType res;
-    Os_Arch_DisableAllInterrupts();
-
-    OS_ERRORCHECK(Os_TaskControls[Os_TaskRunning].activation > 0, E_OS_LIMIT);
-    OS_ERRORCHECK(Os_CallContext != OS_CONTEXT_ISR              , E_OS_CALLEVEL);
+    OS_ERRORCHECK_R(Os_TaskControls[Os_TaskRunning].activation > 0, E_OS_LIMIT);
+    OS_ERRORCHECK_R(Os_CallContext != OS_CONTEXT_ISR              , E_OS_CALLEVEL);
 
     Os_State_Running_To_Suspended(Os_TaskRunning);
 
@@ -212,32 +200,25 @@ StatusType Os_TerminateTask(void)
     }
 
     Os_TaskRunning = Os_TaskIdNone;
-    res = Os_ScheduleInternal();
-    Os_Arch_EnableAllInterrupts();
-    return res;
+    return Os_Schedule_Internal();
 }
 
-StatusType Os_ActivateTask(Os_TaskType task)
+StatusType Os_ActivateTask_Internal(Os_TaskType task)
 {
-    StatusType res;
-    Os_Arch_DisableAllInterrupts();
-
-    OS_ERRORCHECK(task < OS_TASK_COUNT                   , E_OS_ID);
-    OS_ERRORCHECK(Os_TaskControls[task].activation <  255, E_OS_LIMIT);
+    OS_ERRORCHECK_R(task < OS_TASK_COUNT                   , E_OS_ID);
+    OS_ERRORCHECK_R(Os_TaskControls[task].activation <  255, E_OS_LIMIT);
 
     Os_TaskControls[task].activation++;
     if (Os_TaskControls[task].activation == 1u) {
         Os_State_Suspended_To_Ready(task);
     }
-    res = Os_ScheduleInternal();
-    Os_Arch_EnableAllInterrupts();
-    return res;
+
+    return Os_Schedule_Internal();
 }
 
-StatusType Os_GetResource(Os_ResourceType res)
+StatusType Os_GetResource_Internal(Os_ResourceType res)
 {
-    StatusType result;
-    OS_ERRORCHECK(res < OS_RES_COUNT, E_OS_ID);
+    OS_ERRORCHECK_R(res < OS_RES_COUNT, E_OS_ID);
 
     if (res == OS_RES_SCHEDULER) {
         Os_Arch_DisableAllInterrupts();
@@ -248,13 +229,11 @@ StatusType Os_GetResource(Os_ResourceType res)
     return result;
 }
 
-StatusType Os_ReleaseResource(Os_ResourceType res)
+StatusType Os_ReleaseResource_Internal(Os_ResourceType res)
 {
-    StatusType result;
-    OS_ERRORCHECK(res < OS_RES_COUNT, E_OS_ID);
+    OS_ERRORCHECK_R(res < OS_RES_COUNT, E_OS_ID);
 
     if (res == OS_RES_SCHEDULER) {
-        Os_Arch_EnableAllInterrupts();
         result = E_OK;
     } else {
         result = E_OS_RESOURCE;

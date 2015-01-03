@@ -38,12 +38,57 @@ extern const Os_TaskConfigType *       Os_TaskConfigs;
 void       Os_Init(const Os_ConfigType* config);
 void       Os_Start(void);
 void       Os_Isr(void);
-StatusType Os_Schedule(void);
-StatusType Os_TerminateTask(void);
-StatusType Os_ActivateTask(Os_TaskType task);
 
-StatusType Os_GetResource(Os_ResourceType res);
-StatusType Os_ReleaseResource(Os_ResourceType res);
+extern          StatusType Os_Schedule_Internal(void);
+static __inline StatusType Os_Schedule         (void)
+{
+    StatusType result;
+    Os_Arch_DisableAllInterrupts();
+    result = Os_Schedule_Internal();
+    Os_Arch_EnableAllInterrupts();
+    return result;
+}
+
+extern StatusType          Os_TerminateTask_Internal(void);
+static __inline StatusType Os_TerminateTask         (void)
+{
+    StatusType result;
+    Os_Arch_DisableAllInterrupts();
+    result = Os_TerminateTask_Internal();
+    Os_Arch_EnableAllInterrupts();
+    return result;
+}
+
+extern StatusType          Os_ActivateTask_Internal(Os_TaskType task);
+static __inline StatusType Os_ActivateTask         (Os_TaskType task)
+{
+    StatusType result;
+    Os_Arch_DisableAllInterrupts();
+    result = Os_ActivateTask_Internal(task);
+    Os_Arch_EnableAllInterrupts();
+    return result;
+}
+
+
+extern          StatusType Os_GetResource_Internal(Os_ResourceType res);
+static __inline StatusType Os_GetResource         (Os_ResourceType res)
+{
+    StatusType result;
+    Os_Arch_DisableAllInterrupts();
+    result = Os_GetResource_Internal(res);
+    Os_Arch_EnableAllInterrupts();
+    return result;
+}
+
+extern          StatusType Os_ReleaseResource_Internal(Os_ResourceType res);
+static __inline StatusType Os_ReleaseResource         (Os_ResourceType res)
+{
+    StatusType result;
+    Os_Arch_DisableAllInterrupts();
+    result = Os_ReleaseResource_Internal(res);
+    Os_Arch_EnableAllInterrupts();
+    return result;
+}
 
 static __inline StatusType Os_GetTaskId   (Os_TaskType* task)
 {
@@ -56,6 +101,13 @@ static __inline StatusType Os_GetTaskId   (Os_TaskType* task)
         if(!(_condition)) {                  \
             OS_ERRORHOOK(_ret);              \
         }                                    \
+    } while(0)
+
+#define OS_ERRORCHECK_R(_condition, _ret) do { \
+        if(!(_condition)) {                    \
+            OS_ERRORHOOK(_ret);                \
+            return _ret;                       \
+        }                                      \
     } while(0)
 #else
 #define OS_ERRORCHECK(_condition, _ret)
