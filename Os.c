@@ -133,7 +133,7 @@ void Os_Start(void)
 StatusType Os_ScheduleInternal(void)
 {
     Os_PriorityType prio;
-    Os_TaskType     task;
+    Os_TaskType     task, prev;
     if (Os_TaskRunning == Os_TaskIdNone) {
         prio = 0u;
     } else {
@@ -160,12 +160,16 @@ StatusType Os_ScheduleInternal(void)
             Os_State_Running_To_Ready(Os_TaskRunning);
         }
 
-        Os_TaskType prev = Os_TaskRunning;
-        Os_TaskRunning = task;
+        /* pop this task out from ready */
         Os_State_Ready_To_Running(task);
 
         /* no direct return if called from task
-         * if called from ISR, this will just prepare next task */
+         * if called from ISR, this will just
+         * prepare next task. function can use
+         * current running task to check if it
+         * just restored to this state */
+        prev = Os_TaskRunning;
+        Os_TaskRunning = task;
         Os_Arch_SwapState(task, prev);
         break;
     }
