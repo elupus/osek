@@ -75,6 +75,10 @@ static void Os_ReadyListInit(Os_ReadyListType* list)
 static void Os_TaskInit(Os_TaskType task)
 {
     memset(&Os_TaskControls[task], 0, sizeof(Os_TaskControls[task]));
+    Os_TaskControls[task].next     = Os_TaskIdNone;
+    if (Os_TaskConfigs[task].autostart) {
+        Os_TaskControls[task].activation = 1;
+    }
 }
 
 static void Os_TaskPeek(Os_PriorityType min_priority, Os_TaskType* task)
@@ -256,14 +260,17 @@ void Os_Init(const Os_ConfigType* config)
         Os_ReadyListInit(&Os_TaskReady[prio]);
     }
 
-    Os_Arch_Init();
-
-    /* setup autostarting tasks */
+    /* initialize task */
     for (task = 0u; task < OS_TASK_COUNT; ++task) {
         Os_TaskInit(task);
+    }
 
-        if (Os_TaskConfigs[task].autostart) {
-            Os_TaskControls[task].activation = 1;
+    /* run arch init */
+    Os_Arch_Init();
+
+    /* make sure any activated task is in ready list */
+    for (task = 0u; task < OS_TASK_COUNT; ++task) {
+        if (Os_TaskControls[task].activation) {
             Os_State_Suspended_To_Ready(task);
         }
     }
