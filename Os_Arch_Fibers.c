@@ -27,11 +27,9 @@ typedef struct Os_Arch_StateType {
     LPVOID fiber;
 } Os_Arch_StateType;
 
-LPVOID Os_Arch_System;
-
-HANDLE Os_Arch_Timer;
-CRITICAL_SECTION Os_Arch_Section;
-
+LPVOID            Os_Arch_System;
+HANDLE            Os_Arch_Timer;
+CRITICAL_SECTION  Os_Arch_Section;
 Os_Arch_StateType Os_Arch_State[OS_TASK_COUNT];
 
 VOID CALLBACK Os_Arch_FiberStart(LPVOID lpParameter)
