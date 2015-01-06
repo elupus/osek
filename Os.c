@@ -123,7 +123,7 @@ void Os_TaskInternalResource_Release(void)
     }
 }
 
-void Os_TaskInternalResource_Get()
+void Os_TaskInternalResource_Get(void)
 {
     Os_ResourceType res;
 
