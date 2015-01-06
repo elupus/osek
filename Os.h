@@ -85,22 +85,22 @@ static __inline StatusType Os_ActivateTask         (Os_TaskType task)
 }
 
 
-extern          StatusType Os_GetResource_Internal(Os_ResourceType res, Os_TaskType task);
+extern          StatusType Os_GetResource_Internal(Os_ResourceType res);
 static __inline StatusType Os_GetResource         (Os_ResourceType res)
 {
     StatusType result;
     Os_Arch_DisableAllInterrupts();
-    result = Os_GetResource_Internal(res, Os_TaskRunning);
+    result = Os_GetResource_Internal(res);
     Os_Arch_EnableAllInterrupts();
     return result;
 }
 
-extern          StatusType Os_ReleaseResource_Internal(Os_ResourceType res, Os_TaskType task);
+extern          StatusType Os_ReleaseResource_Internal(Os_ResourceType res);
 static __inline StatusType Os_ReleaseResource         (Os_ResourceType res)
 {
     StatusType result;
     Os_Arch_DisableAllInterrupts();
-    result = Os_ReleaseResource_Internal(res, Os_TaskRunning);
+    result = Os_ReleaseResource_Internal(res);
     Os_Arch_EnableAllInterrupts();
     return result;
 }

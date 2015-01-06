@@ -119,7 +119,7 @@ void Os_TaskInternalResource_Release(void)
 
     res = Os_TaskConfigs[Os_TaskRunning].resource;
     if (res != Os_ResourceIdNone) {
-        Os_ReleaseResource_Internal(res, Os_TaskRunning);
+        Os_ReleaseResource_Internal(res);
     }
 }
 
@@ -133,7 +133,7 @@ void Os_TaskInternalResource_Get()
     res = Os_TaskConfigs[Os_TaskRunning].resource;
     if (res != Os_ResourceIdNone) {
         if (Os_ResourceControls[res].task != Os_TaskRunning) {
-            Os_GetResource_Internal(res, Os_TaskRunning);
+            Os_GetResource_Internal(res);
         }
     }
 }
@@ -283,36 +283,36 @@ StatusType Os_ActivateTask_Internal(Os_TaskType task)
     return Os_Schedule_Internal();
 }
 
-StatusType Os_GetResource_Internal(Os_ResourceType res, Os_TaskType task)
+StatusType Os_GetResource_Internal(Os_ResourceType res)
 {
     OS_ERRORCHECK_R(res < OS_RES_COUNT, E_OS_ID);
-    OS_ERRORCHECK_R(Os_TaskPrio(task)   <= Os_ResourceConfigs[res].priority, E_OS_ACCESS);
-    OS_ERRORCHECK_R(Os_ResourceControls[res].task == Os_TaskIdNone, E_OS_ACCESS);
+    OS_ERRORCHECK_R(Os_ResourceControls[res].task == Os_TaskIdNone         , E_OS_ACCESS);
 
     if (Os_CallContext == OS_CONTEXT_ISR) {
         OS_ERRORCHECK_R(0, E_OS_SYS_NOT_IMPLEMENTED);
 
     } else {
-        Os_ResourceControls[res].task  = task;
-        Os_ResourceControls[res].next  = Os_TaskControls[task].resource;
-        Os_TaskControls[task].resource = res;
+        OS_ERRORCHECK_R(Os_TaskPrio(Os_TaskRunning)   <= Os_ResourceConfigs[res].priority, E_OS_ACCESS);
+        Os_ResourceControls[res].task            = Os_TaskRunning;
+        Os_ResourceControls[res].next            = Os_TaskControls[Os_TaskRunning].resource;
+        Os_TaskControls[Os_TaskRunning].resource = res;
     }
 
     return E_OK;
 }
 
-StatusType Os_ReleaseResource_Internal(Os_ResourceType res, Os_TaskType task)
+StatusType Os_ReleaseResource_Internal(Os_ResourceType res)
 {
     OS_ERRORCHECK_R(res < OS_RES_COUNT, E_OS_ID);
-    OS_ERRORCHECK_R(Os_ResourceControls[res].task == task, E_OS_ACCESS);
 
     if (Os_CallContext == OS_CONTEXT_ISR) {
         OS_ERRORCHECK_R(0, E_OS_SYS_NOT_IMPLEMENTED);
 
     } else {
-        OS_ERRORCHECK_R(Os_TaskControls[task].resource == res, E_OS_NOFUNC);
+        OS_ERRORCHECK_R(Os_ResourceControls[res].task == Os_TaskRunning, E_OS_ACCESS);
+        OS_ERRORCHECK_R(Os_TaskControls[Os_TaskRunning].resource == res, E_OS_NOFUNC);
 
-        Os_TaskControls[task].resource = Os_ResourceControls[res].next;
+        Os_TaskControls[Os_TaskRunning].resource = Os_ResourceControls[res].next;
         Os_ResourceControls[res].task  = Os_TaskIdNone;
         Os_ResourceControls[res].next  = Os_ResourceIdNone;
     }
