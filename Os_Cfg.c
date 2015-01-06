@@ -16,6 +16,11 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
+/**
+ * @file
+ * @ingroup Os_Cfg
+ */
+
 #include "Std_Types.h"
 #include <string.h>
 #include <stdlib.h>

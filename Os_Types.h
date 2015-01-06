@@ -16,6 +16,11 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
+/**
+ * @file
+ * @ingroup Os
+ */
+
 #ifndef OS_TYPES_H_
 #define OS_TYPES_H_
 
@@ -58,45 +63,45 @@ typedef void          (*Os_TaskEntryType)(void); /**< type for the entry point o
  * @brief Structure describing a tasks static configuration
  */
 typedef struct Os_TaskConfigType {
-    Os_PriorityType  priority;    /**< fixed priority of task */
-    Os_TaskEntryType entry;       /**< entry point of task */
-    void*            stack;       /**< bottom of stack pointer */
-    size_t           stack_size;  /**< how large is the stack pointed to by stack */
-    int              autostart;   /**< should this task start automatically */
-    Os_ResourceType  resource;    /**< internal resource of task, can be Os_TaskIdNone */
+    Os_PriorityType  priority;    /**< @brief fixed priority of task */
+    Os_TaskEntryType entry;       /**< @brief entry point of task */
+    void*            stack;       /**< @brief bottom of stack pointer */
+    size_t           stack_size;  /**< @brief how large is the stack pointed to by stack */
+    int              autostart;   /**< @brief should this task start automatically */
+    Os_ResourceType  resource;    /**< @brief internal resource of task, can be Os_TaskIdNone */
 } Os_TaskConfigType;
 
 /**
  * @brief Structure holding information of the state of a task
  */
 typedef struct Os_TaskControlType {
-    Os_TaskStateEnum state;       /**< current state */
-    uint8            activation;  /**< number of activations for given task */
-    Os_TaskType      next;        /**< next task in the same ready list */
-    Os_ResourceType  resource;    /**< last taken resource for task (rest is linked list */
+    Os_TaskStateEnum state;       /**< @brief current state */
+    uint8            activation;  /**< @brief number of activations for given task */
+    Os_TaskType      next;        /**< @brief next task in the same ready list */
+    Os_ResourceType  resource;    /**< @brief last taken resource for task (rest is linked list */
 } Os_TaskControlType;
 
 /**
  * @brief Structure holding configuration setup for each resource
  */
 typedef struct Os_ResourceConfigType {
-    Os_PriorityType priority;     /**< priority ceiling of all task using */
+    Os_PriorityType priority;     /**< @brief priority ceiling of all task using */
 } Os_ResourceConfigType;
 
 /**
  * @brief Structure holding active state information for each resource
  */
 typedef struct Os_ResourceControlType {
-    Os_ResourceType next;         /**< linked list of held resources */
-    Os_TaskType     task;         /**< task currently holding resource */
+    Os_ResourceType next;         /**< @brief linked list of held resources */
+    Os_TaskType     task;         /**< @brief task currently holding resource */
 } Os_ResourceControlType;
 
 /**
  * @brief Linked list of ready tasks
  */
 typedef struct Os_ReadyListType {
-    Os_TaskType head;             /**< pointer to the first ready task */
-    Os_TaskType tail;             /**< pointer to the last ready task */
+    Os_TaskType head;             /**< @brief pointer to the first ready task */
+    Os_TaskType tail;             /**< @brief pointer to the last ready task */
 } Os_ReadyListType;
 
 #define E_OS_ACCESS   (StatusType)1

@@ -16,6 +16,11 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
+/**
+ * @file
+ * @ingroup Os
+ */
+
 #ifndef OS_H_
 #define OS_H_
 
@@ -27,8 +32,8 @@
  * @brief Main configuration structure of Os
  */
 typedef struct Os_ConfigType {
-    const Os_TaskConfigType     (*tasks)[OS_TASK_COUNT];    /**< pointer to an array of task configurations */
-    const Os_ResourceConfigType (*resources)[OS_RES_COUNT]; /**< pointer to an array of resource configurations */
+    const Os_TaskConfigType     (*tasks)[OS_TASK_COUNT];    /**< @brief pointer to an array of task configurations */
+    const Os_ResourceConfigType (*resources)[OS_RES_COUNT]; /**< @brief pointer to an array of resource configurations */
 } Os_ConfigType;
 
 

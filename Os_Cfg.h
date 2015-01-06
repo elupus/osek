@@ -16,6 +16,11 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
+/**
+ * @file
+ * @ingroup Os_Cfg
+ */
+
 #ifndef OS_CFG_H_
 #define OS_CFG_H_
 

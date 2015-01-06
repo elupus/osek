@@ -16,6 +16,20 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
+/**
+ * @file
+ * @ingroup Os
+ */
+
+/**
+ * @defgroup Os OSEK OS Scheduler
+ */
+
+/**
+ * @defgroup Os_Cfg OSEK Os Scheduler Config
+ * @ingroup Os
+ */
+
 #include <string.h>
 
 #include "Std_Types.h"
