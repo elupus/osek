@@ -119,7 +119,7 @@ void Os_TaskInternalResource_Release(void)
 
     res = Os_TaskConfigs[Os_TaskRunning].resource;
     if (res != Os_ResourceIdNone) {
-        Os_ReleaseResource_Internal(res);
+        (void)Os_ReleaseResource_Internal(res);
     }
 }
 
@@ -133,7 +133,7 @@ void Os_TaskInternalResource_Get(void)
     res = Os_TaskConfigs[Os_TaskRunning].resource;
     if (res != Os_ResourceIdNone) {
         if (Os_ResourceControls[res].task != Os_TaskRunning) {
-            Os_GetResource_Internal(res);
+            (void)Os_GetResource_Internal(res);
         }
     }
 }
@@ -187,10 +187,33 @@ static __inline void Os_State_Ready_To_Running(Os_TaskType task)
 
 void Os_Start(void)
 {
-    Os_CallContext = OS_CONTEXT_TASK;
-    Os_Arch_EnableAllInterrupts();
-    while(1) {
-        (void)Os_Schedule();
+
+    Os_TaskType     task;
+    Os_TaskPeek(0, &task);
+    if (task == Os_TaskIdNone) {
+        /* no task found, just wait for tick to trigger one */
+        Os_Arch_EnableAllInterrupts();
+        while(1) {
+            ; /* NOP */
+        }
+    } else {
+        /* pop this task out from ready */
+        Os_State_Ready_To_Running(task);
+
+        /* call context will be task after this */
+        Os_CallContext = OS_CONTEXT_TASK;
+
+        /* re-grab internal resource if not held */
+        Os_TaskInternalResource_Get();
+
+        /* swap into first task */
+        Os_Arch_SwapState(task, Os_TaskIdNone);
+
+        /* should never be reached */
+        OS_ERRORCHECK(0, E_OS_NOFUNC);
+        while(1) {
+            ; /* NOP */
+        }
     }
 }
 
