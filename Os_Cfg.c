@@ -81,7 +81,7 @@ const Os_TaskConfigType Os_DefaultTasks[OS_TASK_COUNT] = {
            .stack_size  = sizeof(test_stack),
            .autostart   = 0,
            .priority    = 2,
-           .resource    = Os_ResourceIdNone
+           .resource    = 3
          }
 };
 
