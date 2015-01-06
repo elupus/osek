@@ -29,11 +29,12 @@
 
 #define OS_TASK_COUNT 3
 #define OS_PRIO_COUNT 3
-#define OS_RES_COUNT  1
+#define OS_RES_COUNT  4
 
 #define OS_TICK_US    1000000U
 
-extern void errorhook(StatusType ret);
-#define OS_ERRORHOOK(_ret) errorhook(_ret)
+#define OS_PRETASKHOOK_ENABLE  0
+#define OS_POSTTASKHOOK_ENABLE 0
+#define OS_ERRORHOOK_ENABLE    1
 
 #endif /* OS_CFG_H_ */

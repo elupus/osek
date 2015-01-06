@@ -19,6 +19,7 @@
 #include "Std_Types.h"
 #include <string.h>
 #include <stdlib.h>
+#include <stdio.h>
 
 #include "Os.h"
 #include "Os_Cfg.h"
@@ -61,32 +62,51 @@ void test(void)
 }
 
 const Os_TaskConfigType Os_DefaultTasks[OS_TASK_COUNT] = {
-          { .priority   = 0,
-            .entry      = idle,
+          { .entry      = idle,
             .stack      = idle_stack,
             .stack_size = sizeof(idle_stack),
-            .autostart  = 1
+            .autostart  = 1,
+            .priority   = 0,
+            .resource   = Os_ResourceIdNone
           }
-        , { .priority   = 1,
-            .entry      = busy,
+        , { .entry      = busy,
             .stack      = busy_stack,
             .stack_size = sizeof(busy_stack),
-            .autostart  = 0
+            .autostart  = 0,
+            .priority   = 1,
+            .resource   = Os_ResourceIdNone
           }
-       , { .priority    = 2,
-           .entry       = test,
+       , { .entry       = test,
            .stack       = test_stack,
            .stack_size  = sizeof(test_stack),
-           .autostart   = 0
+           .autostart   = 0,
+           .priority    = 2,
+           .resource    = Os_ResourceIdNone
          }
 };
 
 const Os_ResourceConfigType Os_DefaultResources[OS_RES_COUNT] = {
         {   .priority = OS_PRIO_COUNT
-        }
+        },
+        {   .priority = 2
+        },
+        {   .priority = 1
+        },
+        {   .priority = 2
+        },
 };
 
-void errorhook(StatusType ret)
+void Os_PreTaskHook(Os_TaskType task)
+{
+    printf("PRETASK %d\n", task);
+}
+
+void Os_PostTaskHook(Os_TaskType task)
+{
+    printf("POSTTASK %d\n", task);
+}
+
+void Os_ErrorHook(StatusType ret)
 {
     exit(ret);
 }

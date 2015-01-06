@@ -35,6 +35,9 @@ extern Os_TaskType                     Os_TaskRunning;
 extern Os_ContextType                  Os_CallContext;
 extern const Os_TaskConfigType *       Os_TaskConfigs;
 
+void       Os_TaskInternalResource_Release(void);
+void       Os_TaskInternalResource_Get(void);
+
 void       Os_Init(const Os_ConfigType* config);
 void       Os_Start(void);
 void       Os_Isr(void);
@@ -44,7 +47,13 @@ static __inline StatusType Os_Schedule         (void)
 {
     StatusType result;
     Os_Arch_DisableAllInterrupts();
+
+    Os_TaskInternalResource_Release();
+
     result = Os_Schedule_Internal();
+
+    Os_TaskInternalResource_Get();
+
     Os_Arch_EnableAllInterrupts();
     return result;
 }
@@ -54,7 +63,13 @@ static __inline StatusType Os_TerminateTask         (void)
 {
     StatusType result;
     Os_Arch_DisableAllInterrupts();
+
+    Os_TaskInternalResource_Release();
+
     result = Os_TerminateTask_Internal();
+
+    Os_TaskInternalResource_Get();
+
     Os_Arch_EnableAllInterrupts();
     return result;
 }
@@ -70,22 +85,22 @@ static __inline StatusType Os_ActivateTask         (Os_TaskType task)
 }
 
 
-extern          StatusType Os_GetResource_Internal(Os_ResourceType res);
+extern          StatusType Os_GetResource_Internal(Os_ResourceType res, Os_TaskType task);
 static __inline StatusType Os_GetResource         (Os_ResourceType res)
 {
     StatusType result;
     Os_Arch_DisableAllInterrupts();
-    result = Os_GetResource_Internal(res);
+    result = Os_GetResource_Internal(res, Os_TaskRunning);
     Os_Arch_EnableAllInterrupts();
     return result;
 }
 
-extern          StatusType Os_ReleaseResource_Internal(Os_ResourceType res);
+extern          StatusType Os_ReleaseResource_Internal(Os_ResourceType res, Os_TaskType task);
 static __inline StatusType Os_ReleaseResource         (Os_ResourceType res)
 {
     StatusType result;
     Os_Arch_DisableAllInterrupts();
-    result = Os_ReleaseResource_Internal(res);
+    result = Os_ReleaseResource_Internal(res, Os_TaskRunning);
     Os_Arch_EnableAllInterrupts();
     return result;
 }
@@ -96,7 +111,28 @@ static __inline StatusType Os_GetTaskId   (Os_TaskType* task)
     return E_OK;
 }
 
-#ifdef OS_ERRORHOOK
+#if(OS_PRETASKHOOK_ENABLE)
+extern void Os_PreTaskHook(Os_TaskType task);
+#define OS_PRETASKHOOK(task) Os_PreTaskHook(task)
+#else
+#define OS_PRETASKHOOK(task)
+#endif
+
+#if(OS_POSTTASKHOOK_ENABLE)
+extern void Os_PostTaskHook(Os_TaskType task);
+#define OS_POSTTASKHOOK(task) Os_PostTaskHook(task)
+#else
+#define OS_POSTTASKHOOK(task)
+#endif
+
+#if(OS_ERRORHOOK_ENABLE)
+extern void Os_ErrorHook(StatusType status);
+#define OS_ERRORHOOK(status) Os_ErrorHook(status)
+#else
+#define OS_ERRORHOOK(status)
+#endif
+
+#if(OS_ERRORHOOK_ENABLE)
 #define OS_ERRORCHECK(_condition, _ret) do { \
         if(!(_condition)) {                  \
             OS_ERRORHOOK(_ret);              \
