@@ -23,9 +23,12 @@
 #include "Os_Types.h"
 #include "Os_Cfg.h"
 
+/**
+ * @brief Main configuration structure of Os
+ */
 typedef struct Os_ConfigType {
-    const Os_TaskConfigType     (*tasks)[OS_TASK_COUNT];
-    const Os_ResourceConfigType (*resources)[OS_RES_COUNT];
+    const Os_TaskConfigType     (*tasks)[OS_TASK_COUNT];    /**< pointer to an array of task configurations */
+    const Os_ResourceConfigType (*resources)[OS_RES_COUNT]; /**< pointer to an array of resource configurations */
 } Os_ConfigType;
 
 

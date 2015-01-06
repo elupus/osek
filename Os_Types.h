@@ -76,15 +76,24 @@ typedef struct Os_TaskControlType {
     Os_ResourceType  resource;    /**< last taken resource for task (rest is linked list */
 } Os_TaskControlType;
 
+/**
+ * @brief Structure holding configuration setup for each resource
+ */
 typedef struct Os_ResourceConfigType {
     Os_PriorityType priority;     /**< priority ceiling of all task using */
 } Os_ResourceConfigType;
 
+/**
+ * @brief Structure holding active state information for each resource
+ */
 typedef struct Os_ResourceControlType {
     Os_ResourceType next;         /**< linked list of held resources */
     Os_TaskType     task;         /**< task currently holding resource */
 } Os_ResourceControlType;
 
+/**
+ * @brief Linked list of ready tasks
+ */
 typedef struct Os_ReadyListType {
     Os_TaskType head;             /**< pointer to the first ready task */
     Os_TaskType tail;             /**< pointer to the last ready task */
