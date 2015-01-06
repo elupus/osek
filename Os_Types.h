@@ -33,7 +33,8 @@ static const Os_ResourceType Os_ResourceIdNone  = (Os_ResourceType)(-1);
 typedef enum Os_ContextType {
     OS_CONTEXT_NONE  = 0,
     OS_CONTEXT_TASK  = 1,
-    OS_CONTEXT_ISR   = 2,
+    OS_CONTEXT_ISR1  = 2,         /**< OS_CONTEXT_ISR1 - Os currently called from interrupt category 1 */
+    OS_CONTEXT_ISR2  = 3,         /**< OS_CONTEXT_ISR2 - Os currently called from interrupt category 2 */
 } Os_ContextType;
 
 typedef enum Os_TaskStateEnum {

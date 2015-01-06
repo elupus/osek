@@ -235,7 +235,7 @@ StatusType Os_Schedule_Internal(void)
             if (Os_TaskRunning != Os_TaskIdNone) {
                 break;    /* continue with current */
             }
-            if (Os_CallContext == OS_CONTEXT_ISR) {
+            if (Os_CallContext != OS_CONTEXT_TASK) {
                 break;    /* no new task, and we are inside tick, so we need to return out */
             }
 
@@ -270,7 +270,7 @@ StatusType Os_Schedule_Internal(void)
 
 void Os_Isr(void)
 {
-    Os_CallContext = OS_CONTEXT_ISR;
+    Os_CallContext = OS_CONTEXT_ISR1;
     Os_Schedule_Internal();
     Os_CallContext = OS_CONTEXT_TASK;
 }
@@ -279,7 +279,7 @@ void Os_Isr(void)
 StatusType Os_TerminateTask_Internal(void)
 {
     OS_ERRORCHECK_R(Os_TaskControls[Os_TaskRunning].activation > 0               , E_OS_LIMIT);
-    OS_ERRORCHECK_R(Os_CallContext != OS_CONTEXT_ISR                             , E_OS_CALLEVEL);
+    OS_ERRORCHECK_R(Os_CallContext == OS_CONTEXT_TASK                            , E_OS_CALLEVEL);
     OS_ERRORCHECK_R(Os_TaskControls[Os_TaskRunning].resource == Os_ResourceIdNone, E_OS_RESOURCE);
 
     Os_State_Running_To_Suspended(Os_TaskRunning);
@@ -311,14 +311,13 @@ StatusType Os_GetResource_Internal(Os_ResourceType res)
     OS_ERRORCHECK_R(res < OS_RES_COUNT, E_OS_ID);
     OS_ERRORCHECK_R(Os_ResourceControls[res].task == Os_TaskIdNone         , E_OS_ACCESS);
 
-    if (Os_CallContext == OS_CONTEXT_ISR) {
-        OS_ERRORCHECK_R(0, E_OS_SYS_NOT_IMPLEMENTED);
-
-    } else {
+    if (Os_CallContext == OS_CONTEXT_TASK) {
         OS_ERRORCHECK_R(Os_TaskPrio(Os_TaskRunning)   <= Os_ResourceConfigs[res].priority, E_OS_ACCESS);
         Os_ResourceControls[res].task            = Os_TaskRunning;
         Os_ResourceControls[res].next            = Os_TaskControls[Os_TaskRunning].resource;
         Os_TaskControls[Os_TaskRunning].resource = res;
+    } else {
+        OS_ERRORCHECK_R(0, E_OS_SYS_NOT_IMPLEMENTED);
     }
 
     return E_OK;
@@ -328,16 +327,15 @@ StatusType Os_ReleaseResource_Internal(Os_ResourceType res)
 {
     OS_ERRORCHECK_R(res < OS_RES_COUNT, E_OS_ID);
 
-    if (Os_CallContext == OS_CONTEXT_ISR) {
-        OS_ERRORCHECK_R(0, E_OS_SYS_NOT_IMPLEMENTED);
-
-    } else {
-        OS_ERRORCHECK_R(Os_ResourceControls[res].task == Os_TaskRunning, E_OS_ACCESS);
+    if (Os_CallContext == OS_CONTEXT_TASK) {
+        OS_ERRORCHECK_R(Os_ResourceControls[res].task == Os_TaskRunning, E_OS_NOFUNC);
         OS_ERRORCHECK_R(Os_TaskControls[Os_TaskRunning].resource == res, E_OS_NOFUNC);
 
         Os_TaskControls[Os_TaskRunning].resource = Os_ResourceControls[res].next;
         Os_ResourceControls[res].task  = Os_TaskIdNone;
         Os_ResourceControls[res].next  = Os_ResourceIdNone;
+    } else {
+        OS_ERRORCHECK_R(0, E_OS_SYS_NOT_IMPLEMENTED);
     }
 
     return Os_Schedule_Internal();

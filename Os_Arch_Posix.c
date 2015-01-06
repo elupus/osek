@@ -71,16 +71,16 @@ void Os_Arch_StoreState(Os_TaskType task)
 
 static void Os_Arch_RestoreState(Os_TaskType task)
 {
-    if (Os_CallContext == OS_CONTEXT_ISR) {
+    if (Os_CallContext == OS_CONTEXT_TASK) {
+        ucontext_t* ctx = &Os_Arch_State[task];
+        setcontext(ctx);
+    } else {
         ucontext_t ctx;
         getcontext(&ctx);
         if (ctx.uc_link != &Os_Arch_State[task]) {
             ctx.uc_link = &Os_Arch_State[task];
             setcontext(&ctx);
         }
-    } else {
-        ucontext_t* ctx = &Os_Arch_State[task];
-        setcontext(ctx);
     }
 }
 
