@@ -21,61 +21,73 @@
 
 #include "Std_Types.h"
 
-typedef uint8 Os_TaskType;
-typedef uint8 Os_ResourceType;
-typedef uint8 Os_PriorityType;
+typedef uint8 Os_TaskType;        /**< task identifier */
+typedef uint8 Os_ResourceType;    /**< resource identifier */
+typedef uint8 Os_PriorityType;    /**< priority level */
 
-typedef uint8 StatusType;
+typedef uint8 StatusType;         /**< return value for os functions */
 
 static const Os_TaskType     Os_TaskIdNone      = (Os_TaskType)(-1);
 static const Os_ResourceType Os_ResourceIdNone  = (Os_ResourceType)(-1);
 
+/**
+ * @brief Current call context
+ */
 typedef enum Os_ContextType {
-    OS_CONTEXT_NONE  = 0,
-    OS_CONTEXT_TASK  = 1,
+    OS_CONTEXT_NONE  = 0,         /**< OS_CONTEXT_NONE - Os has not been started */
+    OS_CONTEXT_TASK  = 1,         /**< OS_CONTEXT_TASK - Os currently called from a task */
     OS_CONTEXT_ISR1  = 2,         /**< OS_CONTEXT_ISR1 - Os currently called from interrupt category 1 */
     OS_CONTEXT_ISR2  = 3,         /**< OS_CONTEXT_ISR2 - Os currently called from interrupt category 2 */
 } Os_ContextType;
 
+/**
+ * @brief State of a task
+ */
 typedef enum Os_TaskStateEnum {
-    OS_TASK_SUSPENDED = 0,
-    OS_TASK_READY     = 1,
-    OS_TASK_WAITING   = 2,
-    OS_TASK_RUNNING   = 3,
+    OS_TASK_SUSPENDED = 0,        /**< OS_TASK_SUSPENDED */
+    OS_TASK_READY     = 1,        /**< OS_TASK_READY */
+    OS_TASK_WAITING   = 2,        /**< OS_TASK_WAITING */
+    OS_TASK_RUNNING   = 3,        /**< OS_TASK_RUNNING */
 } Os_TaskStateEnum;
 
 #define OS_RES_SCHEDULER (Os_ResourceType)0
 
-typedef void          (*Os_TaskEntryType)(void);
+typedef void          (*Os_TaskEntryType)(void); /**< type for the entry point of a task */
 
+/**
+ * @brief Structure describing a tasks static configuration
+ */
 typedef struct Os_TaskConfigType {
-    Os_PriorityType  priority;
-    Os_TaskEntryType entry;
-    void*            stack;
-    size_t           stack_size;
-    int              autostart;
-    Os_ResourceType  resource;
+    Os_PriorityType  priority;    /**< fixed priority of task */
+    Os_TaskEntryType entry;       /**< entry point of task */
+    void*            stack;       /**< bottom of stack pointer */
+    size_t           stack_size;  /**< how large is the stack pointed to by stack */
+    int              autostart;   /**< should this task start automatically */
+    Os_ResourceType  resource;    /**< internal resource of task, can be Os_TaskIdNone */
 } Os_TaskConfigType;
 
+/**
+ * @brief Structure holding information of the state of a task
+ */
 typedef struct Os_TaskControlType {
-    Os_TaskStateEnum state;
-    uint8            activation;
-    Os_TaskType      next;
-    Os_ResourceType  resource;
+    Os_TaskStateEnum state;       /**< current state */
+    uint8            activation;  /**< number of activations for given task */
+    Os_TaskType      next;        /**< next task in the same ready list */
+    Os_ResourceType  resource;    /**< last taken resource for task (rest is linked list */
 } Os_TaskControlType;
 
 typedef struct Os_ResourceConfigType {
-    Os_PriorityType priority; /**< priority ceiling of all task using */
+    Os_PriorityType priority;     /**< priority ceiling of all task using */
 } Os_ResourceConfigType;
 
 typedef struct Os_ResourceControlType {
-    Os_ResourceType next;     /**< linked list of held resources   */
-    Os_TaskType     task;     /**< task currently holding resource */
+    Os_ResourceType next;         /**< linked list of held resources */
+    Os_TaskType     task;         /**< task currently holding resource */
 } Os_ResourceControlType;
 
 typedef struct Os_ReadyListType {
-    Os_TaskType head;
-    Os_TaskType tail;
+    Os_TaskType head;             /**< pointer to the first ready task */
+    Os_TaskType tail;             /**< pointer to the last ready task */
 } Os_ReadyListType;
 
 #define E_OS_ACCESS   (StatusType)1

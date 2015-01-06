@@ -105,6 +105,11 @@ static __inline StatusType Os_ReleaseResource         (Os_ResourceType res)
     return result;
 }
 
+/**
+ * @brief Get the identifier of the currently executing task
+ * @param[out] task Currently running task or Os_TaskIdNone if no task is running
+ * @return E_OK on success
+ */
 static __inline StatusType Os_GetTaskId   (Os_TaskType* task)
 {
     *task = Os_TaskRunning;
