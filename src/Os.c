@@ -45,6 +45,12 @@ const Os_TaskConfigType *       Os_TaskConfigs;                         /**< con
 const Os_ResourceConfigType *   Os_ResourceConfigs;                     /**< config array for resources */
 Os_ResourceControlType          Os_ResourceControls    [OS_RES_COUNT];  /**< control array for resources */
 
+static StatusType Os_Schedule_Internal(void);
+static StatusType Os_TerminateTask_Internal(void);
+static StatusType Os_ActivateTask_Internal(Os_TaskType task);
+static StatusType Os_GetResource_Internal(Os_ResourceType res);
+static StatusType Os_ReleaseResource_Internal(Os_ResourceType res);
+
 /**
  * @brief Add task to the given ready list at the head of the list
  * @param[in] list ready list to add task to
@@ -377,6 +383,22 @@ StatusType Os_Schedule_Internal(void)
     return E_OK;
 }
 
+/** @copydoc Os_Schedule_Internal */
+StatusType Os_Schedule(void)
+{
+    StatusType result;
+    Os_Arch_DisableAllInterrupts();
+
+    Os_TaskInternalResource_Release();
+
+    result = Os_Schedule_Internal();
+
+    Os_TaskInternalResource_Get();
+
+    Os_Arch_EnableAllInterrupts();
+    return result;
+}
+
 void Os_Isr(void)
 {
     Os_CallContext = OS_CONTEXT_ISR1;
@@ -415,6 +437,22 @@ StatusType Os_TerminateTask_Internal(void)
     return Os_Schedule_Internal();
 }
 
+/** @copydoc Os_TerminateTask_Internal */
+StatusType Os_TerminateTask(void)
+{
+    StatusType result;
+    Os_Arch_DisableAllInterrupts();
+
+    Os_TaskInternalResource_Release();
+
+    result = Os_TerminateTask_Internal();
+
+    Os_TaskInternalResource_Get();
+
+    Os_Arch_EnableAllInterrupts();
+    return result;
+}
+
 /**
  * @brief Increase activation count for task by one
  * @param task Task to activate
@@ -427,7 +465,7 @@ StatusType Os_TerminateTask_Internal(void)
  *
  * Call contexts: TASK, ISR2
  */
-StatusType Os_ActivateTask_Internal(Os_TaskType task)
+static StatusType Os_ActivateTask_Internal(Os_TaskType task)
 {
     OS_ERRORCHECK_R(task < OS_TASK_COUNT                   , E_OS_ID);
     OS_ERRORCHECK_R(Os_TaskControls[task].activation <  255, E_OS_LIMIT);
@@ -438,6 +476,16 @@ StatusType Os_ActivateTask_Internal(Os_TaskType task)
     }
 
     return Os_Schedule_Internal();
+}
+
+/** @copydoc Os_ActivateTask_Internal */
+StatusType Os_ActivateTask(Os_TaskType task)
+{
+    StatusType result;
+    Os_Arch_DisableAllInterrupts();
+    result = Os_ActivateTask_Internal(task);
+    Os_Arch_EnableAllInterrupts();
+    return result;
 }
 
 /**
@@ -452,7 +500,7 @@ StatusType Os_ActivateTask_Internal(Os_TaskType task)
  *
  * Call contexts: TASK, ISR2
  */
-StatusType Os_GetResource_Internal(Os_ResourceType res)
+static StatusType Os_GetResource_Internal(Os_ResourceType res)
 {
     OS_ERRORCHECK_R(res < OS_RES_COUNT, E_OS_ID);
     OS_ERRORCHECK_R(Os_ResourceControls[res].task == Os_TaskIdNone         , E_OS_ACCESS);
@@ -468,6 +516,18 @@ StatusType Os_GetResource_Internal(Os_ResourceType res)
 
     return E_OK;
 }
+
+
+/** @copydoc Os_GetResource_Internal */
+StatusType Os_GetResource(Os_ResourceType res)
+{
+    StatusType result;
+    Os_Arch_DisableAllInterrupts();
+    result = Os_GetResource_Internal(res);
+    Os_Arch_EnableAllInterrupts();
+    return result;
+}
+
 
 /**
  * @brief Release resource for active task/ISR2
@@ -499,6 +559,17 @@ StatusType Os_ReleaseResource_Internal(Os_ResourceType res)
     }
 
     return Os_Schedule_Internal();
+}
+
+
+/** @copydoc Os_ReleaseResource_Internal */
+StatusType Os_ReleaseResource(Os_ResourceType res)
+{
+    StatusType result;
+    Os_Arch_DisableAllInterrupts();
+    result = Os_ReleaseResource_Internal(res);
+    Os_Arch_EnableAllInterrupts();
+    return result;
 }
 
 /**
