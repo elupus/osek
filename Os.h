@@ -51,6 +51,8 @@ void       Os_Start(void);
 void       Os_Isr(void);
 
 extern          StatusType Os_Schedule_Internal(void);
+
+/** @copydoc Os_Schedule_Internal */
 static __inline StatusType Os_Schedule         (void)
 {
     StatusType result;
@@ -67,6 +69,8 @@ static __inline StatusType Os_Schedule         (void)
 }
 
 extern StatusType          Os_TerminateTask_Internal(void);
+
+/** @copydoc Os_TerminateTask_Internal */
 static __inline StatusType Os_TerminateTask         (void)
 {
     StatusType result;
@@ -83,6 +87,8 @@ static __inline StatusType Os_TerminateTask         (void)
 }
 
 extern StatusType          Os_ActivateTask_Internal(Os_TaskType task);
+
+/** @copydoc Os_ActivateTask_Internal */
 static __inline StatusType Os_ActivateTask         (Os_TaskType task)
 {
     StatusType result;
@@ -94,6 +100,8 @@ static __inline StatusType Os_ActivateTask         (Os_TaskType task)
 
 
 extern          StatusType Os_GetResource_Internal(Os_ResourceType res);
+
+/** @copydoc Os_GetResource_Internal */
 static __inline StatusType Os_GetResource         (Os_ResourceType res)
 {
     StatusType result;
@@ -104,6 +112,8 @@ static __inline StatusType Os_GetResource         (Os_ResourceType res)
 }
 
 extern          StatusType Os_ReleaseResource_Internal(Os_ResourceType res);
+
+/** @copydoc Os_ReleaseResource_Internal */
 static __inline StatusType Os_ReleaseResource         (Os_ResourceType res)
 {
     StatusType result;

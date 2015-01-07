@@ -385,12 +385,12 @@ void Os_Isr(void)
 }
 
 /**
- * @brief Internal implementation of the TerminateTask service
- * @return { E_OK on success
- *           E_OS_LIMIT if activation is already zero
- *           E_OS_RESOURCE if still holding a resource
- *           E_OS_* (see Os_Schedule_Internal)
- * }
+ * @brief Terminate calling task
+ * @return
+ *  - E_OK on success
+ *  - E_OS_LIMIT if activation is already zero
+ *  - E_OS_RESOURCE if still holding a resource
+ *  - E_OS_* see Os_Schedule_Internal()
  *
  * The function will terminate the calling task and transfer execution to
  * next in line to execute. If task already have a queued activation it
@@ -416,12 +416,12 @@ StatusType Os_TerminateTask_Internal(void)
 }
 
 /**
- * @brief Internal implementation of the ActivateTask service
+ * @brief Increase activation count for task by one
  * @param task Task to activate
- * @return { E_OK on success
- *           E_OS_LIMIT if maximum activations have been reached
- *           E_OS_* (see Os_Schedule_Internal)
- * }
+ * @return
+ *  - E_OK on success
+ *  - E_OS_LIMIT if maximum activations have been reached
+ *  - E_OS_* (see Os_Schedule_Internal)
  *
  * This will transfer a task from a suspended state to a ready state.
  *
@@ -443,12 +443,12 @@ StatusType Os_ActivateTask_Internal(Os_TaskType task)
 /**
  * @brief Lock resource for active task/ISR2
  * @param res
- * @return { E_OK on success
- *           E_OS_ID on invalid resource
- *           E_OS_ACCESS Attempt to get a resource which is already occupied by any task
-                         or ISR, or the statically assigned priority of the calling task or
-                         interrupt routine is higher than the calculated ceiling priority,
- * }
+ * @return
+ *  - E_OK on success
+ *  - E_OS_ID on invalid resource
+ *  - E_OS_ACCESS Attempt to get a resource which is already occupied by any task
+ *                or ISR, or the statically assigned priority of the calling task or
+ *                interrupt routine is higher than the calculated ceiling priority,
  *
  * Call contexts: TASK, ISR2
  */
@@ -472,14 +472,14 @@ StatusType Os_GetResource_Internal(Os_ResourceType res)
 /**
  * @brief Release resource for active task/ISR2
  * @param res
- * @return { E_OK on success
- *           E_OS_ID on invalid resource
- *           E_OS_NOFUNC Attempt to release a resource which is not occupied by any task
-                         or ISR, or another resource shall be released before.
-             E_OS_ACCESS Attempt to release a resource which has a lower ceiling priority
-                         than the statically assigned priority of the calling task or
-                         interrupt routine.
- * }
+ * @return
+ *  - E_OK on success
+ *  - E_OS_ID on invalid resource
+ *  - E_OS_NOFUNC Attempt to release a resource which is not occupied by any task
+ *                or ISR, or another resource shall be released before.
+ *  - E_OS_ACCESS Attempt to release a resource which has a lower ceiling priority
+ *                than the statically assigned priority of the calling task or
+ *                interrupt routine.
  *
  * Call contexts: TASK, ISR2
  */
