@@ -45,9 +45,9 @@
 							</tool>
 						</toolChain>
 					</folderInfo>
-					<fileInfo id="cdt.managedbuild.config.gnu.macosx.exe.debug.368379231.1912983007" name="Os_Arch_Fibers.h" rcbsApplicability="disable" resourcePath="Os_Arch_Fibers.h" toolsToInvoke=""/>
+					<fileInfo id="cdt.managedbuild.config.gnu.macosx.exe.debug.368379231.1912983007" name="Os_Arch_Fibers.h" rcbsApplicability="disable" resourcePath="src/Os_Arch_Fibers.h" toolsToInvoke=""/>
 					<sourceEntries>
-						<entry excluding="Os_Arch_Fibers.h|Os_Arch_Fibers.c" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
+						<entry excluding="src/Os_Arch_Fibers.h|src/Os_Arch_Fibers.c|Os_Arch_Fibers.h|Os_Arch_Fibers.c" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
 					</sourceEntries>
 				</configuration>
 			</storageModule>
@@ -141,8 +141,8 @@
 							<tool id="cdt.managedbuild.tool.gnu.cpp.linker.cygwin.base.913803826" name="Cygwin C++ Linker" superClass="cdt.managedbuild.tool.gnu.cpp.linker.cygwin.base"/>
 						</toolChain>
 					</folderInfo>
-					<fileInfo id="cdt.managedbuild.config.gnu.macosx.exe.debug.368379231.1392136647.122786380" name="Os_Arch_Posix.h" rcbsApplicability="disable" resourcePath="Os_Arch_Posix.h" toolsToInvoke=""/>
-					<fileInfo id="cdt.managedbuild.config.gnu.macosx.exe.debug.368379231.1392136647.Os_Arch_Posix.c" name="Os_Arch_Posix.c" rcbsApplicability="disable" resourcePath="Os_Arch_Posix.c" toolsToInvoke="cdt.managedbuild.tool.gnu.c.compiler.cygwin.1012501142">
+					<fileInfo id="cdt.managedbuild.config.gnu.macosx.exe.debug.368379231.1392136647.122786380" name="Os_Arch_Posix.h" rcbsApplicability="disable" resourcePath="src/Os_Arch_Posix.h" toolsToInvoke=""/>
+					<fileInfo id="cdt.managedbuild.config.gnu.macosx.exe.debug.368379231.1392136647.Os_Arch_Posix.c" name="Os_Arch_Posix.c" rcbsApplicability="disable" resourcePath="src/Os_Arch_Posix.c" toolsToInvoke="cdt.managedbuild.tool.gnu.c.compiler.cygwin.1012501142">
 						<tool id="cdt.managedbuild.tool.gnu.c.compiler.cygwin.1012501142" name="Cygwin C Compiler" superClass="cdt.managedbuild.tool.gnu.c.compiler.cygwin">
 							<option defaultValue="gnu.c.optimization.level.none" id="gnu.c.compiler.option.optimization.level.652271099" name="Optimization Level" superClass="gnu.c.compiler.option.optimization.level" valueType="enumerated"/>
 							<option id="gnu.c.compiler.option.debugging.level.1079749945" name="Debug Level" superClass="gnu.c.compiler.option.debugging.level" value="gnu.c.debugging.level.max" valueType="enumerated"/>
@@ -150,7 +150,7 @@
 						</tool>
 					</fileInfo>
 					<sourceEntries>
-						<entry excluding="Os_Arch_Posix.h|Os_Arch_Posix.c" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
+						<entry excluding="src/Os_Arch_Posix.h|src/Os_Arch_Posix.c|Os_Arch_Posix.h|Os_Arch_Posix.c" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
 					</sourceEntries>
 				</configuration>
 			</storageModule>
