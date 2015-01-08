@@ -96,7 +96,7 @@ void Os_Arch_PrepareState(Os_TaskType task)
 
 void Os_Arch_SwapState(Os_TaskType task, Os_TaskType prev)
 {
-    if (prev != Os_TaskIdNone) {
+    if (prev != OS_INVALID_TASK) {
         Os_Arch_StoreState(prev);
     }
 

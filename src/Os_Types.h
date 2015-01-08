@@ -32,8 +32,8 @@ typedef uint8 Os_PriorityType;    /**< priority level */
 
 typedef uint8 StatusType;         /**< return value for os functions */
 
-static const Os_TaskType     Os_TaskIdNone      = (Os_TaskType)(-1);
-static const Os_ResourceType Os_ResourceIdNone  = (Os_ResourceType)(-1);
+#define OS_INVALID_TASK      (Os_TaskType)(-1)
+#define OS_INVALID_RESOURCE  (Os_ResourceType)(-1)
 
 /**
  * @brief Current call context

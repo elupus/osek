@@ -60,7 +60,7 @@ static void Os_ReadyListPushHead(Os_ReadyListType* list, Os_TaskType task)
 {
     Os_TaskControls[task].next = list->head;
     list->head = task;
-    if (list->tail == Os_TaskIdNone) {
+    if (list->tail == OS_INVALID_TASK) {
         list->tail = task;
     }
 }
@@ -72,17 +72,17 @@ static void Os_ReadyListPushHead(Os_ReadyListType* list, Os_TaskType task)
  */
 static void Os_ReadyListPopHead(Os_ReadyListType* list, Os_TaskType* task)
 {
-    if (list->tail == Os_TaskIdNone) {
-        *task = Os_TaskIdNone;
+    if (list->tail == OS_INVALID_TASK) {
+        *task = OS_INVALID_TASK;
     } else {
         *task = list->head;
         if (list->tail == *task) {
-            list->tail = Os_TaskIdNone;
-            list->head = Os_TaskIdNone;
+            list->tail = OS_INVALID_TASK;
+            list->head = OS_INVALID_TASK;
         }
         list->head = Os_TaskControls[*task].next;
     }
-    Os_TaskControls[*task].next = Os_TaskIdNone;
+    Os_TaskControls[*task].next = OS_INVALID_TASK;
 }
 
 /**
@@ -92,8 +92,8 @@ static void Os_ReadyListPopHead(Os_ReadyListType* list, Os_TaskType* task)
  */
 static void Os_ReadyListPushTail(Os_ReadyListType* list, Os_TaskType task)
 {
-    Os_TaskControls[task].next = Os_TaskIdNone;
-    if (list->head == Os_TaskIdNone) {
+    Os_TaskControls[task].next = OS_INVALID_TASK;
+    if (list->head == OS_INVALID_TASK) {
         list->head = task;
     } else {
         Os_TaskControls[list->tail].next = task;
@@ -107,8 +107,8 @@ static void Os_ReadyListPushTail(Os_ReadyListType* list, Os_TaskType task)
  */
 static void Os_ReadyListInit(Os_ReadyListType* list)
 {
-    list->head = Os_TaskIdNone;
-    list->tail = Os_TaskIdNone;
+    list->head = OS_INVALID_TASK;
+    list->tail = OS_INVALID_TASK;
 }
 
 /**
@@ -118,8 +118,8 @@ static void Os_ReadyListInit(Os_ReadyListType* list)
 static void Os_TaskInit(Os_TaskType task)
 {
     memset(&Os_TaskControls[task], 0, sizeof(Os_TaskControls[task]));
-    Os_TaskControls[task].next     = Os_TaskIdNone;
-    Os_TaskControls[task].resource = Os_ResourceIdNone;
+    Os_TaskControls[task].next     = OS_INVALID_TASK;
+    Os_TaskControls[task].resource = OS_INVALID_RESOURCE;
     if (Os_TaskConfigs[task].autostart) {
         Os_TaskControls[task].activation = 1;
     }
@@ -133,8 +133,8 @@ static void Os_TaskInit(Os_TaskType task)
 static void Os_TaskPeek(Os_PriorityType min_priority, Os_TaskType* task)
 {
     Os_PriorityType prio;
-    *task = Os_TaskIdNone;
-    for(prio = OS_PRIO_COUNT; prio > min_priority && *task == Os_TaskIdNone; --prio) {
+    *task = OS_INVALID_TASK;
+    for(prio = OS_PRIO_COUNT; prio > min_priority && *task == OS_INVALID_TASK; --prio) {
         *task = Os_TaskReady[prio-1].head;
     }
 }
@@ -151,7 +151,7 @@ static __inline Os_PriorityType Os_TaskPrio(Os_TaskType task)
 {
     Os_PriorityType prio;
     Os_ResourceType resource = Os_TaskControls[task].resource;
-    if (resource == Os_TaskIdNone) {
+    if (resource == OS_INVALID_TASK) {
         prio = Os_TaskConfigs[task].priority;
     } else {
         prio = Os_ResourceConfigs[resource].priority;
@@ -166,8 +166,8 @@ static __inline Os_PriorityType Os_TaskPrio(Os_TaskType task)
 static void Os_ResourceInit(Os_ResourceType res)
 {
     memset(&Os_ResourceControls[res], 0, sizeof(Os_ResourceControls[res]));
-    Os_ResourceControls[res].next = Os_ResourceIdNone;
-    Os_ResourceControls[res].task = Os_TaskIdNone;
+    Os_ResourceControls[res].next = OS_INVALID_RESOURCE;
+    Os_ResourceControls[res].task = OS_INVALID_TASK;
 }
 
 /**
@@ -183,10 +183,10 @@ void Os_TaskInternalResource_Release(void)
     Os_ResourceType res;
 
     OS_ERRORCHECK(Os_CallContext == OS_CONTEXT_TASK, E_OS_STATE);
-    OS_ERRORCHECK(Os_TaskRunning != Os_TaskIdNone  , E_OS_STATE);
+    OS_ERRORCHECK(Os_TaskRunning != OS_INVALID_TASK  , E_OS_STATE);
 
     res = Os_TaskConfigs[Os_TaskRunning].resource;
-    if (res != Os_ResourceIdNone) {
+    if (res != OS_INVALID_RESOURCE) {
         (void)Os_ReleaseResource_Internal(res);
     }
 }
@@ -204,10 +204,10 @@ void Os_TaskInternalResource_Get(void)
     Os_ResourceType res;
 
     OS_ERRORCHECK(Os_CallContext == OS_CONTEXT_TASK, E_OS_STATE);
-    OS_ERRORCHECK(Os_TaskRunning != Os_TaskIdNone  , E_OS_STATE);
+    OS_ERRORCHECK(Os_TaskRunning != OS_INVALID_TASK  , E_OS_STATE);
 
     res = Os_TaskConfigs[Os_TaskRunning].resource;
-    if (res != Os_ResourceIdNone) {
+    if (res != OS_INVALID_RESOURCE) {
         if (Os_ResourceControls[res].task != Os_TaskRunning) {
             (void)Os_GetResource_Internal(res);
         }
@@ -241,7 +241,7 @@ static __inline void Os_State_Running_To_Ready(Os_TaskType task)
     Os_PriorityType prio = Os_TaskPrio(task);
     Os_ReadyListPushHead(&Os_TaskReady[prio], task);
     Os_TaskControls[task].state = OS_TASK_READY;
-    Os_TaskRunning = Os_TaskIdNone;
+    Os_TaskRunning = OS_INVALID_TASK;
 
     OS_POSTTASKHOOK(task);
 }
@@ -294,7 +294,7 @@ void Os_Start(void)
 
     Os_TaskType     task;
     Os_TaskPeek(0, &task);
-    if (task == Os_TaskIdNone) {
+    if (task == OS_INVALID_TASK) {
         /* no task found, just wait for tick to trigger one */
         Os_Arch_EnableAllInterrupts();
         while(1) {
@@ -311,7 +311,7 @@ void Os_Start(void)
         Os_TaskInternalResource_Get();
 
         /* swap into first task */
-        Os_Arch_SwapState(task, Os_TaskIdNone);
+        Os_Arch_SwapState(task, OS_INVALID_TASK);
 
         /* should never be reached */
         OS_ERRORCHECK(0, E_OS_NOFUNC);
@@ -337,7 +337,7 @@ StatusType Os_Schedule_Internal(void)
     Os_PriorityType prio;
     Os_TaskType     task, prev;
 
-    if (Os_TaskRunning == Os_TaskIdNone) {
+    if (Os_TaskRunning == OS_INVALID_TASK) {
         prio = 0u;
     } else {
         prio = Os_TaskPrio(Os_TaskRunning) + 1;
@@ -346,8 +346,8 @@ StatusType Os_Schedule_Internal(void)
     while(1) {
         Os_TaskPeek(prio, &task);
 
-        if (task == Os_TaskIdNone) {
-            if (Os_TaskRunning != Os_TaskIdNone) {
+        if (task == OS_INVALID_TASK) {
+            if (Os_TaskRunning != OS_INVALID_TASK) {
                 break;    /* continue with current */
             }
             if (Os_CallContext != OS_CONTEXT_TASK) {
@@ -361,7 +361,7 @@ StatusType Os_Schedule_Internal(void)
         /* store previous to be able to swap state later */
         prev = Os_TaskRunning;
 
-        if (prev != Os_TaskIdNone) {
+        if (prev != OS_INVALID_TASK) {
             /* put preempted task as first ready */
             Os_State_Running_To_Ready(prev);
         }
@@ -424,7 +424,7 @@ StatusType Os_TerminateTask_Internal(void)
 {
     OS_ERRORCHECK_R(Os_TaskControls[Os_TaskRunning].activation > 0               , E_OS_LIMIT);
     OS_ERRORCHECK_R(Os_CallContext == OS_CONTEXT_TASK                            , E_OS_CALLEVEL);
-    OS_ERRORCHECK_R(Os_TaskControls[Os_TaskRunning].resource == Os_ResourceIdNone, E_OS_RESOURCE);
+    OS_ERRORCHECK_R(Os_TaskControls[Os_TaskRunning].resource == OS_INVALID_RESOURCE, E_OS_RESOURCE);
 
     Os_State_Running_To_Suspended(Os_TaskRunning);
 
@@ -433,7 +433,7 @@ StatusType Os_TerminateTask_Internal(void)
         Os_State_Suspended_To_Ready(Os_TaskRunning);
     }
 
-    Os_TaskRunning = Os_TaskIdNone;
+    Os_TaskRunning = OS_INVALID_TASK;
     return Os_Schedule_Internal();
 }
 
@@ -503,7 +503,7 @@ StatusType Os_ActivateTask(Os_TaskType task)
 static StatusType Os_GetResource_Internal(Os_ResourceType res)
 {
     OS_ERRORCHECK_R(res < OS_RES_COUNT, E_OS_ID);
-    OS_ERRORCHECK_R(Os_ResourceControls[res].task == Os_TaskIdNone         , E_OS_ACCESS);
+    OS_ERRORCHECK_R(Os_ResourceControls[res].task == OS_INVALID_TASK         , E_OS_ACCESS);
 
     if (Os_CallContext == OS_CONTEXT_TASK) {
         OS_ERRORCHECK_R(Os_TaskPrio(Os_TaskRunning)   <= Os_ResourceConfigs[res].priority, E_OS_ACCESS);
@@ -552,8 +552,8 @@ StatusType Os_ReleaseResource_Internal(Os_ResourceType res)
         OS_ERRORCHECK_R(Os_TaskControls[Os_TaskRunning].resource == res, E_OS_NOFUNC);
 
         Os_TaskControls[Os_TaskRunning].resource = Os_ResourceControls[res].next;
-        Os_ResourceControls[res].task  = Os_TaskIdNone;
-        Os_ResourceControls[res].next  = Os_ResourceIdNone;
+        Os_ResourceControls[res].task  = OS_INVALID_TASK;
+        Os_ResourceControls[res].next  = OS_INVALID_RESOURCE;
     } else {
         OS_ERRORCHECK_R(0, E_OS_SYS_NOT_IMPLEMENTED);
     }
@@ -585,7 +585,7 @@ void Os_Init(const Os_ConfigType* config)
     Os_TaskConfigs     = *config->tasks;
     Os_ResourceConfigs = *config->resources;
     Os_CallContext     = OS_CONTEXT_NONE;
-    Os_TaskRunning     = Os_TaskIdNone;
+    Os_TaskRunning     = OS_INVALID_TASK;
 
     memset(&Os_TaskControls    , 0u, sizeof(Os_TaskControls));
     memset(&Os_ResourceControls, 0u, sizeof(Os_ResourceControls));
@@ -612,7 +612,7 @@ void Os_Init(const Os_ConfigType* config)
 
         /* check some task config */
         Os_ResourceType res = Os_TaskConfigs[task].resource;
-        if (res != Os_TaskIdNone) {
+        if (res != OS_INVALID_TASK) {
             OS_ERRORCHECK(Os_TaskConfigs[task].priority <= Os_ResourceConfigs[res].priority, E_OS_RESOURCE);
         }
 

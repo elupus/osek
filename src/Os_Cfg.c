@@ -72,14 +72,14 @@ const Os_TaskConfigType Os_DefaultTasks[OS_TASK_COUNT] = {
             .stack_size = sizeof(idle_stack),
             .autostart  = 1,
             .priority   = 0,
-            .resource   = Os_ResourceIdNone
+            .resource   = OS_INVALID_RESOURCE
           }
         , { .entry      = busy,
             .stack      = busy_stack,
             .stack_size = sizeof(busy_stack),
             .autostart  = 0,
             .priority   = 1,
-            .resource   = Os_ResourceIdNone
+            .resource   = OS_INVALID_RESOURCE
           }
        , { .entry       = test,
            .stack       = test_stack,
