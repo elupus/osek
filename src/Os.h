@@ -34,6 +34,9 @@
 typedef struct Os_ConfigType {
     const Os_TaskConfigType     (*tasks)[OS_TASK_COUNT];    /**< @brief pointer to an array of task configurations */
     const Os_ResourceConfigType (*resources)[OS_RES_COUNT]; /**< @brief pointer to an array of resource configurations */
+#ifdef OS_ALARM_COUNT
+    const Os_AlarmConfigType    (*alarms)[OS_ALARM_COUNT];  /**< @brief pointer to an array of alarm configurations */
+#endif
 } Os_ConfigType;
 
 
@@ -55,6 +58,11 @@ extern Os_StatusType Os_TerminateTask(void);
 extern Os_StatusType Os_ActivateTask(Os_TaskType task);
 extern Os_StatusType Os_GetResource(Os_ResourceType res);
 extern Os_StatusType Os_ReleaseResource(Os_ResourceType res);
+
+extern Os_StatusType Os_SetRelAlarm(Os_AlarmType alarm, Os_TickType increment, Os_TickType cycle);
+extern Os_StatusType Os_SetAbsAlarm(Os_AlarmType alarm, Os_TickType start    , Os_TickType cycle);
+extern Os_StatusType Os_CancelAlarm(Os_AlarmType alarm);
+extern Os_StatusType Os_GetAlarm   (Os_AlarmType alarm, Os_TickType* tick);
 
 /**
  * @brief Get the identifier of the currently executing task

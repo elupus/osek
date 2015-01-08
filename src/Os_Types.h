@@ -32,6 +32,9 @@ typedef uint8 Os_PriorityType;    /**< priority level */
 
 typedef uint8 Os_StatusType;      /**< return value for os functions */
 
+typedef uint8  Os_AlarmType;       /**< alarm identifier */
+typedef uint16 Os_TickType;        /**< tick value identifier */
+
 #define OS_INVALID_TASK      (Os_TaskType)(-1)
 #define OS_INVALID_RESOURCE  (Os_ResourceType)(-1)
 
@@ -95,6 +98,13 @@ typedef struct Os_ResourceControlType {
     Os_ResourceType next;         /**< @brief linked list of held resources */
     Os_TaskType     task;         /**< @brief task currently holding resource */
 } Os_ResourceControlType;
+
+/**
+ * @brief Structure holding configuration setup for each alarm
+ */
+typedef struct Os_AlarmConfigType {
+    Os_TaskType     task;         /**< @brief task to activate */
+} Os_AlarmConfigType;
 
 /**
  * @brief Linked list of ready tasks

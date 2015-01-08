@@ -24,6 +24,8 @@
 #ifndef OS_CFG_H_
 #define OS_CFG_H_
 
+#include "Os_Types.h"
+
 #ifdef OS_CFG_ARCH_POSIX
 #include "Os_Arch_Posix.h"
 #endif
@@ -32,9 +34,10 @@
 #include "Os_Arch_Fibers.h"
 #endif
 
-#define OS_TASK_COUNT 3
-#define OS_PRIO_COUNT 3
-#define OS_RES_COUNT  4
+#define OS_TASK_COUNT  (Os_TaskType)3
+#define OS_PRIO_COUNT  (Os_PriorityType)3
+#define OS_RES_COUNT   (Os_ResourceType)4
+#define OS_ALARM_COUNT (Os_AlarmType)0
 
 #define OS_TICK_US    1000000U
 

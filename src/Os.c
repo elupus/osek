@@ -45,6 +45,10 @@ const Os_TaskConfigType *       Os_TaskConfigs;                         /**< con
 const Os_ResourceConfigType *   Os_ResourceConfigs;                     /**< config array for resources */
 Os_ResourceControlType          Os_ResourceControls    [OS_RES_COUNT];  /**< control array for resources */
 
+#ifdef OS_ALARM_COUNT
+const Os_AlarmConfigType *      Os_AlarmConfigs;                        /**< config array for alarms */
+#endif
+
 static Os_StatusType Os_Schedule_Internal(void);
 static Os_StatusType Os_TerminateTask_Internal(void);
 static Os_StatusType Os_ActivateTask_Internal(Os_TaskType task);
@@ -561,7 +565,6 @@ Os_StatusType Os_ReleaseResource_Internal(Os_ResourceType res)
     return Os_Schedule_Internal();
 }
 
-
 /** @copydoc Os_ReleaseResource_Internal */
 Os_StatusType Os_ReleaseResource(Os_ResourceType res)
 {
@@ -571,6 +574,167 @@ Os_StatusType Os_ReleaseResource(Os_ResourceType res)
     Os_Arch_EnableAllInterrupts();
     return result;
 }
+
+#ifdef OS_ALARM_COUNT
+
+/**
+ * @brief Set the alarm to trigger after a relative time
+ * @param[in] alarm     Reference to the alarm element
+ * @param[in] increment Relative value in ticks
+ * @param[in] cycle     Cycle value in case of cyclic alarm. In case of single alarms, cycle shall be zero
+ * @return
+ *  - E_OK        No error
+ *  - E_OS_STATE  Alarm <AlarmID> is already in use
+ *  - E_OS_ID     Alarm <AlarmID> is invalid
+ *  - E_OS_VALUE  Value of <increment> outside of the admissible
+ *                limits (lower than zero or greater than maxallowedvalue)
+ *  - E_OS_VALUE  Value of <cycle> unequal to 0 and outside of the admissible
+ *                counter limits (less than mincycle or greater than maxallowedvalue)
+ *
+ *  The system service occupies the alarm <AlarmID> element.
+ * After <increment> ticks have elapsed, the task assigned to the
+ * alarm <AlarmID> is activated or the assigned event (only for
+ * extended tasks) is set or the alarm-callback routine is called.
+ *
+ * If the relative value <increment> is very small, the alarm may
+ * expire, and the task may become ready or the alarm-callback
+ * may be called before the system service returns to the user.
+ * If <cycle> is unequal zero, the alarm element is logged on again
+ * immediately after expiry with the relative value <cycle>.
+ * The alarm <AlarmID> must not already be in use.
+ * To change values of alarms already in use the alarm shall be
+ * cancelled first.
+ * If the alarm is already in use, this call will be ignored and the
+ * error E_OS_STATE is returned.
+ *
+ * Call contexts: TASK, ISR2
+ */
+Os_StatusType Os_SetRelAlarm_Internal(Os_AlarmType alarm, Os_TickType increment, Os_TickType cycle)
+{
+    OS_ERRORCHECK(alarm < OS_ALARM_COUNT, E_OS_ID);
+    return E_OS_SYS_NOT_IMPLEMENTED;
+}
+
+/** @copydoc Os_SetRelAlarm_Internal */
+Os_StatusType Os_SetRelAlarm(Os_AlarmType alarm, Os_TickType increment, Os_TickType cycle)
+{
+    Os_StatusType result;
+    Os_Arch_DisableAllInterrupts();
+    result = Os_SetRelAlarm_Internal(alarm, increment, cycle);
+    Os_Arch_EnableAllInterrupts();
+    return result;
+}
+
+/**
+ * @brief Starts an absolute alarm
+ * @param[in] alarm Reference to the alarm element
+ * @param[in] start Absolute value in ticks
+ * @param[in] cycle Cycle value in case of cyclic alarm. In case of single alarms, cycle shall be zero
+ * @return
+ *  - E_OK        No error
+ *  - E_OS_STATE  Alarm <AlarmID> is already in use
+ *  - E_OS_ID     Alarm <AlarmID> is invalid
+ *  - E_OS_VALUE  Value of <start> outside of the admissible
+ *                counter limit (less than zero or greater than maxallowedvalue)
+ *  - E_OS_VALUE  Value of <cycle> unequal to 0 and outside of the admissible
+ *                counter limits (less than mincycle or greater than maxallowedvalue)
+ *
+ * The system service occupies the alarm <AlarmID> element.
+ * When <start> ticks are reached, the task assigned to the alarm
+ * <AlarmID> is activated or the assigned event (only for extended
+ * tasks) is set or the alarm-callback routine is called.
+ *
+ * If the absolute value <start> is very close to the current counter
+ * value, the alarm may expire, and the task may become ready or
+ * the alarm-callback may be called before the system service
+ * returns to the user.
+ * If the absolute value <start> already was reached before the
+ * system call, the alarm shall only expire when the absolute value
+ * <start> is reached again, i.e. after the next overrun of the
+ * counter.
+ * If <cycle> is unequal zero, the alarm element is logged on again
+ * immediately after expiry with the relative value <cycle>.
+ * The alarm <AlarmID> shall not already be in use.
+ * To change values of alarms already in use the alarm shall be
+ * cancelled first.
+ * If the alarm is already in use, this call will be ignored and the
+ * error E_OS_STATE is returned.
+ *
+ * Call contexts: TASK, ISR2
+ */
+Os_StatusType Os_SetAbsAlarm_Internal(Os_AlarmType alarm, Os_TickType start, Os_TickType cycle)
+{
+    OS_ERRORCHECK(alarm < OS_ALARM_COUNT, E_OS_ID);
+    return E_OS_SYS_NOT_IMPLEMENTED;
+}
+
+/** @copydoc Os_SetAbsAlarm */
+Os_StatusType Os_SetAbsAlarm(Os_AlarmType alarm, Os_TickType start, Os_TickType cycle)
+{
+    Os_StatusType result;
+    Os_Arch_DisableAllInterrupts();
+    result = Os_SetAbsAlarm_Internal(alarm, start, cycle);
+    Os_Arch_EnableAllInterrupts();
+    return result;
+}
+
+/**
+ * @brief Cancels a running alarm
+ * @param alarm Reference to an alarm
+ * @return
+ *  - E_OS_NOFUNC Alarm <AlarmID> not in use
+ *  - E_OS_ID     Alarm <AlarmID> is invalid
+ *
+ * Call contexts: TASK, ISR2
+ */
+Os_StatusType Os_CancelAlarm_Internal(Os_AlarmType alarm)
+{
+    OS_ERRORCHECK(alarm < OS_ALARM_COUNT, E_OS_ID);
+    return E_OS_SYS_NOT_IMPLEMENTED;
+}
+
+/** @copydoc Os_CancelAlarm_Internal */
+Os_StatusType Os_CancelAlarm(Os_AlarmType alarm)
+{
+    Os_StatusType result;
+    Os_Arch_DisableAllInterrupts();
+    result = Os_CancelAlarm_Internal(alarm);
+    Os_Arch_EnableAllInterrupts();
+    return result;
+}
+
+/**
+ * @brief The system service GetAlarm returns the relative value in ticks before the alarm <AlarmID> expires.
+ * @param[in]  alarm Reference to an alarm
+ * @param[out] tick  Relative value in ticks before the alarm <AlarmID> expires
+ * @return
+ *  - E_OK no error
+ *  - E_OS_NOFUNC Alarm <AlarmID> is not used
+ *  - E_OS_ID Alarm <AlarmID> is invalid
+ *
+ * It is up to the application to decide whether for example a
+ * CancelAlarm may still be useful.
+ * If <AlarmID> is not in use, <Tick> is not defined.
+ *
+ * Call contexts: TASK, ISR2, HOOKS
+ */
+Os_StatusType Os_GetAlarm_Internal(Os_AlarmType alarm, Os_TickType* tick)
+{
+    OS_ERRORCHECK(alarm < OS_ALARM_COUNT, E_OS_ID);
+    return E_OS_SYS_NOT_IMPLEMENTED;
+}
+
+/** @copydoc Os_CancelAlarm_Internal */
+Os_StatusType Os_GetAlarm(Os_AlarmType alarm, Os_TickType* tick)
+{
+    Os_StatusType result;
+    Os_Arch_DisableAllInterrupts();
+    result = Os_GetAlarm_Internal(alarm, tick);
+    Os_Arch_EnableAllInterrupts();
+    return result;
+}
+
+#endif /* OS_ALARM_COUNT */
 
 /**
  * @brief Initializes OS internal structures with given config
@@ -584,6 +748,7 @@ void Os_Init(const Os_ConfigType* config)
 
     Os_TaskConfigs     = *config->tasks;
     Os_ResourceConfigs = *config->resources;
+    Os_AlarmConfigs    = *config->alarms;
     Os_CallContext     = OS_CONTEXT_NONE;
     Os_TaskRunning     = OS_INVALID_TASK;
 
