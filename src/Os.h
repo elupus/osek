@@ -50,18 +50,18 @@ void       Os_Init(const Os_ConfigType* config);
 void       Os_Start(void);
 void       Os_Isr(void);
 
-extern StatusType Os_Schedule(void);
-extern StatusType Os_TerminateTask(void);
-extern StatusType Os_ActivateTask(Os_TaskType task);
-extern StatusType Os_GetResource(Os_ResourceType res);
-extern StatusType Os_ReleaseResource(Os_ResourceType res);
+extern Os_StatusType Os_Schedule(void);
+extern Os_StatusType Os_TerminateTask(void);
+extern Os_StatusType Os_ActivateTask(Os_TaskType task);
+extern Os_StatusType Os_GetResource(Os_ResourceType res);
+extern Os_StatusType Os_ReleaseResource(Os_ResourceType res);
 
 /**
  * @brief Get the identifier of the currently executing task
  * @param[out] task Currently running task or Os_TaskIdNone if no task is running
  * @return E_OK on success
  */
-static __inline StatusType Os_GetTaskId   (Os_TaskType* task)
+static __inline Os_StatusType Os_GetTaskId   (Os_TaskType* task)
 {
     *task = Os_TaskRunning;
     return E_OK;
@@ -82,7 +82,7 @@ extern void Os_PostTaskHook(Os_TaskType task);
 #endif
 
 #if(OS_ERRORHOOK_ENABLE)
-extern void Os_ErrorHook(StatusType status);
+extern void Os_ErrorHook(Os_StatusType status);
 #define OS_ERRORHOOK(status) Os_ErrorHook(status)
 #else
 #define OS_ERRORHOOK(status)

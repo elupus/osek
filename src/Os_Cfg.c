@@ -111,7 +111,7 @@ void Os_PostTaskHook(Os_TaskType task)
     printf("POSTTASK %d\n", task);
 }
 
-void Os_ErrorHook(StatusType ret)
+void Os_ErrorHook(Os_StatusType ret)
 {
     exit(ret);
 }

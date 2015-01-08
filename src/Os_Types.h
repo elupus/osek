@@ -30,7 +30,7 @@ typedef uint8 Os_TaskType;        /**< task identifier */
 typedef uint8 Os_ResourceType;    /**< resource identifier */
 typedef uint8 Os_PriorityType;    /**< priority level */
 
-typedef uint8 StatusType;         /**< return value for os functions */
+typedef uint8 Os_StatusType;      /**< return value for os functions */
 
 #define OS_INVALID_TASK      (Os_TaskType)(-1)
 #define OS_INVALID_RESOURCE  (Os_ResourceType)(-1)

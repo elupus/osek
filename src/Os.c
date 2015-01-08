@@ -45,11 +45,11 @@ const Os_TaskConfigType *       Os_TaskConfigs;                         /**< con
 const Os_ResourceConfigType *   Os_ResourceConfigs;                     /**< config array for resources */
 Os_ResourceControlType          Os_ResourceControls    [OS_RES_COUNT];  /**< control array for resources */
 
-static StatusType Os_Schedule_Internal(void);
-static StatusType Os_TerminateTask_Internal(void);
-static StatusType Os_ActivateTask_Internal(Os_TaskType task);
-static StatusType Os_GetResource_Internal(Os_ResourceType res);
-static StatusType Os_ReleaseResource_Internal(Os_ResourceType res);
+static Os_StatusType Os_Schedule_Internal(void);
+static Os_StatusType Os_TerminateTask_Internal(void);
+static Os_StatusType Os_ActivateTask_Internal(Os_TaskType task);
+static Os_StatusType Os_GetResource_Internal(Os_ResourceType res);
+static Os_StatusType Os_ReleaseResource_Internal(Os_ResourceType res);
 
 /**
  * @brief Add task to the given ready list at the head of the list
@@ -332,7 +332,7 @@ void Os_Start(void)
  *
  * Call contexts: TASK, (ISR1 from Os)
  */
-StatusType Os_Schedule_Internal(void)
+Os_StatusType Os_Schedule_Internal(void)
 {
     Os_PriorityType prio;
     Os_TaskType     task, prev;
@@ -384,9 +384,9 @@ StatusType Os_Schedule_Internal(void)
 }
 
 /** @copydoc Os_Schedule_Internal */
-StatusType Os_Schedule(void)
+Os_StatusType Os_Schedule(void)
 {
-    StatusType result;
+    Os_StatusType result;
     Os_Arch_DisableAllInterrupts();
 
     Os_TaskInternalResource_Release();
@@ -420,7 +420,7 @@ void Os_Isr(void)
  *
  * Call contexts: TASK
  */
-StatusType Os_TerminateTask_Internal(void)
+Os_StatusType Os_TerminateTask_Internal(void)
 {
     OS_ERRORCHECK_R(Os_TaskControls[Os_TaskRunning].activation > 0               , E_OS_LIMIT);
     OS_ERRORCHECK_R(Os_CallContext == OS_CONTEXT_TASK                            , E_OS_CALLEVEL);
@@ -438,9 +438,9 @@ StatusType Os_TerminateTask_Internal(void)
 }
 
 /** @copydoc Os_TerminateTask_Internal */
-StatusType Os_TerminateTask(void)
+Os_StatusType Os_TerminateTask(void)
 {
-    StatusType result;
+    Os_StatusType result;
     Os_Arch_DisableAllInterrupts();
 
     Os_TaskInternalResource_Release();
@@ -465,7 +465,7 @@ StatusType Os_TerminateTask(void)
  *
  * Call contexts: TASK, ISR2
  */
-static StatusType Os_ActivateTask_Internal(Os_TaskType task)
+static Os_StatusType Os_ActivateTask_Internal(Os_TaskType task)
 {
     OS_ERRORCHECK_R(task < OS_TASK_COUNT                   , E_OS_ID);
     OS_ERRORCHECK_R(Os_TaskControls[task].activation <  255, E_OS_LIMIT);
@@ -479,9 +479,9 @@ static StatusType Os_ActivateTask_Internal(Os_TaskType task)
 }
 
 /** @copydoc Os_ActivateTask_Internal */
-StatusType Os_ActivateTask(Os_TaskType task)
+Os_StatusType Os_ActivateTask(Os_TaskType task)
 {
-    StatusType result;
+    Os_StatusType result;
     Os_Arch_DisableAllInterrupts();
     result = Os_ActivateTask_Internal(task);
     Os_Arch_EnableAllInterrupts();
@@ -500,7 +500,7 @@ StatusType Os_ActivateTask(Os_TaskType task)
  *
  * Call contexts: TASK, ISR2
  */
-static StatusType Os_GetResource_Internal(Os_ResourceType res)
+static Os_StatusType Os_GetResource_Internal(Os_ResourceType res)
 {
     OS_ERRORCHECK_R(res < OS_RES_COUNT, E_OS_ID);
     OS_ERRORCHECK_R(Os_ResourceControls[res].task == OS_INVALID_TASK         , E_OS_ACCESS);
@@ -519,9 +519,9 @@ static StatusType Os_GetResource_Internal(Os_ResourceType res)
 
 
 /** @copydoc Os_GetResource_Internal */
-StatusType Os_GetResource(Os_ResourceType res)
+Os_StatusType Os_GetResource(Os_ResourceType res)
 {
-    StatusType result;
+    Os_StatusType result;
     Os_Arch_DisableAllInterrupts();
     result = Os_GetResource_Internal(res);
     Os_Arch_EnableAllInterrupts();
@@ -543,7 +543,7 @@ StatusType Os_GetResource(Os_ResourceType res)
  *
  * Call contexts: TASK, ISR2
  */
-StatusType Os_ReleaseResource_Internal(Os_ResourceType res)
+Os_StatusType Os_ReleaseResource_Internal(Os_ResourceType res)
 {
     OS_ERRORCHECK_R(res < OS_RES_COUNT, E_OS_ID);
 
@@ -563,9 +563,9 @@ StatusType Os_ReleaseResource_Internal(Os_ResourceType res)
 
 
 /** @copydoc Os_ReleaseResource_Internal */
-StatusType Os_ReleaseResource(Os_ResourceType res)
+Os_StatusType Os_ReleaseResource(Os_ResourceType res)
 {
-    StatusType result;
+    Os_StatusType result;
     Os_Arch_DisableAllInterrupts();
     result = Os_ReleaseResource_Internal(res);
     Os_Arch_EnableAllInterrupts();
