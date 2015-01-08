@@ -104,15 +104,15 @@ typedef struct Os_ReadyListType {
     Os_TaskType tail;             /**< @brief pointer to the last ready task */
 } Os_ReadyListType;
 
-#define E_OS_ACCESS   (StatusType)1
-#define E_OS_CALLEVEL (StatusType)2
-#define E_OS_ID       (StatusType)3
-#define E_OS_LIMIT    (StatusType)4
-#define E_OS_NOFUNC   (StatusType)5
-#define E_OS_RESOURCE (StatusType)6
-#define E_OS_STATE    (StatusType)7
-#define E_OS_VALUE    (StatusType)8
+#define E_OS_ACCESS   (Os_StatusType)1
+#define E_OS_CALLEVEL (Os_StatusType)2
+#define E_OS_ID       (Os_StatusType)3
+#define E_OS_LIMIT    (Os_StatusType)4
+#define E_OS_NOFUNC   (Os_StatusType)5
+#define E_OS_RESOURCE (Os_StatusType)6
+#define E_OS_STATE    (Os_StatusType)7
+#define E_OS_VALUE    (Os_StatusType)8
 
-#define E_OS_SYS_NOT_IMPLEMENTED (StatusType)16
+#define E_OS_SYS_NOT_IMPLEMENTED (Os_StatusType)16
 
 #endif /* OS_TYPES_H_ */
