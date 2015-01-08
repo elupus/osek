@@ -18,6 +18,8 @@
 
 #include <Windows.h>
 #include <WinBase.h>
+#include <signal.h>
+#include <assert.h>
 
 #include "Os.h"
 #include "Os_Arch_Fibers.h"
@@ -32,6 +34,7 @@ HANDLE            Os_Arch_Timer;
 CRITICAL_SECTION  Os_Arch_Section;
 uint32            Os_Arch_Section_Count;
 Os_Arch_StateType Os_Arch_State[OS_TASK_COUNT];
+HANDLE            Os_Arch_Thread;
 
 VOID CALLBACK Os_Arch_FiberStart(LPVOID lpParameter)
 {
@@ -43,20 +46,79 @@ VOID CALLBACK Os_Arch_FiberStart(LPVOID lpParameter)
     Os_TaskConfigs[task].entry();
 }
 
+void Os_Arch_Isr(void)
+{
+    Os_TaskType task_before, task_after;
+    Os_Arch_DisableAllInterrupts();
+
+    (void)Os_GetTaskId(&task_before);
+    Os_Isr();
+    (void)Os_GetTaskId(&task_after);
+
+    if (task_before != task_after) {
+        if (task_after != OS_INVALID_TASK) {
+            assert(Os_Arch_Section_Count != 0);
+            SwitchToFiber(Os_Arch_State[task_after].fiber);
+        }
+    }
+
+    Os_Arch_EnableAllInterrupts();
+}
+
+void Os_Arch_InjectFunction(void* fun)
+{
+    EnterCriticalSection(&Os_Arch_Section);
+    SuspendThread(Os_Arch_Thread);
+
+    CONTEXT ctx;
+    memset(&ctx, 0, sizeof(ctx));
+    ctx.ContextFlags = CONTEXT_ALL;
+
+    if (GetThreadContext(Os_Arch_Thread, &ctx)) {
+#if defined(__x86_64)
+        ctx.Rsp -= sizeof(DWORD64);
+        DWORD64* stack_ptr = (DWORD64*)ctx.Rsp;
+        stack_ptr[0] = ctx.Rip;
+        ctx.Rip = (DWORD64)fun;
+#elif defined(__x86)
+        ctx.Esp -= sizeof(DWORD);
+        DWORD64* stack_ptr = (DWORD*)ctx.Esp;
+        stack_ptr[0] = ctx.Eip;
+        ctx.Eip = (DWORD)fun;
+#else
+#error Not supported
+#endif
+        SetThreadContext(Os_Arch_Thread, &ctx);
+
+    } else {
+        exit(-1);
+    }
+    ResumeThread(Os_Arch_Thread);
+    LeaveCriticalSection(&Os_Arch_Section);
+}
+
 VOID CALLBACK Os_Arch_TimerCallback(PVOID lpParameter, BOOLEAN TimerOrWaitFired)
 {
-    Os_Arch_DisableAllInterrupts();
-    Os_Isr();
-    Os_Arch_EnableAllInterrupts();
+    Os_Arch_InjectFunction(Os_Arch_Isr);
 }
 
 void Os_Arch_Init(void)
 {
     memset(&Os_Arch_State, 0, sizeof(Os_Arch_State));
+
+    DuplicateHandle(GetCurrentProcess()
+                  , GetCurrentThread()
+                  , GetCurrentProcess()
+                  , &Os_Arch_Thread
+                  , 0
+                  , FALSE
+                  , DUPLICATE_SAME_ACCESS);
+
     Os_Arch_System = ConvertThreadToFiber(NULL);
 
     Os_Arch_Section_Count = 0;
     InitializeCriticalSection(&Os_Arch_Section);
+
     Os_Arch_DisableAllInterrupts();
 
     CreateTimerQueueTimer( &Os_Arch_Timer
@@ -65,8 +127,7 @@ void Os_Arch_Init(void)
                          , NULL
                          , OS_TICK_US / 1000
                          , OS_TICK_US / 1000
-                         , WT_EXECUTEDEFAULT);
-
+                         , WT_EXECUTEINTIMERTHREAD);
 }
 
 void Os_Arch_DisableAllInterrupts(void)
@@ -87,7 +148,12 @@ void Os_Arch_EnableAllInterrupts(void)
 
 void Os_Arch_SwapState(Os_TaskType task, Os_TaskType prev)
 {
-    SwitchToFiber(Os_Arch_State[task].fiber);
+    assert(Os_Arch_Section_Count != 0);
+    if (Os_CallContext == OS_CONTEXT_TASK) {
+        SwitchToFiber(Os_Arch_State[task].fiber);
+    } else {
+        /* NOP - switch will occur at end of ISR */
+    }
 }
 
 static __inline void Os_Arch_DeleteFiber(PVOID* fiber)
