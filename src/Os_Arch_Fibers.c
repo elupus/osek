@@ -46,13 +46,19 @@ VOID CALLBACK Os_Arch_FiberStart(LPVOID lpParameter)
     Os_TaskConfigs[task].entry();
 }
 
-void Os_Arch_Isr(void)
+#if defined(__x86_64)
+void Os_Arch_Isr(DWORD rcx, DWORD rdx, DWORD r8, DWORD r9, void (*isr)())
+#elif defined(__x86)
+void Os_Arch_Isr(void (*isr)())
+#else
+#error How is the calling convention?
+#endif
 {
     Os_TaskType task_before, task_after;
     Os_Arch_DisableAllInterrupts();
 
     (void)Os_GetTaskId(&task_before);
-    Os_Isr();
+    isr();
     (void)Os_GetTaskId(&task_after);
 
     if (task_before != task_after) {
@@ -65,7 +71,7 @@ void Os_Arch_Isr(void)
     Os_Arch_EnableAllInterrupts();
 }
 
-void Os_Arch_InjectFunction(void* fun)
+void Os_Arch_InjectFunction(void* fun, void (*isr)())
 {
     EnterCriticalSection(&Os_Arch_Section);
     SuspendThread(Os_Arch_Thread);
@@ -76,14 +82,20 @@ void Os_Arch_InjectFunction(void* fun)
 
     if (GetThreadContext(Os_Arch_Thread, &ctx)) {
 #if defined(__x86_64)
-        ctx.Rsp -= sizeof(DWORD64);
+        ctx.Rsp -= 6 * sizeof(DWORD64);
         DWORD64* stack_ptr = (DWORD64*)ctx.Rsp;
         stack_ptr[0] = ctx.Rip;
+        stack_ptr[1] = 0;
+        stack_ptr[2] = 0;
+        stack_ptr[3] = 0;
+        stack_ptr[4] = 0;
+        stack_ptr[5] = (DWORD64)isr;
         ctx.Rip = (DWORD64)fun;
 #elif defined(__x86)
-        ctx.Esp -= sizeof(DWORD);
+        ctx.Esp -= 2 * sizeof(DWORD);
         DWORD64* stack_ptr = (DWORD*)ctx.Esp;
         stack_ptr[0] = ctx.Eip;
+        stack_ptr[1] = (DWORD)isr;
         ctx.Eip = (DWORD)fun;
 #else
 #error Not supported
@@ -99,7 +111,7 @@ void Os_Arch_InjectFunction(void* fun)
 
 VOID CALLBACK Os_Arch_TimerCallback(PVOID lpParameter, BOOLEAN TimerOrWaitFired)
 {
-    Os_Arch_InjectFunction(Os_Arch_Isr);
+    Os_Arch_InjectFunction(Os_Arch_Isr, Os_Isr);
 }
 
 void Os_Arch_Init(void)
