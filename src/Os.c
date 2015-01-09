@@ -438,7 +438,7 @@ Os_StatusType Os_TerminateTask_Internal(void)
     }
 
     Os_TaskRunning = OS_INVALID_TASK;
-    return Os_Schedule_Internal();
+    return E_OK;
 }
 
 /** @copydoc Os_TerminateTask_Internal */
@@ -450,6 +450,9 @@ Os_StatusType Os_TerminateTask(void)
     Os_TaskInternalResource_Release();
 
     result = Os_TerminateTask_Internal();
+    if (result == E_OK) {
+        result = Os_Schedule_Internal();
+    }
 
     Os_TaskInternalResource_Get();
 
@@ -479,7 +482,7 @@ static Os_StatusType Os_ActivateTask_Internal(Os_TaskType task)
         Os_State_Suspended_To_Ready(task);
     }
 
-    return Os_Schedule_Internal();
+    return E_OK;
 }
 
 /** @copydoc Os_ActivateTask_Internal */
@@ -488,6 +491,9 @@ Os_StatusType Os_ActivateTask(Os_TaskType task)
     Os_StatusType result;
     Os_Arch_DisableAllInterrupts();
     result = Os_ActivateTask_Internal(task);
+    if (result == E_OK) {
+        result = Os_Schedule_Internal();
+    }
     Os_Arch_EnableAllInterrupts();
     return result;
 }
@@ -562,7 +568,7 @@ Os_StatusType Os_ReleaseResource_Internal(Os_ResourceType res)
         OS_ERRORCHECK_R(0, E_OS_SYS_NOT_IMPLEMENTED);
     }
 
-    return Os_Schedule_Internal();
+    return E_OK;
 }
 
 /** @copydoc Os_ReleaseResource_Internal */
@@ -571,6 +577,9 @@ Os_StatusType Os_ReleaseResource(Os_ResourceType res)
     Os_StatusType result;
     Os_Arch_DisableAllInterrupts();
     result = Os_ReleaseResource_Internal(res);
+    if (result == E_OK) {
+        result = Os_Schedule_Internal();
+    }
     Os_Arch_EnableAllInterrupts();
     return result;
 }
