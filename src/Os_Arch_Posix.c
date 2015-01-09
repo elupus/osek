@@ -26,7 +26,33 @@ ucontext_t  Os_Arch_State[OS_TASK_COUNT];
 
 void Os_Arch_Alarm(int signal)
 {
+    Os_TaskType task_before, task_after;
+
+    (void)Os_GetTaskId(&task_before);
     Os_Isr();
+
+    ucontext_t ctx;
+    getcontext(&ctx);
+
+    (void)Os_GetTaskId(&task_after);
+
+    if (task_before != task_after) {
+        if (ctx.uc_onstack) {
+            if (task_before != OS_INVALID_TASK) {
+                Os_Arch_State[task_before] = *ctx.uc_link;
+            }
+
+            if (ctx.uc_link != &Os_Arch_State[task_after]) {
+                ctx.uc_link = &Os_Arch_State[task_after];
+                setcontext(&ctx);
+            }
+        } else {
+            if (task_before != OS_INVALID_TASK) {
+                Os_Arch_State[task_before] = ctx;
+            }
+            setcontext(&Os_Arch_State[task_after]);
+        }
+    }
 }
 
 void Os_Arch_Init(void)
@@ -42,8 +68,8 @@ void Os_Arch_Init(void)
 
      // start up the "interrupt"!
     struct itimerval val;
-    val.it_interval.tv_sec  = val.it_value.tv_sec  = OS_TICK_US / 1000;
-    val.it_interval.tv_usec = val.it_value.tv_usec = OS_TICK_US % 1000;
+    val.it_interval.tv_sec  = val.it_value.tv_sec  = OS_TICK_US / 1000000u;
+    val.it_interval.tv_usec = val.it_value.tv_usec = OS_TICK_US;
     res = setitimer(ITIMER_REAL, &val, NULL);
 }
 
@@ -63,31 +89,11 @@ void Os_Arch_EnableAllInterrupts(void)
     sigprocmask(SIG_UNBLOCK, &set, NULL);
 }
 
-void Os_Arch_StoreState(Os_TaskType task)
-{
-    ucontext_t* ctx = &Os_Arch_State[task];
-    getcontext(ctx);
-}
-
-static void Os_Arch_RestoreState(Os_TaskType task)
-{
-    if (Os_CallContext == OS_CONTEXT_TASK) {
-        ucontext_t* ctx = &Os_Arch_State[task];
-        setcontext(ctx);
-    } else {
-        ucontext_t ctx;
-        getcontext(&ctx);
-        if (ctx.uc_link != &Os_Arch_State[task]) {
-            ctx.uc_link = &Os_Arch_State[task];
-            setcontext(&ctx);
-        }
-    }
-}
-
 void Os_Arch_PrepareState(Os_TaskType task)
 {
     ucontext_t* ctx = &Os_Arch_State[task];
     getcontext(ctx);
+    sigdelset(&ctx->uc_sigmask, SIGALRM); /* we start with interrupts enabled */
     ctx->uc_link          = NULL;
     ctx->uc_stack.ss_size = Os_TaskConfigs[task].stack_size;
     ctx->uc_stack.ss_sp   = Os_TaskConfigs[task].stack;
@@ -96,11 +102,15 @@ void Os_Arch_PrepareState(Os_TaskType task)
 
 void Os_Arch_SwapState(Os_TaskType task, Os_TaskType prev)
 {
-    if (prev != OS_INVALID_TASK) {
-        Os_Arch_StoreState(prev);
-    }
+    if (Os_CallContext == OS_CONTEXT_TASK) {
+        if (prev != OS_INVALID_TASK) {
+            ucontext_t* ctx = &Os_Arch_State[prev];
+            getcontext(ctx);
+        }
 
-    if (prev != Os_TaskRunning) {
-        Os_Arch_RestoreState(task);
+        if (prev != Os_TaskRunning) {
+            ucontext_t* ctx = &Os_Arch_State[task];
+            setcontext(ctx);
+        }
     }
 }
