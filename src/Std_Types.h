@@ -37,7 +37,7 @@ typedef uint64_t uint64;
 #endif
 
 #ifndef FALSE
-#define FALSE true
+#define FALSE false
 #endif
 
 #ifndef E_OK
