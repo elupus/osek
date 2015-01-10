@@ -4,24 +4,22 @@ project (OsekOs)
 set (OsekOs_VERSION_MAJOR 1)
 set (OsekOs_VERSION_MINOR 0)
 
-set (FILES
+set (Os_SRCS
     src/Os.c
-    src/Os_Cfg.c
 )
 
 if (${UNIX})
-    set (FILES ${FILES}
+    set (Os_SRCS ${Os_SRCS}
         src/Os_Arch_Posix.c
     )
     add_definitions(-D_XOPEN_SOURCE=600 -DOS_CFG_ARCH_POSIX)
 elseif (${WIN32})
-    set (FILES ${FILES}
+    set (Os_SRCS ${Os_SRCS}
         src/Os_Arch_Fibers.c
     )
     add_definitions(-DOS_CFG_ARCH_FIBERS)
 endif()
 
-add_executable(osekos ${FILES})
 include_directories(src)
 
 set_property(
@@ -60,8 +58,15 @@ if(BUILD_TESTS)
 	set_property(TARGET gtest_main PROPERTY IMPORTED_LOCATION ${GTEST_MAIN_PATH} )
 	add_dependencies(gtest_main googletest)
 
-	add_subdirectory(test)
+	# GTest type test
+	add_executable(Os_Test ${Os_SRCS} test/Os_Test/Os_Test.cpp)
+	target_include_directories(Os_Test PRIVATE test/Os_Test ${GTEST_INCLUDE_DIR})
+	target_link_libraries(Os_Test gtest gtest_main)
+
 endif()
 
+# Simple Os_Run test
+add_executable(Os_Run ${Os_SRCS} test/Os_Run/Os_Cfg.c)
+target_include_directories(Os_Run PRIVATE test/Os_Run)
 
 

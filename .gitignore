@@ -8,5 +8,5 @@ Makefile
 .project
 /googletest/
 *.swp
-test/osekos_test
-osekos
+Os_Run
+Os_Test
