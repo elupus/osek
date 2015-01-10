@@ -29,4 +29,39 @@ set_property(
     PROPERTY COMPILE_FLAGS -Wno-deprecated-declarations
 )
 
+option(BUILD_TESTS "Enable Testing" ON)
+
+if(BUILD_TESTS)
+	include(ExternalProject)
+	ExternalProject_Add(googletest
+	  URL https://googletest.googlecode.com/files/gtest-1.7.0.zip
+	  # Comment above line, and uncomment line below to use subversion.
+	  # SVN_REPOSITORY http://googletest.googlecode.com/svn/trunk/
+	  # Uncomment line below to freeze a revision (here the one for 1.7.0)
+	  # SVN_REVISION -r700
+
+	  PREFIX ${CMAKE_CURRENT_BINARY_DIR}/googletest
+	  INSTALL_COMMAND ""
+	)
+	# Specify include dir
+	ExternalProject_Get_Property(googletest source_dir)
+	set(GTEST_INCLUDE_DIR ${source_dir}/include)
+
+	# Library
+	ExternalProject_Get_Property(googletest binary_dir)
+
+	set(GTEST_LIBRARY_PATH ${binary_dir}/${CMAKE_FIND_LIBRARY_PREFIXES}gtest.a)
+	add_library(gtest UNKNOWN IMPORTED)
+	set_property(TARGET gtest PROPERTY IMPORTED_LOCATION ${GTEST_LIBRARY_PATH} )
+	add_dependencies(gtest googletest)
+
+	set(GTEST_MAIN_PATH ${binary_dir}/${CMAKE_FIND_LIBRARY_PREFIXES}gtest_main.a)
+	add_library(gtest_main UNKNOWN IMPORTED)
+	set_property(TARGET gtest_main PROPERTY IMPORTED_LOCATION ${GTEST_MAIN_PATH} )
+	add_dependencies(gtest_main googletest)
+
+	add_subdirectory(test)
+endif()
+
+
 

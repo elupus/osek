@@ -1,12 +1,12 @@
-Debug
-/Debug - Win/
-/Debug - OSX/
 /latex/
 /html/
-/Debug - Cygwin/
-/cmake_install.cmake
-/CMakeCache.txt
-/CMakeFiles/
-/Makefile
+cmake_install.cmake
+CMakeCache.txt
+CMakeFiles
+Makefile
 .cproject
 .project
+/googletest/
+*.swp
+test/osekos_test
+osekos
