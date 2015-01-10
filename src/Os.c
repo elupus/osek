@@ -783,21 +783,32 @@ Os_StatusType Os_SetAbsAlarm(Os_AlarmType alarm, Os_TickType start, Os_TickType 
  */
 Os_StatusType Os_CancelAlarm_Internal(Os_AlarmType alarm)
 {
-    Os_AlarmType index;
+    Os_AlarmType next = Os_AlarmNext
+               , prev = OS_INVALID_ALARM;
 
-    OS_ERRORCHECK(alarm < OS_ALARM_COUNT, E_OS_ID);
+    OS_ERRORCHECK(alarm < OS_ALARM_COUNT   , E_OS_ID);
 
-    if (Os_AlarmNext == alarm) {
-        Os_AlarmNext = Os_AlarmControls[alarm].next;
-    } else {
-        index = Os_AlarmNext;
-        while (index != OS_INVALID_ALARM && Os_AlarmControls[index].next != alarm) {
-            index = Os_AlarmControls[index].next;
-        }
-        OS_ERRORCHECK(index != OS_INVALID_ALARM, E_OS_NOFUNC);
-        Os_AlarmControls[index].next = Os_AlarmControls[alarm].next;
+    while (next != OS_INVALID_ALARM && next != alarm) {
+        prev = next;
+        next = Os_AlarmControls[next].next;
     }
-    Os_AlarmControls[alarm].next = OS_INVALID_ALARM;
+
+    OS_ERRORCHECK(next == alarm, E_OS_NOFUNC);
+
+    next = Os_AlarmControls[alarm].next;
+    if (prev == OS_INVALID_ALARM) {
+        Os_AlarmNext = next;
+    } else {
+        Os_AlarmControls[prev].next = next ;
+    }
+
+    if (next != OS_INVALID_ALARM) {
+        Os_AlarmControls[next].ticks += Os_AlarmControls[alarm].ticks;
+    }
+
+    Os_AlarmControls[alarm].ticks = 0u;
+    Os_AlarmControls[alarm].cycle = 0u;
+    Os_AlarmControls[alarm].next  = OS_INVALID_ALARM;
     return E_OK;
 }
 
