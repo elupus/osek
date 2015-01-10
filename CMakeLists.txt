@@ -21,7 +21,7 @@ elseif (${WIN32})
     add_definitions(-DOS_CFG_ARCH_FIBERS)
 endif()
 
-add_executable(OsekOs ${FILES})
+add_executable(osekos ${FILES})
 include_directories(src)
 
 set_property(
