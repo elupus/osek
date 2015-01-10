@@ -34,12 +34,12 @@
 #include "Os_Arch_Fibers.h"
 #endif
 
-#define OS_TASK_COUNT  (Os_TaskType)3
+#define OS_TASK_COUNT  (Os_TaskType)4
 #define OS_PRIO_COUNT  (Os_PriorityType)3
 #define OS_RES_COUNT   (Os_ResourceType)4
-#define OS_ALARM_COUNT (Os_AlarmType)0
+#define OS_ALARM_COUNT (Os_AlarmType)3
 
-#define OS_TICK_US    1000000U
+#define OS_TICK_US    500000U
 
 #define OS_PRETASKHOOK_ENABLE  0
 #define OS_POSTTASKHOOK_ENABLE 0

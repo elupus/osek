@@ -33,9 +33,15 @@
 unsigned char idle_stack[8192*16];
 unsigned char busy_stack[8192*16];
 unsigned char test_stack[8192*16];
+unsigned char test2_stack[8192*16];
 
 void idle(void)
 {
+    Os_SetRelAlarm(0, 5, 5);
+    Os_SetRelAlarm(1, 15, 5);
+    Os_SetRelAlarm(2, 10, 5);
+
+    Os_CancelAlarm(2);
     while(1) {
         Os_ActivateTask(1);
     }
@@ -66,6 +72,11 @@ void test(void)
     Os_TerminateTask();
 }
 
+void test2(void)
+{
+    Os_TerminateTask();
+}
+
 const Os_TaskConfigType Os_DefaultTasks[OS_TASK_COUNT] = {
           { .entry      = idle,
             .stack      = idle_stack,
@@ -88,6 +99,13 @@ const Os_TaskConfigType Os_DefaultTasks[OS_TASK_COUNT] = {
            .priority    = 2,
            .resource    = 3
          }
+       , { .entry       = test2,
+           .stack       = test2_stack,
+           .stack_size  = sizeof(test_stack),
+           .autostart   = 0,
+           .priority    = 2,
+           .resource    = 3
+         }
 };
 
 const Os_ResourceConfigType Os_DefaultResources[OS_RES_COUNT] = {
@@ -99,6 +117,12 @@ const Os_ResourceConfigType Os_DefaultResources[OS_RES_COUNT] = {
         },
         {   .priority = 2
         },
+};
+
+const Os_AlarmConfigType Os_DefaultAlarms[OS_ALARM_COUNT] = {
+        {   .task  = 3 },
+        {   .task  = 3 },
+        {   .task  = 3 },
 };
 
 void Os_PreTaskHook(Os_TaskType task)
@@ -119,6 +143,7 @@ void Os_ErrorHook(Os_StatusType ret)
 const Os_ConfigType Os_DefaultConfig = {
         .tasks     = &Os_DefaultTasks,
         .resources = &Os_DefaultResources,
+        .alarms    = &Os_DefaultAlarms,
 };
 
 int main(void)
