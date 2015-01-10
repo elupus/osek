@@ -32,8 +32,8 @@ typedef uint8 Os_PriorityType;    /**< priority level */
 
 typedef uint8 Os_StatusType;      /**< return value for os functions */
 
-typedef uint8  Os_AlarmType;       /**< alarm identifier */
-typedef uint16 Os_TickType;        /**< tick value identifier */
+typedef uint8  Os_AlarmType;      /**< alarm identifier */
+typedef uint16 Os_TickType;       /**< tick value identifier */
 
 #define OS_INVALID_TASK      (Os_TaskType)(-1)
 #define OS_INVALID_RESOURCE  (Os_ResourceType)(-1)
