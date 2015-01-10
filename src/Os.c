@@ -45,8 +45,12 @@ const Os_TaskConfigType *       Os_TaskConfigs;                         /**< con
 const Os_ResourceConfigType *   Os_ResourceConfigs;                     /**< config array for resources */
 Os_ResourceControlType          Os_ResourceControls    [OS_RES_COUNT];  /**< control array for resources */
 
+Os_TickType                     Os_Ticks;                               /**< os ticks that have elapsed */
+
 #ifdef OS_ALARM_COUNT
-const Os_AlarmConfigType *      Os_AlarmConfigs;                        /**< config array for alarms */
+Os_AlarmControlType             Os_AlarmControls       [OS_ALARM_COUNT]; /**< control array for alarms */
+const Os_AlarmConfigType *      Os_AlarmConfigs;                         /**< config array for alarms  */
+Os_AlarmType                    Os_AlarmNext;
 #endif
 
 static Os_StatusType Os_Schedule_Internal(void);
@@ -54,6 +58,10 @@ static Os_StatusType Os_TerminateTask_Internal(void);
 static Os_StatusType Os_ActivateTask_Internal(Os_TaskType task);
 static Os_StatusType Os_GetResource_Internal(Os_ResourceType res);
 static Os_StatusType Os_ReleaseResource_Internal(Os_ResourceType res);
+
+static void Os_AlarmTrigger(Os_AlarmType alarm);
+static void Os_AlarmTick(void);
+static void Os_AlarmAdd(Os_AlarmType alarm, Os_TickType delay);
 
 /**
  * @brief Add task to the given ready list at the head of the list
@@ -113,6 +121,65 @@ static void Os_ReadyListInit(Os_ReadyListType* list)
 {
     list->head = OS_INVALID_TASK;
     list->tail = OS_INVALID_TASK;
+}
+
+/**
+ * @brief Execute the configured action of an alarm
+ * @param alarm
+ */
+void Os_AlarmTrigger(Os_AlarmType alarm)
+{
+    /* TODO */
+    if (Os_AlarmConfigs[alarm].task != OS_INVALID_TASK) {
+        /* TODO event */
+        (void)Os_ActivateTask_Internal(Os_AlarmConfigs[alarm].task);
+    }
+
+    if (Os_AlarmControls[alarm].cycle) {
+        Os_AlarmAdd(alarm, Os_AlarmControls[alarm].cycle);
+    }
+}
+
+void Os_AlarmTick(void)
+{
+    /* trigger and consume any expired */
+    while (Os_AlarmNext != OS_INVALID_ALARM && Os_AlarmControls[Os_AlarmNext].ticks == 0u) {
+        Os_AlarmType alarm = Os_AlarmNext;
+        Os_AlarmNext = Os_AlarmControls[Os_AlarmNext].next;
+        Os_AlarmTrigger(alarm);
+    }
+    /* decrement last active */
+    if (Os_AlarmNext != OS_INVALID_ALARM) {
+        Os_AlarmControls[Os_AlarmNext].ticks--;
+    }
+}
+
+void Os_AlarmAdd(Os_AlarmType alarm, Os_TickType delay)
+{
+    Os_AlarmType index = Os_AlarmNext
+               , prev  = OS_INVALID_ALARM;
+
+    while (index != OS_INVALID_ALARM && Os_AlarmControls[index].ticks <= delay) {
+        prev   = index;
+        delay -= Os_AlarmControls[index].ticks;
+        index  = Os_AlarmControls[index].next;
+    }
+
+    Os_AlarmControls[alarm].ticks = delay;
+    Os_AlarmControls[alarm].next  = index;
+
+    /* reduce next delay */
+    if (index != OS_INVALID_ALARM) {
+        Os_AlarmControls[index].ticks -= delay;
+    }
+
+    if (prev == OS_INVALID_ALARM) {
+        /* empty list or first in list */
+        Os_AlarmNext = alarm;
+    } else {
+        /* insert in list */
+        Os_AlarmControls[prev ].next = alarm;
+    }
 }
 
 /**
@@ -201,13 +268,11 @@ void Os_TaskInternalResource_Release(void)
  * If the running (or to be running) task has an associated internal
  * resource, this function will make sure the task holds that resource.
  *
- * Can only be called from task context.
  */
 void Os_TaskInternalResource_Get(void)
 {
     Os_ResourceType res;
 
-    OS_ERRORCHECK(Os_CallContext == OS_CONTEXT_TASK, E_OS_STATE);
     OS_ERRORCHECK(Os_TaskRunning != OS_INVALID_TASK  , E_OS_STATE);
 
     res = Os_TaskConfigs[Os_TaskRunning].resource;
@@ -406,6 +471,8 @@ Os_StatusType Os_Schedule(void)
 void Os_Isr(void)
 {
     Os_CallContext = OS_CONTEXT_ISR1;
+    Os_Ticks++;
+    Os_AlarmTick();
     Os_Schedule_Internal();
     Os_CallContext = OS_CONTEXT_TASK;
 }
@@ -527,7 +594,6 @@ static Os_StatusType Os_GetResource_Internal(Os_ResourceType res)
     return E_OK;
 }
 
-
 /** @copydoc Os_GetResource_Internal */
 Os_StatusType Os_GetResource(Os_ResourceType res)
 {
@@ -537,7 +603,6 @@ Os_StatusType Os_GetResource(Os_ResourceType res)
     Os_Arch_EnableAllInterrupts();
     return result;
 }
-
 
 /**
  * @brief Release resource for active task/ISR2
@@ -587,6 +652,17 @@ Os_StatusType Os_ReleaseResource(Os_ResourceType res)
 #ifdef OS_ALARM_COUNT
 
 /**
+ * @brief Initialize the alarm context
+ * @param alarm alarm to initialize
+ */
+void Os_AlarmInit(Os_AlarmType alarm)
+{
+    Os_AlarmControls[alarm].cycle = 0u;
+    Os_AlarmControls[alarm].next  = OS_INVALID_ALARM;
+    Os_AlarmControls[alarm].ticks = 0u;
+}
+
+/**
  * @brief Set the alarm to trigger after a relative time
  * @param[in] alarm     Reference to the alarm element
  * @param[in] increment Relative value in ticks
@@ -600,7 +676,7 @@ Os_StatusType Os_ReleaseResource(Os_ResourceType res)
  *  - E_OS_VALUE  Value of <cycle> unequal to 0 and outside of the admissible
  *                counter limits (less than mincycle or greater than maxallowedvalue)
  *
- *  The system service occupies the alarm <AlarmID> element.
+ * The system service occupies the alarm <AlarmID> element.
  * After <increment> ticks have elapsed, the task assigned to the
  * alarm <AlarmID> is activated or the assigned event (only for
  * extended tasks) is set or the alarm-callback routine is called.
@@ -621,7 +697,9 @@ Os_StatusType Os_ReleaseResource(Os_ResourceType res)
 Os_StatusType Os_SetRelAlarm_Internal(Os_AlarmType alarm, Os_TickType increment, Os_TickType cycle)
 {
     OS_ERRORCHECK(alarm < OS_ALARM_COUNT, E_OS_ID);
-    return E_OS_SYS_NOT_IMPLEMENTED;
+    Os_AlarmControls[alarm].cycle = cycle;
+    Os_AlarmAdd(alarm, increment);
+    return E_OK;
 }
 
 /** @copydoc Os_SetRelAlarm_Internal */
@@ -674,7 +752,13 @@ Os_StatusType Os_SetRelAlarm(Os_AlarmType alarm, Os_TickType increment, Os_TickT
 Os_StatusType Os_SetAbsAlarm_Internal(Os_AlarmType alarm, Os_TickType start, Os_TickType cycle)
 {
     OS_ERRORCHECK(alarm < OS_ALARM_COUNT, E_OS_ID);
-    return E_OS_SYS_NOT_IMPLEMENTED;
+    Os_AlarmControls[alarm].cycle = cycle;
+    if (start >= Os_Ticks) {
+        Os_AlarmAdd(alarm, start - Os_Ticks);
+    } else {
+        Os_AlarmAdd(alarm, OS_MAXALLOWEDVALUE - Os_Ticks + start + 1u);
+    }
+    return E_OK;
 }
 
 /** @copydoc Os_SetAbsAlarm */
@@ -698,8 +782,22 @@ Os_StatusType Os_SetAbsAlarm(Os_AlarmType alarm, Os_TickType start, Os_TickType 
  */
 Os_StatusType Os_CancelAlarm_Internal(Os_AlarmType alarm)
 {
+    Os_AlarmType index;
+
     OS_ERRORCHECK(alarm < OS_ALARM_COUNT, E_OS_ID);
-    return E_OS_SYS_NOT_IMPLEMENTED;
+
+    if (Os_AlarmNext == alarm) {
+        Os_AlarmNext = Os_AlarmControls[alarm].next;
+    } else {
+        index = Os_AlarmNext;
+        while (index != OS_INVALID_ALARM && Os_AlarmControls[index].next != alarm) {
+            index = Os_AlarmControls[index].next;
+        }
+        OS_ERRORCHECK(index != OS_INVALID_ALARM, E_OS_NOFUNC);
+        Os_AlarmControls[index].next = Os_AlarmControls[alarm].next;
+    }
+    Os_AlarmControls[alarm].next = OS_INVALID_ALARM;
+    return E_OK;
 }
 
 /** @copydoc Os_CancelAlarm_Internal */
@@ -729,8 +827,21 @@ Os_StatusType Os_CancelAlarm(Os_AlarmType alarm)
  */
 Os_StatusType Os_GetAlarm_Internal(Os_AlarmType alarm, Os_TickType* tick)
 {
+    Os_AlarmType index;
+
     OS_ERRORCHECK(alarm < OS_ALARM_COUNT, E_OS_ID);
-    return E_OS_SYS_NOT_IMPLEMENTED;
+
+    *tick = 0u;
+    index = Os_AlarmNext;
+    while (index != OS_INVALID_ALARM && index != alarm) {
+        index  = Os_AlarmControls[index].next;
+        *tick += Os_AlarmControls[index].ticks;
+    }
+
+    OS_ERRORCHECK(index != OS_INVALID_ALARM, E_OS_NOFUNC);
+
+    *tick += Os_AlarmControls[index].ticks;
+    return E_OK;
 }
 
 /** @copydoc Os_CancelAlarm_Internal */
@@ -753,6 +864,7 @@ void Os_Init(const Os_ConfigType* config)
 {
     Os_TaskType     task;
     Os_ResourceType res;
+    Os_AlarmType    alarm;
     uint_least8_t prio;
 
     Os_TaskConfigs     = *config->tasks;
@@ -760,6 +872,8 @@ void Os_Init(const Os_ConfigType* config)
     Os_AlarmConfigs    = *config->alarms;
     Os_CallContext     = OS_CONTEXT_NONE;
     Os_TaskRunning     = OS_INVALID_TASK;
+    Os_Ticks           = 0u;
+    Os_AlarmNext       = OS_INVALID_TASK;
 
     memset(&Os_TaskControls    , 0u, sizeof(Os_TaskControls));
     memset(&Os_ResourceControls, 0u, sizeof(Os_ResourceControls));
@@ -776,6 +890,11 @@ void Os_Init(const Os_ConfigType* config)
     /* initialize resources */
     for (res  = 0u; res  < OS_RES_COUNT; ++res) {
         Os_ResourceInit(res);
+    }
+
+    /* initialize alarms */
+    for (alarm  = 0u; alarm  < OS_ALARM_COUNT; ++alarm) {
+        Os_AlarmInit(alarm);
     }
 
     /* run arch init */

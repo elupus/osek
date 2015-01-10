@@ -35,8 +35,11 @@ typedef uint8 Os_StatusType;      /**< return value for os functions */
 typedef uint8  Os_AlarmType;      /**< alarm identifier */
 typedef uint16 Os_TickType;       /**< tick value identifier */
 
+#define OS_MAXALLOWEDVALUE UINT8_MAX
+
 #define OS_INVALID_TASK      (Os_TaskType)(-1)
 #define OS_INVALID_RESOURCE  (Os_ResourceType)(-1)
+#define OS_INVALID_ALARM     (Os_AlarmType)(-1)
 
 /**
  * @brief Current call context
@@ -105,6 +108,15 @@ typedef struct Os_ResourceControlType {
 typedef struct Os_AlarmConfigType {
     Os_TaskType     task;         /**< @brief task to activate */
 } Os_AlarmConfigType;
+
+/**
+ * @brief Structure holding configuration setup for each alarm
+ */
+typedef struct Os_AlarmControlType {
+    Os_AlarmType    next;         /**< @brief next task scheduled */
+    Os_TickType     ticks;        /**< @brief number of ticks until trigger */
+    Os_TickType     cycle;        /**< @brief number of ticks in each cycle */
+} Os_AlarmControlType;
 
 /**
  * @brief Linked list of ready tasks
