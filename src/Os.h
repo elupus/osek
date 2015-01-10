@@ -51,6 +51,7 @@ void       Os_TaskInternalResource_Get(void);
 
 void       Os_Init(const Os_ConfigType* config);
 void       Os_Start(void);
+void       Os_Shutdown(void);
 void       Os_Isr(void);
 
 extern Os_StatusType Os_Schedule(void);

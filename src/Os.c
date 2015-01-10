@@ -45,7 +45,9 @@ const Os_TaskConfigType *       Os_TaskConfigs;                         /**< con
 const Os_ResourceConfigType *   Os_ResourceConfigs;                     /**< config array for resources */
 Os_ResourceControlType          Os_ResourceControls    [OS_RES_COUNT];  /**< control array for resources */
 
-Os_TickType                     Os_Ticks;                               /**< os ticks that have elapsed */
+volatile Os_TickType            Os_Ticks;                               /**< os ticks that have elapsed */
+volatile boolean                Os_Continue;                            /**< should starting task continue */
+
 
 #ifdef OS_ALARM_COUNT
 Os_AlarmControlType             Os_AlarmControls       [OS_ALARM_COUNT]; /**< control array for alarms */
@@ -366,7 +368,7 @@ void Os_Start(void)
     if (task == OS_INVALID_TASK) {
         /* no task found, just wait for tick to trigger one */
         Os_Arch_EnableAllInterrupts();
-        while(1) {
+        while(Os_Continue) {
             ; /* NOP */
         }
     } else {
@@ -382,12 +384,27 @@ void Os_Start(void)
         /* swap into first task */
         Os_Arch_SwapState(task, OS_INVALID_TASK);
 
-        /* should never be reached */
-        OS_ERRORCHECK(0, E_OS_NOFUNC);
-        while(1) {
+        while(Os_Continue) {
             ; /* NOP */
         }
     }
+}
+
+void Os_Shutdown(void)
+{
+    Os_Arch_DisableAllInterrupts();
+
+    Os_Continue = FALSE;
+    /* store previous to be able to swap state later */
+    Os_TaskType prev = Os_TaskRunning;
+
+    if (prev != OS_INVALID_TASK) {
+        /* put preempted task as first ready */
+        Os_State_Running_To_Ready(prev);
+    }
+
+    /* swap back if os support it */
+    Os_Arch_SwapState(OS_INVALID_TASK, prev);
 }
 
 /**
@@ -886,6 +903,7 @@ void Os_Init(const Os_ConfigType* config)
     Os_TaskRunning     = OS_INVALID_TASK;
     Os_Ticks           = 0u;
     Os_AlarmNext       = OS_INVALID_TASK;
+    Os_Continue        = TRUE;
 
     memset(&Os_TaskControls    , 0u, sizeof(Os_TaskControls));
     memset(&Os_ResourceControls, 0u, sizeof(Os_ResourceControls));

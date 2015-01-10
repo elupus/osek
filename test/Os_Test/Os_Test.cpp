@@ -22,6 +22,7 @@ extern "C" void Os_ErrorHook(Os_StatusType ret)
 
 void Os_Test_Simple_Idle(void)
 {
+    Os_Shutdown();
     Os_TerminateTask();
 }
 
