@@ -618,7 +618,20 @@ static Os_StatusType Os_GetResource_Task(Os_ResourceType res)
     return E_OK;
 
 OS_ERRORCHECK_EXIT_POINT:
-    Os_Error.service   = OSServiceId_ActivateTask;
+    Os_Error.service   = OSServiceId_GetResource;
+    Os_Error.params[0] = res;
+    OS_ERRORHOOK(Os_Error.status);
+    return Os_Error.status;
+}
+
+static Os_StatusType Os_GetResource_Isr(Os_ResourceType res)
+{
+    OS_ERRORCHECK_R(0, E_OS_SYS_NOT_IMPLEMENTED);
+
+    return E_OK;
+
+OS_ERRORCHECK_EXIT_POINT:
+    Os_Error.service   = OSServiceId_GetResource;
     Os_Error.params[0] = res;
     OS_ERRORHOOK(Os_Error.status);
     return Os_Error.status;
@@ -632,7 +645,7 @@ Os_StatusType Os_GetResource(Os_ResourceType res)
     if (Os_CallContext == OS_CONTEXT_TASK) {
         result = Os_GetResource_Task(res);
     } else {
-        result = E_OS_SYS_NOT_IMPLEMENTED;
+        result = Os_GetResource_Isr(res);
         OS_ERRORCHECK_R(result == E_OK, result);
     }
     Os_Arch_EnableAllInterrupts();
