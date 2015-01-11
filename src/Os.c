@@ -510,8 +510,8 @@ void Os_Isr(void)
  */
 Os_StatusType Os_TerminateTask_Internal(void)
 {
-    OS_ERRORCHECK_R(Os_TaskControls[Os_TaskRunning].activation > 0               , E_OS_LIMIT);
-    OS_ERRORCHECK_R(Os_CallContext == OS_CONTEXT_TASK                            , E_OS_CALLEVEL);
+    OS_ERRORCHECK_R(Os_TaskControls[Os_TaskRunning].activation > 0                 , E_OS_LIMIT);
+    OS_ERRORCHECK_R(Os_CallContext == OS_CONTEXT_TASK                              , E_OS_CALLEVEL);
     OS_ERRORCHECK_R(Os_TaskControls[Os_TaskRunning].resource == OS_INVALID_RESOURCE, E_OS_RESOURCE);
 
     Os_State_Running_To_Suspended(Os_TaskRunning);
@@ -596,9 +596,8 @@ Os_StatusType Os_ActivateTask(Os_TaskType task)
  */
 static Os_StatusType Os_GetResource_Task(Os_ResourceType res)
 {
-    OS_ERRORCHECK_R(res < OS_RES_COUNT, E_OS_ID);
-    OS_ERRORCHECK_R(Os_ResourceControls[res].task == OS_INVALID_TASK         , E_OS_ACCESS);
-
+    OS_ERRORCHECK_R(res < OS_RES_COUNT                                               , E_OS_ID);
+    OS_ERRORCHECK_R(Os_ResourceControls[res].task == OS_INVALID_TASK                 , E_OS_ACCESS);
     OS_ERRORCHECK_R(Os_TaskPrio(Os_TaskRunning)   <= Os_ResourceConfigs[res].priority, E_OS_ACCESS);
     Os_ResourceControls[res].task            = Os_TaskRunning;
     Os_ResourceControls[res].next            = Os_TaskControls[Os_TaskRunning].resource;
@@ -638,7 +637,7 @@ Os_StatusType Os_GetResource(Os_ResourceType res)
  */
 Os_StatusType Os_ReleaseResource_Task(Os_ResourceType res)
 {
-    OS_ERRORCHECK_R(res < OS_RES_COUNT, E_OS_ID);
+    OS_ERRORCHECK_R(res < OS_RES_COUNT                             , E_OS_ID);
     OS_ERRORCHECK_R(Os_ResourceControls[res].task == Os_TaskRunning, E_OS_NOFUNC);
     OS_ERRORCHECK_R(Os_TaskControls[Os_TaskRunning].resource == res, E_OS_NOFUNC);
 
