@@ -62,8 +62,10 @@ void Os_Arch_Isr(void (*isr)())
     (void)Os_GetTaskId(&task_after);
 
     if (task_before != task_after) {
-        if (task_after != OS_INVALID_TASK) {
-            assert(Os_Arch_Section_Count != 0);
+        assert(Os_Arch_Section_Count != 0);
+        if (task_after == OS_INVALID_TASK) {
+            SwitchToFiber(Os_Arch_System);
+        } else {
             SwitchToFiber(Os_Arch_State[task_after].fiber);
         }
     }
@@ -162,7 +164,11 @@ void Os_Arch_SwapState(Os_TaskType task, Os_TaskType prev)
 {
     assert(Os_Arch_Section_Count != 0);
     if (Os_CallContext == OS_CONTEXT_TASK) {
-        SwitchToFiber(Os_Arch_State[task].fiber);
+        if (task == OS_INVALID_TASK) {
+            SwitchToFiber(Os_Arch_System);
+        } else {
+            SwitchToFiber(Os_Arch_State[task].fiber);
+        }
     } else {
         /* NOP - switch will occur at end of ISR */
     }

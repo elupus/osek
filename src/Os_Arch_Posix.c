@@ -45,21 +45,30 @@ void Os_Arch_Alarm(int signal)
             ctx_after = &Os_Arch_State[task_after];
         }
 
-        if (task_before == OS_INVALID_TASK) {
-            ctx_before = &Os_Arch_State_None;
+        if (task_before != OS_INVALID_TASK) {
+            ctx_before = &Os_Arch_State[task_before];
+            if (Os_Arch_State_None.uc_mcontext == NULL) {
+                ctx_before = &Os_Arch_State_None;
+            } else {
+                ctx_before = NULL;
+            }
         } else {
             ctx_before = &Os_Arch_State[task_before];
         }
 
         if (ctx.uc_onstack) {
-            *ctx_before = *ctx.uc_link;
+            if (ctx_before) {
+                *ctx_before = *ctx.uc_link;
+            }
 
             if (ctx.uc_link != ctx_after) {
                 ctx.uc_link = ctx_after;
                 setcontext(&ctx);
             }
         } else {
-            *ctx_before = ctx;
+            if (ctx_before) {
+                *ctx_before = ctx;
+            }
             setcontext(ctx_after);
         }
     }
@@ -69,6 +78,9 @@ void Os_Arch_Init(void)
 {
     Os_Arch_DisableAllInterrupts();
     int res;
+
+    memset(&Os_Arch_State_None, 0, sizeof(Os_Arch_State_None));
+    memset(&Os_Arch_State, 0, sizeof(Os_Arch_State));
 
     struct sigaction sact;
     sigemptyset( &sact.sa_mask );
@@ -114,7 +126,9 @@ void Os_Arch_SwapState(Os_TaskType task, Os_TaskType prev)
 {
     if (Os_CallContext == OS_CONTEXT_TASK) {
         if (prev == OS_INVALID_TASK) {
-            getcontext(&Os_Arch_State_None);
+            if (Os_Arch_State_None.uc_mcontext == NULL) {
+                getcontext(&Os_Arch_State_None);
+            }
         } else {
             getcontext(&Os_Arch_State[prev]);
         }
