@@ -70,6 +70,28 @@ template<typename T> struct Os_Test : public testing::Test {
         {
             errors.push(ret);
             if(shutdown) {
+                switch(ret) {
+                case E_OS_LIMIT:
+                    if ((Os_Error.service == OSServiceId_ActivateTask)
+                    ||  (Os_Error.service == OSServiceId_ChainTask)) {
+                        return; /* considered just warning */
+                    }
+                    break;
+                case E_OS_NOFUNC:
+                    if ((Os_Error.service == OSServiceId_GetAlarm)
+                    ||  (Os_Error.service == OSServiceId_CancelAlarm)) {
+                        return; /* considered just warning */
+                    }
+                    break;
+                case E_OS_STATE:
+                    if ((Os_Error.service == OSServiceId_SetAbsAlarm)
+                    ||  (Os_Error.service == OSServiceId_SetRelAlarm)) {
+                        return; /* considered just warning */
+                    }
+                    break;
+                default:
+                    break;
+                }
                 FAIL();
                 Os_Shutdown();
             }
