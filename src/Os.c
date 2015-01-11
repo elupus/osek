@@ -36,6 +36,7 @@
 #include "Os_Types.h"
 #include "Os.h"
 
+Os_ErrorType                    Os_Error;
 Os_TaskControlType              Os_TaskControls        [OS_TASK_COUNT]; /**< control array for tasks */
 Os_ReadyListType                Os_TaskReady           [OS_PRIO_COUNT]; /**< array of ready lists based on priority */
 Os_TaskType                     Os_TaskRunning;                         /**< currently running task */
@@ -523,6 +524,11 @@ Os_StatusType Os_TerminateTask_Internal(void)
 
     Os_TaskRunning = OS_INVALID_TASK;
     return E_OK;
+
+OS_ERRORCHECK_EXIT_POINT:
+    Os_Error.service = OSServiceId_TerminateTask;
+    OS_ERRORHOOK(Os_Error.status);
+    return Os_Error.status;
 }
 
 /** @copydoc Os_TerminateTask_Internal */
@@ -567,6 +573,12 @@ static Os_StatusType Os_ActivateTask_Internal(Os_TaskType task)
     }
 
     return E_OK;
+
+OS_ERRORCHECK_EXIT_POINT:
+    Os_Error.service   = OSServiceId_ActivateTask;
+    Os_Error.params[0] = task;
+    OS_ERRORHOOK(Os_Error.status);
+    return Os_Error.status;
 }
 
 /** @copydoc Os_ActivateTask_Internal */
@@ -604,6 +616,12 @@ static Os_StatusType Os_GetResource_Task(Os_ResourceType res)
     Os_TaskControls[Os_TaskRunning].resource = res;
 
     return E_OK;
+
+OS_ERRORCHECK_EXIT_POINT:
+    Os_Error.service   = OSServiceId_ActivateTask;
+    Os_Error.params[0] = res;
+    OS_ERRORHOOK(Os_Error.status);
+    return Os_Error.status;
 }
 
 /** @copydoc Os_GetResource_Task */
@@ -614,11 +632,17 @@ Os_StatusType Os_GetResource(Os_ResourceType res)
     if (Os_CallContext == OS_CONTEXT_TASK) {
         result = Os_GetResource_Task(res);
     } else {
-        OS_ERRORCHECK(0, E_OS_SYS_NOT_IMPLEMENTED);
         result = E_OS_SYS_NOT_IMPLEMENTED;
+        OS_ERRORCHECK_R(result == E_OK, result);
     }
     Os_Arch_EnableAllInterrupts();
     return result;
+
+OS_ERRORCHECK_EXIT_POINT:
+    Os_Error.service   = OSServiceId_GetResource;
+    Os_Error.params[0] = res;
+    OS_ERRORHOOK(Os_Error.status);
+    return Os_Error.status;
 }
 
 /**
@@ -646,6 +670,12 @@ Os_StatusType Os_ReleaseResource_Task(Os_ResourceType res)
     Os_ResourceControls[res].next  = OS_INVALID_RESOURCE;
 
     return E_OK;
+
+OS_ERRORCHECK_EXIT_POINT:
+    Os_Error.service   = OSServiceId_ReleaseResource;
+    Os_Error.params[0] = res;
+    OS_ERRORHOOK(Os_Error.status);
+    return Os_Error.status;
 }
 
 /** @copydoc Os_ReleaseResource_Task */
@@ -657,7 +687,6 @@ Os_StatusType Os_ReleaseResource(Os_ResourceType res)
         result = Os_ReleaseResource_Task(res);
     } else {
         result = E_OS_SYS_NOT_IMPLEMENTED;
-        OS_ERRORCHECK(0, result);
     }
     if (result == E_OK) {
         result = Os_Schedule_Internal();
@@ -717,6 +746,14 @@ Os_StatusType Os_SetRelAlarm_Internal(Os_AlarmType alarm, Os_TickType increment,
     Os_AlarmControls[alarm].cycle = cycle;
     Os_AlarmAdd(alarm, increment);
     return E_OK;
+
+OS_ERRORCHECK_EXIT_POINT:
+    Os_Error.service   = OSServiceId_SetRelAlarm;
+    Os_Error.params[0] = alarm;
+    Os_Error.params[1] = increment;
+    Os_Error.params[2] = cycle;
+    OS_ERRORHOOK(Os_Error.status);
+    return Os_Error.status;
 }
 
 /** @copydoc Os_SetRelAlarm_Internal */
@@ -776,6 +813,14 @@ Os_StatusType Os_SetAbsAlarm_Internal(Os_AlarmType alarm, Os_TickType start, Os_
         Os_AlarmAdd(alarm, OS_MAXALLOWEDVALUE - Os_Ticks + start + 1u);
     }
     return E_OK;
+
+OS_ERRORCHECK_EXIT_POINT:
+    Os_Error.service   = OSServiceId_SetAbsAlarm;
+    Os_Error.params[0] = alarm;
+    Os_Error.params[1] = start;
+    Os_Error.params[2] = cycle;
+    OS_ERRORHOOK(Os_Error.status);
+    return Os_Error.status;
 }
 
 /** @copydoc Os_SetAbsAlarm */
@@ -826,6 +871,12 @@ Os_StatusType Os_CancelAlarm_Internal(Os_AlarmType alarm)
     Os_AlarmControls[alarm].cycle = 0u;
     Os_AlarmControls[alarm].next  = OS_INVALID_ALARM;
     return E_OK;
+
+OS_ERRORCHECK_EXIT_POINT:
+    Os_Error.service   = OSServiceId_CancelAlarm;
+    Os_Error.params[0] = alarm;
+    OS_ERRORHOOK(Os_Error.status);
+    return Os_Error.status;
 }
 
 /** @copydoc Os_CancelAlarm_Internal */
@@ -870,6 +921,12 @@ Os_StatusType Os_GetAlarm_Internal(Os_AlarmType alarm, Os_TickType* tick)
 
     *tick += Os_AlarmControls[index].ticks;
     return E_OK;
+
+OS_ERRORCHECK_EXIT_POINT:
+    Os_Error.service   = OSServiceId_GetAlarm;
+    Os_Error.params[0] = alarm;
+    OS_ERRORHOOK(Os_Error.status);
+    return Os_Error.status;
 }
 
 /** @copydoc Os_CancelAlarm_Internal */

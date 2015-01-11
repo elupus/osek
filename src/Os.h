@@ -39,7 +39,16 @@ typedef struct Os_ConfigType {
 #endif
 } Os_ConfigType;
 
+typedef uint8 Os_ServiceType;
 
+typedef struct Os_ErrorType {
+    Os_ServiceType service;
+    Os_StatusType  status;
+    uint16         line;
+    uint16         params[3];
+} Os_ErrorType;
+
+extern Os_ErrorType                    Os_Error;
 extern Os_TaskControlType              Os_TaskControls        [OS_TASK_COUNT];
 extern Os_ReadyListType                Os_TaskReady           [OS_PRIO_COUNT];
 extern Os_TaskType                     Os_TaskRunning;
@@ -76,6 +85,19 @@ static __inline Os_StatusType Os_GetTaskId   (Os_TaskType* task)
     return E_OK;
 }
 
+enum {
+    OSServiceId_None,
+    OSServiceId_Schedule,
+    OSServiceId_TerminateTask,
+    OSServiceId_ActivateTask,
+    OSServiceId_GetResource,
+    OSServiceId_ReleaseResource,
+    OSServiceId_SetRelAlarm,
+    OSServiceId_SetAbsAlarm,
+    OSServiceId_CancelAlarm,
+    OSServiceId_GetAlarm,
+};
+
 #if(OS_PRETASKHOOK_ENABLE)
 extern void Os_PreTaskHook(Os_TaskType task);
 #define OS_PRETASKHOOK(task) Os_PreTaskHook(task)
@@ -98,17 +120,22 @@ extern void Os_ErrorHook(Os_StatusType status);
 #endif
 
 #if(OS_ERRORHOOK_ENABLE)
-#define OS_ERRORCHECK(_condition, _ret) do { \
-        if(!(_condition)) {                  \
-            OS_ERRORHOOK(_ret);              \
-        }                                    \
+#define OS_ERRORCHECK(_condition, _ret)   do {   \
+        if(!(_condition)) {                      \
+            Os_Error.service = OSServiceId_None; \
+            Os_Error.status  = _ret;             \
+            Os_Error.line    = __LINE__;         \
+            OS_ERRORHOOK(_ret);                  \
+            return;                              \
+        }                                        \
     } while(0)
 
-#define OS_ERRORCHECK_R(_condition, _ret) do { \
-        if(!(_condition)) {                    \
-            OS_ERRORHOOK(_ret);                \
-            return _ret;                       \
-        }                                      \
+#define OS_ERRORCHECK_R(_condition, _ret) do {   \
+        if(!(_condition)) {                      \
+            Os_Error.status = _ret;              \
+            Os_Error.line    = __LINE__;         \
+            goto OS_ERRORCHECK_EXIT_POINT;       \
+        }                                        \
     } while(0)
 #else
 #define OS_ERRORCHECK(_condition, _ret)
