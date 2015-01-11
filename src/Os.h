@@ -96,6 +96,7 @@ enum {
     OSServiceId_SetAbsAlarm,
     OSServiceId_CancelAlarm,
     OSServiceId_GetAlarm,
+    OSServiceId_ChainTask,
 };
 
 #if(OS_PRETASKHOOK_ENABLE)
