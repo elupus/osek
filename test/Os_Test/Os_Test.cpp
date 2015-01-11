@@ -105,68 +105,6 @@ template<typename T> struct Os_Test : public testing::Test {
 
 template<typename T> T* Os_Test<T>::active = NULL;
 
-struct Os_Test_Simple : public Os_Test<Os_Test_Simple>
-{
-    int           idle_count;
-    int           busy_count;
-
-    enum {
-        OS_TASK_IDLE,
-        OS_TASK_BUSY,
-    };
-
-    enum {
-        OS_RES_OS = OS_RES_SCHEDULER,
-        OS_RES_LOCK,
-    };
-
-    void test_main(void)
-    {
-        task_add(OS_TASK_IDLE, &ParentType::idle_main, 1u, 0u, OS_INVALID_RESOURCE);
-        task_add(OS_TASK_BUSY, &ParentType::busy_main, 0u, 1u, OS_INVALID_RESOURCE);
-        m_resources[OS_RES_LOCK].priority = 2;
-
-        m_hooks.shutdown = false;
-        idle_count = 0;
-        busy_count = 0;
-        Os_Init(&m_config);
-        Os_Start();
-        EXPECT_EQ(m_hooks.errors.size(), 1);
-        EXPECT_GT(idle_count, 0);
-    }
-
-    void idle_main(void)
-    {
-        idle_count++;
-        EXPECT_EQ(Os_ActivateTask(OS_TASK_COUNT), E_OS_ID);
-        EXPECT_EQ(Os_GetResource(OS_RES_LOCK), E_OK);
-        EXPECT_EQ(Os_ActivateTask(OS_TASK_BUSY), E_OK); /* first  activation */
-        EXPECT_EQ(Os_ActivateTask(OS_TASK_BUSY), E_OK); /* second activation */
-        EXPECT_EQ(busy_count, 0);                       /* we hold resource so we block task */
-        EXPECT_EQ(Os_ReleaseResource(OS_RES_LOCK), E_OK);
-
-        /* this should schedule busy instead */
-        EXPECT_EQ(busy_count, 2);
-
-        Os_Shutdown();
-        Os_TerminateTask();
-    }
-
-    void busy_main(void)
-    {
-        EXPECT_EQ(Os_GetResource(OS_RES_LOCK), E_OK);
-        busy_count++;
-        EXPECT_EQ(Os_ReleaseResource(OS_RES_LOCK), E_OK);
-        Os_TerminateTask();
-    }
-};
-
-TEST_F(Os_Test_Simple, Main) {
-    test_main();
-}
-
-
-
 struct Os_Test_Default : public Os_Test<Os_Test_Default>
 {
     enum {
@@ -235,7 +173,7 @@ TEST_F(Os_Test_ResourceOrder, Main) {
     test_main();
 }
 
-struct Os_Test_ResourceTask : public Os_Test_Default
+struct Os_Test_ResourceTaskPriority : public Os_Test_Default
 {
     virtual void task_prio2(void)
     {
@@ -248,6 +186,39 @@ struct Os_Test_ResourceTask : public Os_Test_Default
     }
 };
 
-TEST_F(Os_Test_ResourceTask, Main) {
+TEST_F(Os_Test_ResourceTaskPriority, Main) {
+    test_main();
+}
+
+struct Os_Test_ResourceLockTest : public Os_Test_Default
+{
+    unsigned int task_prio1_count;
+    Os_Test_ResourceLockTest()
+    {
+        task_prio1_count = 0;
+    }
+
+    virtual void task_prio0(void)
+    {
+        EXPECT_EQ(E_OK       , Os_GetResource    (OS_RES_PRIO1));
+        EXPECT_EQ(1          , task_prio1_count) << "Higher prio task has run more than once";
+        EXPECT_EQ(E_OK       , Os_ActivateTask   (OS_TASK_PRIO1));
+        EXPECT_EQ(1          , task_prio1_count) << "Higher prio task run while resource was held";
+        EXPECT_EQ(E_OK       , Os_ReleaseResource(OS_RES_PRIO1));
+        EXPECT_EQ(2          , task_prio1_count) << "Higher prio task didn't run after resource was released";
+        Os_Shutdown();
+        Os_TerminateTask();
+    }
+
+    virtual void task_prio1(void)
+    {
+        EXPECT_EQ(E_OK, Os_GetResource    (OS_RES_PRIO1));
+        task_prio1_count++;
+        EXPECT_EQ(E_OK, Os_ReleaseResource(OS_RES_PRIO1));
+        Os_TerminateTask();
+    }
+};
+
+TEST_F(Os_Test_ResourceLockTest, Main) {
     test_main();
 }
