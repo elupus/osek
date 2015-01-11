@@ -20,6 +20,7 @@
 #include <signal.h>
 #include <sys/time.h>
 #include <stdlib.h>
+#include <string.h>
 #include "Os.h"
 
 ucontext_t  Os_Arch_State_None;
