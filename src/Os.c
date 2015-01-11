@@ -714,7 +714,7 @@ void Os_AlarmInit(Os_AlarmType alarm)
  */
 Os_StatusType Os_SetRelAlarm_Internal(Os_AlarmType alarm, Os_TickType increment, Os_TickType cycle)
 {
-    OS_ERRORCHECK(alarm < OS_ALARM_COUNT, E_OS_ID);
+    OS_ERRORCHECK_R(alarm < OS_ALARM_COUNT, E_OS_ID);
     Os_AlarmControls[alarm].cycle = cycle;
     Os_AlarmAdd(alarm, increment);
     return E_OK;
@@ -769,7 +769,7 @@ Os_StatusType Os_SetRelAlarm(Os_AlarmType alarm, Os_TickType increment, Os_TickT
  */
 Os_StatusType Os_SetAbsAlarm_Internal(Os_AlarmType alarm, Os_TickType start, Os_TickType cycle)
 {
-    OS_ERRORCHECK(alarm < OS_ALARM_COUNT, E_OS_ID);
+    OS_ERRORCHECK_R(alarm < OS_ALARM_COUNT, E_OS_ID);
     Os_AlarmControls[alarm].cycle = cycle;
     if (start >= Os_Ticks) {
         Os_AlarmAdd(alarm, start - Os_Ticks);
@@ -803,14 +803,14 @@ Os_StatusType Os_CancelAlarm_Internal(Os_AlarmType alarm)
     Os_AlarmType next = Os_AlarmNext
                , prev = OS_INVALID_ALARM;
 
-    OS_ERRORCHECK(alarm < OS_ALARM_COUNT   , E_OS_ID);
+    OS_ERRORCHECK_R(alarm < OS_ALARM_COUNT   , E_OS_ID);
 
     while (next != OS_INVALID_ALARM && next != alarm) {
         prev = next;
         next = Os_AlarmControls[next].next;
     }
 
-    OS_ERRORCHECK(next == alarm, E_OS_NOFUNC);
+    OS_ERRORCHECK_R(next == alarm, E_OS_NOFUNC);
 
     next = Os_AlarmControls[alarm].next;
     if (prev == OS_INVALID_ALARM) {
@@ -858,7 +858,7 @@ Os_StatusType Os_GetAlarm_Internal(Os_AlarmType alarm, Os_TickType* tick)
 {
     Os_AlarmType index;
 
-    OS_ERRORCHECK(alarm < OS_ALARM_COUNT, E_OS_ID);
+    OS_ERRORCHECK_R(alarm < OS_ALARM_COUNT, E_OS_ID);
 
     *tick = 0u;
     index = Os_AlarmNext;
@@ -867,7 +867,7 @@ Os_StatusType Os_GetAlarm_Internal(Os_AlarmType alarm, Os_TickType* tick)
         *tick += Os_AlarmControls[index].ticks;
     }
 
-    OS_ERRORCHECK(index != OS_INVALID_ALARM, E_OS_NOFUNC);
+    OS_ERRORCHECK_R(index != OS_INVALID_ALARM, E_OS_NOFUNC);
 
     *tick += Os_AlarmControls[index].ticks;
     return E_OK;
