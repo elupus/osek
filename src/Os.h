@@ -28,6 +28,19 @@
 #include "Os_Types.h"
 #include "Os_Cfg.h"
 
+#ifdef OS_CFG_ARCH_POSIX
+#include "Os_Arch_Posix.h"
+#endif
+
+#ifdef OS_CFG_ARCH_FIBERS
+#include "Os_Arch_Fibers.h"
+#endif
+
+#ifdef OS_CFG_ARCH_HCS12
+#include "Os_Arch_HCS12.h"
+#endif
+
+
 /**
  * @brief Main configuration structure of Os
  */
