@@ -13,11 +13,19 @@ if (${UNIX})
         src/Os_Arch_Posix.c
     )
     add_definitions(-D_XOPEN_SOURCE=600 -DOS_CFG_ARCH_POSIX)
+    set (Os_Run 1)
 elseif (${WIN32})
     set (Os_SRCS ${Os_SRCS}
         src/Os_Arch_Fibers.c
     )
     add_definitions(-DOS_CFG_ARCH_FIBERS)
+    set (Os_Run 1)
+elseif (${HCS12})
+    set (Os_SRCS ${Os_SRCS}
+        src/Os_Arch_HCS12.c
+    )
+    add_definitions(-DOS_CFG_ARCH_HCS12)
+    set (Os_HCS12 1)
 endif()
 
 include_directories(src)
@@ -65,8 +73,20 @@ if(BUILD_TESTS)
 
 endif()
 
-# Simple Os_Run test
-add_executable(Os_Run ${Os_SRCS} test/Os_Run/Os_Cfg.c)
-target_include_directories(Os_Run PRIVATE test/Os_Run)
+if(${Os_Run})
+    # Simple Os_Run test
+    add_executable(Os_Run ${Os_SRCS} test/Os_Run/Os_Cfg.c)
+    target_include_directories(Os_Run PRIVATE test/Os_Run)
+endif()
+
+if(${Os_HCS12})
+    # Simple Os_Run test
+    add_executable(Os_HCS12 ${Os_SRCS} test/Os_HCS12/Os_Cfg.c)
+    target_include_directories(Os_HCS12 PRIVATE test/Os_HCS12)
+    add_custom_command(OUTPUT  Os_HCS12.s19
+                       COMMAND ${CMAKE_OBJCOPY} --output-format=srec Os_HCS12 Os_HCS12.s19
+                       DEPENDS Os_HCS12)
+    add_custom_target(Os_HCS12_srec ALL DEPENDS Os_HCS12.s19)
+endif()
 
 
