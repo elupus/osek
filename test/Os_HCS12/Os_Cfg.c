@@ -94,6 +94,12 @@ const Os_ConfigType Os_DefaultConfig = {
         .alarms    = &Os_DefaultAlarms,
 };
 
+void exit(int err)
+{
+    while(1)
+        ;
+}
+
 int main(void)
 {
     Os_Init(&Os_DefaultConfig);
