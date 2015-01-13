@@ -57,7 +57,9 @@ typedef uint8 Os_ServiceType;
 typedef struct Os_ErrorType {
     Os_ServiceType service;
     Os_StatusType  status;
+#if(OS_ERROR_EXT_ENABLE)
     uint16         line;
+#endif
     uint16         params[3];
 } Os_ErrorType;
 
@@ -133,12 +135,19 @@ extern void Os_ErrorHook(Os_StatusType status);
 #define OS_ERRORHOOK(status)
 #endif
 
-#if(OS_ERRORHOOK_ENABLE)
+#if(OS_ERROR_EXT_ENABLE)
+#define OS_ERRORCHECK_DATA(_ret)  \
+	Os_Error.status  = _ret;      \
+    Os_Error.line    = __LINE__;
+#else
+#define OS_ERRORCHECK_DATA(_ret)  \
+	Os_Error.status  = _ret;
+#endif
+
 #define OS_ERRORCHECK(_condition, _ret)   do {   \
         if(!(_condition)) {                      \
             Os_Error.service = OSServiceId_None; \
-            Os_Error.status  = _ret;             \
-            Os_Error.line    = __LINE__;         \
+            OS_ERRORCHECK_DATA(_ret)             \
             OS_ERRORHOOK(_ret);                  \
             return;                              \
         }                                        \
@@ -146,13 +155,21 @@ extern void Os_ErrorHook(Os_StatusType status);
 
 #define OS_ERRORCHECK_R(_condition, _ret) do {   \
         if(!(_condition)) {                      \
-            Os_Error.status = _ret;              \
-            Os_Error.line    = __LINE__;         \
+            OS_ERRORCHECK_DATA(_ret)             \
             goto OS_ERRORCHECK_EXIT_POINT;       \
         }                                        \
     } while(0)
+
+#define OS_CHECK(_condition, _ret)   OS_ERRORCHECK(_condition, _ret)
+#define OS_CHECK_R(_condition, _ret) OS_ERRORCHECK_R(_condition, _ret)
+
+#if(OS_ERROR_EXT_ENABLE)
+#define OS_CHECK_EXT(_condition, _ret)   OS_ERRORCHECK(_condition, _ret)
+#define OS_CHECK_EXT_R(_condition, _ret) OS_ERRORCHECK_R(_condition, _ret)
 #else
-#define OS_ERRORCHECK(_condition, _ret)
+#define OS_CHECK_EXT(_condition, _ret)
+#define OS_CHECK_EXT_R(_condition, _ret)
 #endif
+
 
 #endif /* OS_H_ */

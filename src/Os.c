@@ -256,8 +256,8 @@ void Os_TaskInternalResource_Release(void)
 {
     Os_ResourceType res;
 
-    OS_ERRORCHECK(Os_CallContext == OS_CONTEXT_TASK, E_OS_STATE);
-    OS_ERRORCHECK(Os_TaskRunning != OS_INVALID_TASK, E_OS_STATE);
+    OS_CHECK_EXT(Os_CallContext == OS_CONTEXT_TASK, E_OS_STATE);
+    OS_CHECK_EXT(Os_TaskRunning != OS_INVALID_TASK, E_OS_STATE);
 
     res = Os_TaskConfigs[Os_TaskRunning].resource;
     if (res != OS_INVALID_RESOURCE) {
@@ -276,7 +276,7 @@ void Os_TaskInternalResource_Get(void)
 {
     Os_ResourceType res;
 
-    OS_ERRORCHECK(Os_TaskRunning != OS_INVALID_TASK  , E_OS_STATE);
+    OS_CHECK_EXT(Os_TaskRunning != OS_INVALID_TASK  , E_OS_STATE);
 
     res = Os_TaskConfigs[Os_TaskRunning].resource;
     if (res != OS_INVALID_RESOURCE) {
@@ -292,7 +292,7 @@ void Os_TaskInternalResource_Get(void)
  */
 static __inline void Os_State_Running_To_Suspended(Os_TaskType task)
 {
-    OS_ERRORCHECK(Os_TaskControls[task].state == OS_TASK_RUNNING, E_OS_STATE);
+    OS_CHECK_EXT(Os_TaskControls[task].state == OS_TASK_RUNNING, E_OS_STATE);
 
     Os_TaskControls[task].state = OS_TASK_SUSPENDED;
 
@@ -308,7 +308,7 @@ static __inline void Os_State_Running_To_Suspended(Os_TaskType task)
  */
 static __inline void Os_State_Running_To_Ready(Os_TaskType task)
 {
-    OS_ERRORCHECK(Os_TaskControls[task].state == OS_TASK_RUNNING, E_OS_STATE);
+    OS_CHECK_EXT(Os_TaskControls[task].state == OS_TASK_RUNNING, E_OS_STATE);
 
     Os_PriorityType prio = Os_TaskPrio(task);
     Os_ReadyListPushHead(&Os_TaskReady[prio], task);
@@ -327,7 +327,7 @@ static __inline void Os_State_Running_To_Ready(Os_TaskType task)
  */
 static __inline void Os_State_Suspended_To_Ready(Os_TaskType task)
 {
-    OS_ERRORCHECK(Os_TaskControls[task].state == OS_TASK_SUSPENDED, E_OS_STATE);
+    OS_CHECK_EXT(Os_TaskControls[task].state == OS_TASK_SUSPENDED, E_OS_STATE);
 
     Os_Arch_PrepareState(task);
     Os_PriorityType prio = Os_TaskPrio(task);
@@ -344,13 +344,13 @@ static __inline void Os_State_Suspended_To_Ready(Os_TaskType task)
  */
 static __inline void Os_State_Ready_To_Running(Os_TaskType task)
 {
-    OS_ERRORCHECK(Os_TaskControls[task].state == OS_TASK_READY   , E_OS_STATE);
+    OS_CHECK_EXT(Os_TaskControls[task].state == OS_TASK_READY   , E_OS_STATE);
 
     Os_PriorityType prio = Os_TaskPrio(task);
     Os_TaskType     task2;
     Os_ReadyListPopHead(&Os_TaskReady[prio], &task2);
 
-    OS_ERRORCHECK(task2 == task, E_OS_STATE);
+    OS_CHECK_EXT(task2 == task, E_OS_STATE);
 
     Os_TaskControls[task].state = OS_TASK_RUNNING;
     Os_TaskRunning = task;
@@ -511,9 +511,9 @@ void Os_Isr(void)
  */
 Os_StatusType Os_TerminateTask_Internal(void)
 {
-    OS_ERRORCHECK_R(Os_TaskControls[Os_TaskRunning].activation > 0                 , E_OS_LIMIT);
-    OS_ERRORCHECK_R(Os_CallContext == OS_CONTEXT_TASK                              , E_OS_CALLEVEL);
-    OS_ERRORCHECK_R(Os_TaskControls[Os_TaskRunning].resource == OS_INVALID_RESOURCE, E_OS_RESOURCE);
+    OS_CHECK_EXT_R(Os_TaskControls[Os_TaskRunning].activation > 0                 , E_OS_LIMIT);
+    OS_CHECK_EXT_R(Os_CallContext == OS_CONTEXT_TASK                              , E_OS_CALLEVEL);
+    OS_CHECK_EXT_R(Os_TaskControls[Os_TaskRunning].resource == OS_INVALID_RESOURCE, E_OS_RESOURCE);
 
     Os_State_Running_To_Suspended(Os_TaskRunning);
 
@@ -564,8 +564,8 @@ Os_StatusType Os_TerminateTask(void)
  */
 static Os_StatusType Os_ActivateTask_Internal(Os_TaskType task)
 {
-    OS_ERRORCHECK_R(task < OS_TASK_COUNT                   , E_OS_ID);
-    OS_ERRORCHECK_R(Os_TaskControls[task].activation <  255, E_OS_LIMIT);
+    OS_CHECK_EXT_R(task < OS_TASK_COUNT                   , E_OS_ID);
+    OS_CHECK_R    (Os_TaskControls[task].activation <  255, E_OS_LIMIT);
 
     Os_TaskControls[task].activation++;
     if (Os_TaskControls[task].activation == 1u) {
@@ -608,9 +608,9 @@ Os_StatusType Os_ActivateTask(Os_TaskType task)
  */
 static Os_StatusType Os_GetResource_Task(Os_ResourceType res)
 {
-    OS_ERRORCHECK_R(res < OS_RES_COUNT                                               , E_OS_ID);
-    OS_ERRORCHECK_R(Os_ResourceControls[res].task == OS_INVALID_TASK                 , E_OS_ACCESS);
-    OS_ERRORCHECK_R(Os_TaskPrio(Os_TaskRunning)   <= Os_ResourceConfigs[res].priority, E_OS_ACCESS);
+    OS_CHECK_EXT_R(res < OS_RES_COUNT                                               , E_OS_ID);
+    OS_CHECK_EXT_R(Os_ResourceControls[res].task == OS_INVALID_TASK                 , E_OS_ACCESS);
+    OS_CHECK_EXT_R(Os_TaskPrio(Os_TaskRunning)   <= Os_ResourceConfigs[res].priority, E_OS_ACCESS);
     Os_ResourceControls[res].task            = Os_TaskRunning;
     Os_ResourceControls[res].next            = Os_TaskControls[Os_TaskRunning].resource;
     Os_TaskControls[Os_TaskRunning].resource = res;
@@ -626,7 +626,7 @@ OS_ERRORCHECK_EXIT_POINT:
 
 static Os_StatusType Os_GetResource_Isr(Os_ResourceType res)
 {
-    OS_ERRORCHECK_R(0, E_OS_SYS_NOT_IMPLEMENTED);
+    OS_CHECK_EXT_R(0, E_OS_SYS_NOT_IMPLEMENTED);
 
     return E_OK;
 
@@ -646,7 +646,7 @@ Os_StatusType Os_GetResource(Os_ResourceType res)
         result = Os_GetResource_Task(res);
     } else {
         result = Os_GetResource_Isr(res);
-        OS_ERRORCHECK_R(result == E_OK, result);
+        OS_CHECK_EXT_R(result == E_OK, result);
     }
     Os_Arch_EnableAllInterrupts();
     return result;
@@ -674,9 +674,9 @@ OS_ERRORCHECK_EXIT_POINT:
  */
 Os_StatusType Os_ReleaseResource_Task(Os_ResourceType res)
 {
-    OS_ERRORCHECK_R(res < OS_RES_COUNT                             , E_OS_ID);
-    OS_ERRORCHECK_R(Os_ResourceControls[res].task == Os_TaskRunning, E_OS_NOFUNC);
-    OS_ERRORCHECK_R(Os_TaskControls[Os_TaskRunning].resource == res, E_OS_NOFUNC);
+    OS_CHECK_EXT_R(res < OS_RES_COUNT                             , E_OS_ID);
+    OS_CHECK_EXT_R(Os_ResourceControls[res].task == Os_TaskRunning, E_OS_NOFUNC);
+    OS_CHECK_EXT_R(Os_TaskControls[Os_TaskRunning].resource == res, E_OS_NOFUNC);
 
     Os_TaskControls[Os_TaskRunning].resource = Os_ResourceControls[res].next;
     Os_ResourceControls[res].task  = OS_INVALID_TASK;
@@ -755,7 +755,8 @@ void Os_AlarmInit(Os_AlarmType alarm)
  */
 Os_StatusType Os_SetRelAlarm_Internal(Os_AlarmType alarm, Os_TickType increment, Os_TickType cycle)
 {
-    OS_ERRORCHECK_R(alarm < OS_ALARM_COUNT, E_OS_ID);
+    OS_CHECK_EXT_R(alarm < OS_ALARM_COUNT             , E_OS_ID);
+    OS_CHECK_R    (Os_AlarmControls[alarm].ticks == 0u, E_OS_ID); /* TODO can fail this check */
     Os_AlarmControls[alarm].cycle = cycle;
     Os_AlarmAdd(alarm, increment);
     return E_OK;
@@ -818,7 +819,8 @@ Os_StatusType Os_SetRelAlarm(Os_AlarmType alarm, Os_TickType increment, Os_TickT
  */
 Os_StatusType Os_SetAbsAlarm_Internal(Os_AlarmType alarm, Os_TickType start, Os_TickType cycle)
 {
-    OS_ERRORCHECK_R(alarm < OS_ALARM_COUNT, E_OS_ID);
+    OS_CHECK_EXT_R(alarm < OS_ALARM_COUNT, E_OS_ID);
+    OS_CHECK_R    (Os_AlarmControls[alarm].ticks == 0u, E_OS_ID); /* TODO can fail this check */
     Os_AlarmControls[alarm].cycle = cycle;
     if (start >= Os_Ticks) {
         Os_AlarmAdd(alarm, start - Os_Ticks);
@@ -860,14 +862,14 @@ Os_StatusType Os_CancelAlarm_Internal(Os_AlarmType alarm)
     Os_AlarmType next = Os_AlarmNext
                , prev = OS_INVALID_ALARM;
 
-    OS_ERRORCHECK_R(alarm < OS_ALARM_COUNT   , E_OS_ID);
+    OS_CHECK_EXT_R(alarm < OS_ALARM_COUNT   , E_OS_ID);
 
     while (next != OS_INVALID_ALARM && next != alarm) {
         prev = next;
         next = Os_AlarmControls[next].next;
     }
 
-    OS_ERRORCHECK_R(next == alarm, E_OS_NOFUNC);
+    OS_CHECK_R(next == alarm, E_OS_NOFUNC);
 
     next = Os_AlarmControls[alarm].next;
     if (prev == OS_INVALID_ALARM) {
@@ -921,7 +923,7 @@ Os_StatusType Os_GetAlarm_Internal(Os_AlarmType alarm, Os_TickType* tick)
 {
     Os_AlarmType index;
 
-    OS_ERRORCHECK_R(alarm < OS_ALARM_COUNT, E_OS_ID);
+    OS_CHECK_EXT_R(alarm < OS_ALARM_COUNT, E_OS_ID);
 
     *tick = 0u;
     index = Os_AlarmNext;
@@ -930,7 +932,7 @@ Os_StatusType Os_GetAlarm_Internal(Os_AlarmType alarm, Os_TickType* tick)
         *tick += Os_AlarmControls[index].ticks;
     }
 
-    OS_ERRORCHECK_R(index != OS_INVALID_ALARM, E_OS_NOFUNC);
+    OS_CHECK_R(index != OS_INVALID_ALARM, E_OS_NOFUNC);
 
     *tick += Os_AlarmControls[index].ticks;
     return E_OK;
@@ -1005,7 +1007,7 @@ void Os_Init(const Os_ConfigType* config)
         /* check some task config */
         Os_ResourceType res = Os_TaskConfigs[task].resource;
         if (res != OS_INVALID_TASK) {
-            OS_ERRORCHECK(Os_TaskConfigs[task].priority <= Os_ResourceConfigs[res].priority, E_OS_RESOURCE);
+            OS_CHECK_EXT(Os_TaskConfigs[task].priority <= Os_ResourceConfigs[res].priority, E_OS_RESOURCE);
         }
 
         /* ready any activated task */
