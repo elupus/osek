@@ -83,10 +83,10 @@ if(${Os_HCS12})
     # Simple Os_Run test
     add_executable(Os_HCS12 ${Os_SRCS} test/Os_HCS12/Os_Cfg.c)
     target_include_directories(Os_HCS12 PRIVATE test/Os_HCS12)
-    add_custom_command(OUTPUT  Os_HCS12.s19
+    add_custom_command(TARGET Os_HCS12 POST_BUILD
                        COMMAND ${CMAKE_OBJCOPY} --output-format=srec Os_HCS12 Os_HCS12.s19
-                       DEPENDS Os_HCS12)
-    add_custom_target(Os_HCS12_srec ALL DEPENDS Os_HCS12.s19)
+                       COMMAND ${CMAKE_OBJDUMP} Os_HCS12 -S --disassemble   > Os_HCS12.lst)
+
 endif()
 
 
