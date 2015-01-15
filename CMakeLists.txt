@@ -27,7 +27,15 @@ elseif ((HCS12) OR (DEFINED HC12_CORE))
     set (Os_HCS12 1)
 endif()
 
-include_directories(src)
+include_directories(include src)
+
+if (DEFINED HC12_CORE)
+    include_directories(include/chc)
+endif()
+
+if (CMAKE_COMPILER_IS_GNUCC)
+    include_directories(include/gcc)
+endif()
 
 set_property(
     SOURCE src/Os_Arch_Posix.c
