@@ -1,4 +1,4 @@
-cmake_minimum_required (VERSION 2.6)
+cmake_minimum_required (VERSION 2.8.4)
 project (OsekOs)
 
 set (OsekOs_VERSION_MAJOR 1)
@@ -7,19 +7,19 @@ set (OsekOs_VERSION_MINOR 0)
 set (Os_SRCS
     src/Os.c
 )
-if (${WIN32} OR ${CYGWIN})
+if (WIN32 OR CYGWIN)
     set (Os_SRCS ${Os_SRCS}
         src/Os_Arch_Fibers.c
     )
     add_definitions(-DOS_CFG_ARCH_FIBERS)
     set (Os_Run 1)
-elseif (${UNIX})
+elseif (UNIX)
     set (Os_SRCS ${Os_SRCS}
         src/Os_Arch_Posix.c
     )
     add_definitions(-D_XOPEN_SOURCE=600 -DOS_CFG_ARCH_POSIX)
     set (Os_Run 1)
-elseif (${HCS12})
+elseif ((HCS12) OR (DEFINED HC12_CORE))
     set (Os_SRCS ${Os_SRCS}
         src/Os_Arch_HCS12.c
     )
