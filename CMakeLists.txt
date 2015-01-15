@@ -7,18 +7,17 @@ set (OsekOs_VERSION_MINOR 0)
 set (Os_SRCS
     src/Os.c
 )
-
-if (${UNIX})
-    set (Os_SRCS ${Os_SRCS}
-        src/Os_Arch_Posix.c
-    )
-    add_definitions(-D_XOPEN_SOURCE=600 -DOS_CFG_ARCH_POSIX)
-    set (Os_Run 1)
-elseif (${WIN32})
+if (${WIN32} OR ${CYGWIN})
     set (Os_SRCS ${Os_SRCS}
         src/Os_Arch_Fibers.c
     )
     add_definitions(-DOS_CFG_ARCH_FIBERS)
+    set (Os_Run 1)
+elseif (${UNIX})
+    set (Os_SRCS ${Os_SRCS}
+        src/Os_Arch_Posix.c
+    )
+    add_definitions(-D_XOPEN_SOURCE=600 -DOS_CFG_ARCH_POSIX)
     set (Os_Run 1)
 elseif (${HCS12})
     set (Os_SRCS ${Os_SRCS}
