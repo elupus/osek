@@ -305,9 +305,11 @@ static __inline void Os_State_Running_To_Suspended(Os_TaskType task)
  */
 static __inline void Os_State_Running_To_Ready(Os_TaskType task)
 {
+    Os_PriorityType prio;
+
     OS_CHECK_EXT(Os_TaskControls[task].state == OS_TASK_RUNNING, E_OS_STATE);
 
-    Os_PriorityType prio = Os_TaskPrio(task);
+    prio = Os_TaskPrio(task);
     Os_ReadyListPushHead(&Os_TaskReady[prio], task);
     Os_TaskControls[task].state = OS_TASK_READY;
     Os_TaskRunning = OS_INVALID_TASK;
@@ -324,10 +326,12 @@ static __inline void Os_State_Running_To_Ready(Os_TaskType task)
  */
 static __inline void Os_State_Suspended_To_Ready(Os_TaskType task)
 {
+    Os_PriorityType prio;
+
     OS_CHECK_EXT(Os_TaskControls[task].state == OS_TASK_SUSPENDED, E_OS_STATE);
 
     Os_Arch_PrepareState(task);
-    Os_PriorityType prio = Os_TaskPrio(task);
+    prio = Os_TaskPrio(task);
     Os_ReadyListPushTail(&Os_TaskReady[prio], task);
     Os_TaskControls[task].state = OS_TASK_READY;
 }
@@ -341,10 +345,12 @@ static __inline void Os_State_Suspended_To_Ready(Os_TaskType task)
  */
 static __inline void Os_State_Ready_To_Running(Os_TaskType task)
 {
+    Os_PriorityType prio;
+    Os_TaskType     task2;
+
     OS_CHECK_EXT(Os_TaskControls[task].state == OS_TASK_READY   , E_OS_STATE);
 
-    Os_PriorityType prio = Os_TaskPrio(task);
-    Os_TaskType     task2;
+    prio = Os_TaskPrio(task);
     Os_ReadyListPopHead(&Os_TaskReady[prio], &task2);
 
     OS_CHECK_EXT(task2 == task, E_OS_STATE);
@@ -390,11 +396,13 @@ void Os_Start(void)
 
 void Os_Shutdown(void)
 {
+    Os_TaskType prev;
+
     Os_Arch_DisableAllInterrupts();
 
     Os_Continue = FALSE;
     /* store previous to be able to swap state later */
-    Os_TaskType prev = Os_TaskRunning;
+    prev = Os_TaskRunning;
 
     if (prev != OS_INVALID_TASK) {
         /* put preempted task as first ready */
