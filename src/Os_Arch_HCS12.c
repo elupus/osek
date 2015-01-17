@@ -91,7 +91,7 @@ void Os_Arch_SwapState   (Os_TaskType task, Os_TaskType prev)
 void Os_Arch_PrepareState(Os_TaskType task)
 {
     Os_Arch_StateType *regs = &Os_Arch_State[task];
-    Os_TaskConfigType *cfg  = &Os_TaskConfigs[task];
+    const Os_TaskConfigType *cfg  = &Os_TaskConfigs[task];
     uint8_t   i;
     uint16_t* ptr = (uint16_t*)((uint16_t)cfg->stack + cfg->stack_size);
 
@@ -101,7 +101,7 @@ void Os_Arch_PrepareState(Os_TaskType task)
     ptr[2] = 0x0u;       /* _xy */
     ptr[3] = 0x0u;       /* _z */
     ptr[4] = 0x0u;       /* _tmp */
-    ptr[5] = cfg->entry; /* PC */
+    ptr[5] = (uint16_t)cfg->entry; /* PC */
     ptr[6] = 0x0u;       /* D */
     ptr[7] = 0x0u;       /* X */
     ptr[8] = 0x0u;       /* Y */
