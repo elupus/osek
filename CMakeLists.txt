@@ -66,6 +66,9 @@ if(BUILD_TESTS)
 	set_property(TARGET gtest_main PROPERTY IMPORTED_LOCATION ${GTEST_MAIN_PATH} )
 	add_dependencies(gtest_main googletest)
 
+	# We need pthread
+	set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} "-pthread")
+
 	# GTest type test
 	add_executable(Os_Test ${Os_SRCS} test/Os_Test/Os_Test.cpp)
 	target_include_directories(Os_Test PRIVATE test/Os_Test ${GTEST_INCLUDE_DIR})
