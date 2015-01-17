@@ -21,8 +21,35 @@
 
 void       Os_Arch_Init(void);
 
-void       Os_Arch_DisableAllInterrupts(void);
-void       Os_Arch_EnableAllInterrupts(void);
+
+typedef    uint8_t Os_IrqState;
+
+static void __inline Os_Arch_DisableAllInterrupts(void)
+{
+	__asm(" sei");
+}
+
+static void __inline Os_Arch_EnableAllInterrupts(void)
+{
+	__asm(" cli");
+}
+
+static void __inline Os_Arch_SuspendInterrupts(Os_IrqState* mask)
+{
+#if(0)
+	__asm("tpa\n"
+		  "sei\n"
+		  : "=d"(*mask));
+#endif
+}
+
+static void __inline Os_Arch_ResumeInterrupts(const Os_IrqState* mask)
+{
+#if(0)
+	__asm("tap\n"
+		 : "d"(*mask));
+#endif
+}
 
 void       Os_Arch_SwapState   (Os_TaskType task, Os_TaskType prev);
 void       Os_Arch_PrepareState(Os_TaskType task);
