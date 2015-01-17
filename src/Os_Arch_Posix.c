@@ -127,7 +127,7 @@ void Os_Arch_SwapState(Os_TaskType task, Os_TaskType prev)
 {
     if (Os_CallContext == OS_CONTEXT_TASK) {
         if (prev == OS_INVALID_TASK) {
-            if (Os_Arch_State_None.uc_mcontext == NULL) {
+            if (Os_Arch_State_None.uc_stack.ss_sp == NULL) {
                 getcontext(&Os_Arch_State_None);
             }
         } else {
