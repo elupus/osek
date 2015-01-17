@@ -48,7 +48,7 @@ void Os_Arch_Alarm(int signal)
 
         if (task_before != OS_INVALID_TASK) {
             ctx_before = &Os_Arch_State[task_before];
-            if (Os_Arch_State_None.uc_mcontext == NULL) {
+            if (Os_Arch_State_None.uc_stack.ss_sp == NULL) {
                 ctx_before = &Os_Arch_State_None;
             } else {
                 ctx_before = NULL;
@@ -57,7 +57,7 @@ void Os_Arch_Alarm(int signal)
             ctx_before = &Os_Arch_State[task_before];
         }
 
-        if (ctx.uc_onstack) {
+        if (ctx.uc_stack.ss_flags & SS_ONSTACK) {
             if (ctx_before) {
                 *ctx_before = *ctx.uc_link;
             }
@@ -85,7 +85,7 @@ void Os_Arch_Init(void)
 
     struct sigaction sact;
     sigemptyset( &sact.sa_mask );
-    sact.sa_flags   = SA_RESTART;
+    sact.sa_flags   = SA_RESTART | SA_ONSTACK;
     sact.sa_handler = Os_Arch_Alarm;
     res = sigaction(SIGALRM, &sact, NULL);
 
