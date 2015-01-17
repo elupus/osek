@@ -24,6 +24,7 @@
 #include "Os.h"
 
 ucontext_t  Os_Arch_State_None;
+boolean     Os_Arch_State_Started;
 ucontext_t  Os_Arch_State[OS_TASK_COUNT];
 
 void Os_Arch_Alarm(int signal)
@@ -48,7 +49,8 @@ void Os_Arch_Alarm(int signal)
 
         if (task_before != OS_INVALID_TASK) {
             ctx_before = &Os_Arch_State[task_before];
-            if (Os_Arch_State_None.uc_stack.ss_sp == NULL) {
+            if (Os_Arch_State_Started == FALSE) {
+                Os_Arch_State_Started = TRUE;
                 ctx_before = &Os_Arch_State_None;
             } else {
                 ctx_before = NULL;
@@ -80,6 +82,7 @@ void Os_Arch_Init(void)
     Os_Arch_DisableAllInterrupts();
     int res;
 
+    Os_Arch_State_Started = FALSE;
     memset(&Os_Arch_State_None, 0, sizeof(Os_Arch_State_None));
     memset(&Os_Arch_State, 0, sizeof(Os_Arch_State));
 
@@ -127,7 +130,8 @@ void Os_Arch_SwapState(Os_TaskType task, Os_TaskType prev)
 {
     if (Os_CallContext == OS_CONTEXT_TASK) {
         if (prev == OS_INVALID_TASK) {
-            if (Os_Arch_State_None.uc_stack.ss_sp == NULL) {
+            if (Os_Arch_State_Started == FALSE) {
+                Os_Arch_State_Started = TRUE;
                 getcontext(&Os_Arch_State_None);
             }
         } else {
