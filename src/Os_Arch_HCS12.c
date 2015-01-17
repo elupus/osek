@@ -22,9 +22,6 @@ typedef struct Os_Arch_StateType {
     uint16_t sp;
     uint8_t  ccr;
     uint16_t frame;
-    uint16_t tmp;
-    uint16_t z;
-    uint16_t xy;
     uint16_t d1;
  } Os_Arch_StateType;
 
@@ -42,48 +39,38 @@ void Os_Arch_Init(void)
     Os_Arch_Ctx_Next = &Os_Arch_State_None;
 }
 
-static __inline void Os_Arch_Store(void)
-{
-    __asm ( "ldx Os_Arch_Ctx_Prev\n"
-            "sts           0x0 , X\n"
-            "tpa\n"
-            "staa          0x2 , X\n"
-            "movw _.frame, 0x3 , X\n"
-            "movw _.tmp  , 0x5 , X\n"
-            "movw _.z    , 0x7 , X\n"
-            "movw _.xy   , 0x9 , X\n"
-            /* "movw _.d1   , 0x11, X\n" */
-    ::: "x", "a");
-}
+#define OS_ARCH_STORE()                  \
+    __asm __volatile__ (                 \
+            "movw _.frame, 2   , -SP\n"  \
+            "movw _.d1   , 2   , -SP\n"  \
+            "ldx Os_Arch_Ctx_Prev\n"     \
+            "sts           0x0 , X\n"    \
+            "tpa\n"                      \
+            "staa          0x2 , X\n"    \
+     )
 
-static __inline void Os_Arch_Restore(void)
-{
-    __asm ( "ldx Os_Arch_Ctx_Next\n"
-            "lds  0x0 , X\n"
-            "ldaa 0x2 , X\n"
-            "tap\n"
-            "movw 0x3 , X, _.frame\n"
-            "movw 0x5 , X, _.tmp\n"
-            "movw 0x7 , X, _.z\n"
-            "movw 0x9 , X, _.xy\n"
-            /* "movw 0x11, X, _.d1\n" */
-            "movw Os_Arch_Ctx_Next, Os_Arch_Ctx_Prev\n"
-    ::: "x", "a");
-}
+#define OS_ARCH_RESTORE()                             \
+    __asm __volatile__ (                              \
+            "ldx Os_Arch_Ctx_Next\n"                  \
+            "lds  0x0 , X\n"                          \
+            "ldaa 0x2 , X\n"                          \
+            "tap\n"                                   \
+            "movw 0x2, SP+, _.d1\n"                   \
+            "movw 0x2, SP+, _.frame\n"                \
+            "movw Os_Arch_Ctx_Next, Os_Arch_Ctx_Prev" \
+    )
 
 __attribute__((interrupt)) void Os_Arch_Swi(void)
 {
-    Os_Arch_Store();
-    Os_Arch_Restore();
+    OS_ARCH_STORE();
+    OS_ARCH_RESTORE();
 }
 
 __attribute__((interrupt)) void Os_Arch_Isr(void)
 {
-    Os_Arch_Store();
+    OS_ARCH_STORE();
     Os_Isr();
-    if (Os_Arch_Ctx_Next != Os_Arch_Ctx_Prev) {
-        Os_Arch_Restore();
-    }
+    OS_ARCH_RESTORE();
 }
 
 void Os_Arch_SwapState   (Os_TaskType task, Os_TaskType prev)
@@ -108,12 +95,16 @@ void Os_Arch_PrepareState(Os_TaskType task)
     uint8_t   i;
     uint16_t* ptr = (uint16_t*)((uint16_t)cfg->stack + cfg->stack_size);
 
-    ptr -= 4;
-    ptr[0] = cfg->entry; /* PC */
-    ptr[1] = 0x1918u;    /* D */
-    ptr[2] = 0x1716u;    /* X */
-    ptr[3] = 0x1514u;    /* Y */
-
+    ptr -= 9;
+    ptr[0] = 0x0u;       /* _d1 */
+    ptr[1] = 0x0u;       /* _frame */
+    ptr[2] = 0x0u;       /* _xy */
+    ptr[3] = 0x0u;       /* _z */
+    ptr[4] = 0x0u;       /* _tmp */
+    ptr[5] = cfg->entry; /* PC */
+    ptr[6] = 0x0u;       /* D */
+    ptr[7] = 0x0u;       /* X */
+    ptr[8] = 0x0u;       /* Y */
     regs->sp  = (uint16_t)ptr;
-    regs->ccr = 0x13u;
+    regs->ccr = 0x0u;
 }
