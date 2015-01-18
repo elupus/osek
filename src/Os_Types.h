@@ -73,7 +73,7 @@ typedef struct Os_TaskConfigType {
     Os_TaskEntryType entry;       /**< @brief entry point of task */
     void*            stack;       /**< @brief bottom of stack pointer */
     size_t           stack_size;  /**< @brief how large is the stack pointed to by stack */
-    int              autostart;   /**< @brief should this task start automatically */
+    boolean          autostart;   /**< @brief should this task start automatically */
     Os_ResourceType  resource;    /**< @brief internal resource of task, can be Os_TaskIdNone */
 } Os_TaskConfigType;
 
