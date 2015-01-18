@@ -194,9 +194,6 @@ static void Os_TaskInit(Os_TaskType task)
     memset(&Os_TaskControls[task], 0, sizeof(Os_TaskControls[task]));
     Os_TaskControls[task].next     = OS_INVALID_TASK;
     Os_TaskControls[task].resource = OS_INVALID_RESOURCE;
-    if (Os_TaskConfigs[task].autostart) {
-        Os_TaskControls[task].activation = 1;
-    }
 }
 
 /**
@@ -511,16 +508,18 @@ void Os_Isr(void)
  */
 Os_StatusType Os_TerminateTask_Internal(void)
 {
-    OS_CHECK_EXT_R(Os_TaskControls[Os_TaskRunning].activation > 0                 , E_OS_LIMIT);
+    OS_CHECK_EXT_R(Os_TaskControls[Os_TaskRunning].state == OS_TASK_RUNNING       , E_OS_STATE);
     OS_CHECK_EXT_R(Os_CallContext == OS_CONTEXT_TASK                              , E_OS_CALLEVEL);
     OS_CHECK_EXT_R(Os_TaskControls[Os_TaskRunning].resource == OS_INVALID_RESOURCE, E_OS_RESOURCE);
 
     Os_State_Running_To_Suspended(Os_TaskRunning);
 
+#if( (OS_CONFORMANCE == OS_CONFORMANCE_ECC2) ||  (OS_CONFORMANCE == OS_CONFORMANCE_BCC2) )
     Os_TaskControls[Os_TaskRunning].activation--;
     if (Os_TaskControls[Os_TaskRunning].activation) {
         Os_State_Suspended_To_Ready(Os_TaskRunning);
     }
+#endif
 
     Os_TaskRunning = OS_INVALID_TASK;
     return E_OK;
@@ -593,26 +592,34 @@ Os_StatusType Os_TerminateTask(void)
  */
 Os_StatusType Os_ChainTask_Internal(Os_TaskType task)
 {
-    OS_CHECK_EXT_R(Os_TaskControls[Os_TaskRunning].activation > 0                 , E_OS_LIMIT);
+    OS_CHECK_EXT_R(Os_TaskControls[Os_TaskRunning].state == OS_TASK_RUNNING       , E_OS_STATE);
     OS_CHECK_EXT_R(Os_CallContext == OS_CONTEXT_TASK                              , E_OS_CALLEVEL);
     OS_CHECK_EXT_R(Os_TaskControls[Os_TaskRunning].resource == OS_INVALID_RESOURCE, E_OS_RESOURCE);
     OS_CHECK_EXT_R(task < OS_TASK_COUNT                                           , E_OS_ID);
 
     Os_State_Running_To_Suspended(Os_TaskRunning);
 
+#if( (OS_CONFORMANCE == OS_CONFORMANCE_ECC2) ||  (OS_CONFORMANCE == OS_CONFORMANCE_BCC2) )
     Os_TaskControls[Os_TaskRunning].activation--;
     if (Os_TaskControls[Os_TaskRunning].activation > 0u) {
         Os_State_Suspended_To_Ready(Os_TaskRunning);
     }
+#endif
+
     Os_TaskRunning = OS_INVALID_TASK;
 
     /* may return early here after activation limit is reached */
+#if( (OS_CONFORMANCE == OS_CONFORMANCE_ECC2) ||  (OS_CONFORMANCE == OS_CONFORMANCE_BCC2) )
     OS_CHECK_R    (Os_TaskControls[task].activation < Os_TaskConfigs[task].activation, E_OS_LIMIT);
 
     Os_TaskControls[task].activation++;
     if (Os_TaskControls[task].activation == 1u) {
         Os_State_Suspended_To_Ready(task);
     }
+#else
+    OS_CHECK_R    (Os_TaskControls[task].state == OS_TASK_SUSPENDED, E_OS_LIMIT);
+    Os_State_Suspended_To_Ready(task);
+#endif
 
     return E_OK;
 
@@ -657,13 +664,18 @@ Os_StatusType Os_ChainTask(Os_TaskType task)
 static Os_StatusType Os_ActivateTask_Internal(Os_TaskType task)
 {
     OS_CHECK_EXT_R(task < OS_TASK_COUNT                   , E_OS_ID);
+
+#if( (OS_CONFORMANCE == OS_CONFORMANCE_ECC2) ||  (OS_CONFORMANCE == OS_CONFORMANCE_BCC2) )
     OS_CHECK_R    (Os_TaskControls[task].activation < Os_TaskConfigs[task].activation, E_OS_LIMIT);
 
     Os_TaskControls[task].activation++;
     if (Os_TaskControls[task].activation == 1u) {
         Os_State_Suspended_To_Ready(task);
     }
-
+#else
+    OS_CHECK_EXT_R(Os_TaskControls[task].state == OS_TASK_SUSPENDED, E_OS_LIMIT);
+    Os_State_Suspended_To_Ready(task);
+#endif
     return E_OK;
 
 OS_ERRORCHECK_EXIT_POINT:
@@ -1103,7 +1115,10 @@ void Os_Init(const Os_ConfigType* config)
         }
 
         /* ready any activated task */
-        if (Os_TaskControls[task].activation) {
+        if (Os_TaskConfigs[task].autostart) {
+#if( (OS_CONFORMANCE == OS_CONFORMANCE_ECC2) ||  (OS_CONFORMANCE == OS_CONFORMANCE_BCC2) )
+            Os_TaskControls[task].activation = 1;
+#endif
             Os_State_Suspended_To_Ready(task);
         }
     }

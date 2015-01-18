@@ -53,7 +53,10 @@ const Os_TaskConfigType Os_DefaultTasks[OS_TASK_COUNT] = {
             .stack_size = sizeof(task0_stack),
             .autostart  = 1,
             .priority   = 0,
+#if( (OS_CONFORMANCE == OS_CONFORMANCE_ECC2) ||  (OS_CONFORMANCE == OS_CONFORMANCE_BCC2) )
+
             .activation = 255u,
+#endif
             .resource   = OS_INVALID_RESOURCE,
           }
         , { .entry      = task1,
@@ -61,7 +64,9 @@ const Os_TaskConfigType Os_DefaultTasks[OS_TASK_COUNT] = {
             .stack_size = sizeof(task1_stack),
             .autostart  = 0,
             .priority   = 1,
+#if( (OS_CONFORMANCE == OS_CONFORMANCE_ECC2) ||  (OS_CONFORMANCE == OS_CONFORMANCE_BCC2) )
             .activation = 255u,
+#endif
             .resource   = OS_INVALID_RESOURCE,
           }
 };

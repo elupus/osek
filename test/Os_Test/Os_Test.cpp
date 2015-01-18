@@ -115,7 +115,9 @@ template<typename T> struct Os_Test : public testing::Test {
         m_tasks[id].stack      = malloc(m_tasks[id].stack_size);
         m_tasks[id].autostart  = autostart;
         m_tasks[id].priority   = priority;
+#if( (OS_CONFORMANCE == OS_CONFORMANCE_ECC2) ||  (OS_CONFORMANCE == OS_CONFORMANCE_BCC2) )
         m_tasks[id].activation = 255;
+#endif
         m_tasks[id].resource   = resource;
         m_task_entries[id]     = entry;
     }

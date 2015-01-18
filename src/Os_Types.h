@@ -41,6 +41,11 @@ typedef uint16 Os_TickType;       /**< tick value identifier */
 #define OS_INVALID_RESOURCE  (Os_ResourceType)(-1)
 #define OS_INVALID_ALARM     (Os_AlarmType)(-1)
 
+#define OS_CONFORMANCE_BCC1 0u
+#define OS_CONFORMANCE_BCC2 1u
+#define OS_CONFORMANCE_ECC1 2u
+#define OS_CONFORMANCE_ECC2 3u
+
 /**
  * @brief Current call context
  */

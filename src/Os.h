@@ -44,6 +44,10 @@
 #define OS_ERROR_EXT_ENABLE 1
 #endif
 
+#ifndef OS_CONFORMANCE
+#define OS_CONFORMANCE OS_CONFORMANCE_ECC2
+#endif
+
 /**
  * @brief Structure describing a tasks static configuration
  */
@@ -53,7 +57,9 @@ typedef struct Os_TaskConfigType {
     void*            stack;       /**< @brief bottom of stack pointer */
     size_t           stack_size;  /**< @brief how large is the stack pointed to by stack */
     boolean          autostart;   /**< @brief should this task start automatically */
+#if( (OS_CONFORMANCE == OS_CONFORMANCE_ECC2) ||  (OS_CONFORMANCE == OS_CONFORMANCE_BCC2) )
     uint8            activation;  /**< @brief maximum number of activations allowed */
+#endif
     Os_ResourceType  resource;    /**< @brief internal resource of task, can be Os_TaskIdNone */
 } Os_TaskConfigType;
 
@@ -62,7 +68,9 @@ typedef struct Os_TaskConfigType {
  */
 typedef struct Os_TaskControlType {
     Os_TaskStateEnum state;       /**< @brief current state */
+#if( (OS_CONFORMANCE == OS_CONFORMANCE_ECC2) ||  (OS_CONFORMANCE == OS_CONFORMANCE_BCC2) )
     uint8            activation;  /**< @brief number of activations for given task */
+#endif
     Os_TaskType      next;        /**< @brief next task in the same ready list */
     Os_ResourceType  resource;    /**< @brief last taken resource for task (rest is linked list */
 } Os_TaskControlType;

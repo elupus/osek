@@ -83,7 +83,10 @@ const Os_TaskConfigType Os_DefaultTasks[OS_TASK_COUNT] = {
             .stack_size = sizeof(idle_stack),
             .autostart  = 1,
             .priority   = 0,
+#if( (OS_CONFORMANCE == OS_CONFORMANCE_ECC2) ||  (OS_CONFORMANCE == OS_CONFORMANCE_BCC2) )
+
             .activation = 255u,
+#endif
             .resource   = OS_INVALID_RESOURCE
           }
         , { .entry      = busy,
@@ -91,7 +94,9 @@ const Os_TaskConfigType Os_DefaultTasks[OS_TASK_COUNT] = {
             .stack_size = sizeof(busy_stack),
             .autostart  = 0,
             .priority   = 1,
+#if( (OS_CONFORMANCE == OS_CONFORMANCE_ECC2) ||  (OS_CONFORMANCE == OS_CONFORMANCE_BCC2) )
             .activation = 255u,
+#endif
             .resource   = OS_INVALID_RESOURCE
           }
        , { .entry       = test,
@@ -99,7 +104,9 @@ const Os_TaskConfigType Os_DefaultTasks[OS_TASK_COUNT] = {
            .stack_size  = sizeof(test_stack),
            .autostart   = 0,
            .priority    = 2,
+#if( (OS_CONFORMANCE == OS_CONFORMANCE_ECC2) ||  (OS_CONFORMANCE == OS_CONFORMANCE_BCC2) )
            .activation  = 255u,
+#endif
            .resource    = 3
          }
        , { .entry       = test2,
@@ -107,7 +114,9 @@ const Os_TaskConfigType Os_DefaultTasks[OS_TASK_COUNT] = {
            .stack_size  = sizeof(test_stack),
            .autostart   = 0,
            .priority    = 2,
+#if( (OS_CONFORMANCE == OS_CONFORMANCE_ECC2) ||  (OS_CONFORMANCE == OS_CONFORMANCE_BCC2) )
            .activation  = 255u,
+#endif
            .resource    = 3
          }
 };
