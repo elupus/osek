@@ -65,68 +65,6 @@ typedef enum Os_TaskStateEnum {
 
 typedef void          (*Os_TaskEntryType)(void); /**< type for the entry point of a task */
 
-/**
- * @brief Structure describing a tasks static configuration
- */
-typedef struct Os_TaskConfigType {
-    Os_PriorityType  priority;    /**< @brief fixed priority of task */
-    Os_TaskEntryType entry;       /**< @brief entry point of task */
-    void*            stack;       /**< @brief bottom of stack pointer */
-    size_t           stack_size;  /**< @brief how large is the stack pointed to by stack */
-    boolean          autostart;   /**< @brief should this task start automatically */
-    uint8            activation;  /**< @brief maximum number of activations allowed */
-    Os_ResourceType  resource;    /**< @brief internal resource of task, can be Os_TaskIdNone */
-} Os_TaskConfigType;
-
-/**
- * @brief Structure holding information of the state of a task
- */
-typedef struct Os_TaskControlType {
-    Os_TaskStateEnum state;       /**< @brief current state */
-    uint8            activation;  /**< @brief number of activations for given task */
-    Os_TaskType      next;        /**< @brief next task in the same ready list */
-    Os_ResourceType  resource;    /**< @brief last taken resource for task (rest is linked list */
-} Os_TaskControlType;
-
-/**
- * @brief Structure holding configuration setup for each resource
- */
-typedef struct Os_ResourceConfigType {
-    Os_PriorityType priority;     /**< @brief priority ceiling of all task using */
-} Os_ResourceConfigType;
-
-/**
- * @brief Structure holding active state information for each resource
- */
-typedef struct Os_ResourceControlType {
-    Os_ResourceType next;         /**< @brief linked list of held resources */
-    Os_TaskType     task;         /**< @brief task currently holding resource */
-} Os_ResourceControlType;
-
-/**
- * @brief Structure holding configuration setup for each alarm
- */
-typedef struct Os_AlarmConfigType {
-    Os_TaskType     task;         /**< @brief task to activate */
-} Os_AlarmConfigType;
-
-/**
- * @brief Structure holding configuration setup for each alarm
- */
-typedef struct Os_AlarmControlType {
-    Os_AlarmType    next;         /**< @brief next task scheduled */
-    Os_TickType     ticks;        /**< @brief number of ticks until trigger */
-    Os_TickType     cycle;        /**< @brief number of ticks in each cycle */
-} Os_AlarmControlType;
-
-/**
- * @brief Linked list of ready tasks
- */
-typedef struct Os_ReadyListType {
-    Os_TaskType head;             /**< @brief pointer to the first ready task */
-    Os_TaskType tail;             /**< @brief pointer to the last ready task */
-} Os_ReadyListType;
-
 #define E_OS_ACCESS   (Os_StatusType)1
 #define E_OS_CALLEVEL (Os_StatusType)2
 #define E_OS_ID       (Os_StatusType)3
