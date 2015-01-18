@@ -74,6 +74,7 @@ typedef struct Os_TaskConfigType {
     void*            stack;       /**< @brief bottom of stack pointer */
     size_t           stack_size;  /**< @brief how large is the stack pointed to by stack */
     boolean          autostart;   /**< @brief should this task start automatically */
+    uint8            activation;  /**< @brief maximum number of activations allowed */
     Os_ResourceType  resource;    /**< @brief internal resource of task, can be Os_TaskIdNone */
 } Os_TaskConfigType;
 

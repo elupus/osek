@@ -565,7 +565,7 @@ Os_StatusType Os_TerminateTask(void)
 static Os_StatusType Os_ActivateTask_Internal(Os_TaskType task)
 {
     OS_CHECK_EXT_R(task < OS_TASK_COUNT                   , E_OS_ID);
-    OS_CHECK_R    (Os_TaskControls[task].activation <  255, E_OS_LIMIT);
+    OS_CHECK_R    (Os_TaskControls[task].activation < Os_TaskConfigs[task].activation, E_OS_LIMIT);
 
     Os_TaskControls[task].activation++;
     if (Os_TaskControls[task].activation == 1u) {
