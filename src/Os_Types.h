@@ -54,7 +54,7 @@ typedef enum Os_ContextType {
     OS_CONTEXT_TASK  = 1,         /**< OS_CONTEXT_TASK - Os currently called from a task */
     OS_CONTEXT_ISR1  = 2,         /**< OS_CONTEXT_ISR1 - Os currently called from interrupt category 1 */
     OS_CONTEXT_ISR2  = 3,         /**< OS_CONTEXT_ISR2 - Os currently called from interrupt category 2 */
-} Os_ContextType;
+} __attribute__ ((__packed__)) Os_ContextType;
 
 /**
  * @brief State of a task
@@ -64,7 +64,7 @@ typedef enum Os_TaskStateEnum {
     OS_TASK_READY     = 1,        /**< OS_TASK_READY */
     OS_TASK_WAITING   = 2,        /**< OS_TASK_WAITING */
     OS_TASK_RUNNING   = 3,        /**< OS_TASK_RUNNING */
-} Os_TaskStateEnum;
+} __attribute__ ((__packed__)) Os_TaskStateEnum;
 
 #define OS_RES_SCHEDULER (Os_ResourceType)0
 
