@@ -550,6 +550,98 @@ Os_StatusType Os_TerminateTask(void)
     return result;
 }
 
+
+/**
+ * @brief Terminate calling task and chain into given task
+ * @return
+ *  - E_OK on success
+ *  - E_OS_LIMIT if activation is already zero
+ *  - E_OS_RESOURCE if still holding a resource
+ *  - E_OS_* see Os_Schedule_Internal()
+ *
+ * This service causes the termination of the calling task. After
+ * termination of the calling task a succeeding task <TaskID> is
+ * activated. Using this service, it ensures that the succeeding task
+ * starts to run at the earliest after the calling task has been
+ * terminated.
+ *
+ * If the succeeding task is identical with the current task, this
+ * does not result in multiple requests. The task is not transferred
+ * to the suspended state, but will immediately become ready
+ * again.
+ *
+ * An internal resource assigned to the calling task is automatically
+ * released, even if the succeeding task is identical with the current
+ * task. Other resources occupied by the calling shall have
+ * been released before ChainTask is called. If a resource is still
+ * occupied in standard status the behaviour is undefined.
+ * If called successfully, ChainTask does not return to the call level
+ * and the status can not be evaluated.
+ * In case of error the service returns to the calling task and
+ * provides a status which can then be evaluated in the
+ * application.
+ * If the service ChainTask is called successfully, this enforces a
+ * rescheduling.
+ * Ending a task function without call to TerminateTask or
+ * ChainTask is strictly forbidden and may leave the system in an
+ * undefined state.
+ * If E_OS_LIMIT is returned the activation is ignored.
+ * When an extended task is transferred from suspended state
+ * into ready state all its events are cleared.
+ *
+ * Call contexts: TASK
+ */
+Os_StatusType Os_ChainTask_Internal(Os_TaskType task)
+{
+    OS_CHECK_EXT_R(Os_TaskControls[Os_TaskRunning].activation > 0                 , E_OS_LIMIT);
+    OS_CHECK_EXT_R(Os_CallContext == OS_CONTEXT_TASK                              , E_OS_CALLEVEL);
+    OS_CHECK_EXT_R(Os_TaskControls[Os_TaskRunning].resource == OS_INVALID_RESOURCE, E_OS_RESOURCE);
+    OS_CHECK_EXT_R(task < OS_TASK_COUNT                                           , E_OS_ID);
+
+    Os_State_Running_To_Suspended(Os_TaskRunning);
+
+    Os_TaskControls[Os_TaskRunning].activation--;
+    if (Os_TaskControls[Os_TaskRunning].activation > 0u) {
+        Os_State_Suspended_To_Ready(Os_TaskRunning);
+    }
+    Os_TaskRunning = OS_INVALID_TASK;
+
+    /* may return early here after activation limit is reached */
+    OS_CHECK_R    (Os_TaskControls[task].activation < Os_TaskConfigs[task].activation, E_OS_LIMIT);
+
+    Os_TaskControls[task].activation++;
+    if (Os_TaskControls[task].activation == 1u) {
+        Os_State_Suspended_To_Ready(task);
+    }
+
+    return E_OK;
+
+OS_ERRORCHECK_EXIT_POINT:
+    Os_Error.service   = OSServiceId_ChainTask;
+    Os_Error.params[0] = task;
+    OS_ERRORHOOK(Os_Error.status);
+    return Os_Error.status;
+}
+
+/** @copydoc Os_ChainTask_Internal */
+Os_StatusType Os_ChainTask(Os_TaskType task)
+{
+    Os_StatusType result;
+    Os_Arch_DisableAllInterrupts();
+
+    Os_TaskInternalResource_Release();
+
+    result = Os_ChainTask_Internal(task);
+    if (result == E_OK) {
+        result = Os_Schedule_Internal();
+    }
+
+    Os_TaskInternalResource_Get();
+
+    Os_Arch_EnableAllInterrupts();
+    return result;
+}
+
 /**
  * @brief Increase activation count for task by one
  * @param task Task to activate
