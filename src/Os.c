@@ -433,7 +433,7 @@ Os_StatusType Os_Schedule_Internal(void)
     if (Os_TaskRunning == OS_INVALID_TASK) {
         prio = 0u;
     } else {
-        prio = Os_TaskPrio(Os_TaskRunning) + 1;
+        prio = Os_TaskPrio(Os_TaskRunning) + 1u;
     }
 
     while(1) {
