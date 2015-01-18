@@ -57,6 +57,7 @@ Os_AlarmType                    Os_AlarmNext;
 #endif
 
 static Os_StatusType Os_Schedule_Internal(void);
+static Os_StatusType Os_ChainTask_Internal(Os_TaskType task);
 static Os_StatusType Os_TerminateTask_Internal(void);
 static Os_StatusType Os_ActivateTask_Internal(Os_TaskType task);
 static Os_StatusType Os_GetResource_Task(Os_ResourceType res);
