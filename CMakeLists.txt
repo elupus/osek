@@ -23,7 +23,7 @@ elseif ((HCS12) OR (DEFINED HC12_CORE))
     set (Os_SRCS ${Os_SRCS}
         src/Os_Arch_HCS12.c
     )
-    add_definitions(-DOS_CFG_ARCH_HCS12)
+    add_definitions(-DOS_CFG_ARCH_HCS12 -fomit-frame-pointer -Os)
     set (Os_HCS12 1)
 endif()
 
