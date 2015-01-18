@@ -48,6 +48,14 @@
 #define OS_CONFORMANCE OS_CONFORMANCE_ECC2
 #endif
 
+#ifdef __GNUC__
+#define Os_Unlikely(x)  __builtin_expect((x),0)
+#define Os_Likely(x)    __builtin_expect((x),1)
+#else
+#define Os_Unlikely(x) (x)
+#define Os_Likely(x)   (x)
+#endif
+
 /**
  * @brief Structure describing a tasks static configuration
  */
@@ -218,7 +226,7 @@ extern void Os_ErrorHook(Os_StatusType status);
 #endif
 
 #define OS_ERRORCHECK(_condition, _ret)   do {   \
-        if(!(_condition)) {                      \
+        if(Os_Unlikely(!(_condition))) {         \
             Os_Error.service = OSServiceId_None; \
             OS_ERRORCHECK_DATA(_ret)             \
             OS_ERRORHOOK(_ret);                  \
@@ -227,7 +235,7 @@ extern void Os_ErrorHook(Os_StatusType status);
     } while(0)
 
 #define OS_ERRORCHECK_R(_condition, _ret) do {   \
-        if(!(_condition)) {                      \
+        if(Os_Unlikely(!(_condition))) {         \
             OS_ERRORCHECK_DATA(_ret)             \
             goto OS_ERRORCHECK_EXIT_POINT;       \
         }                                        \
