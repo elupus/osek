@@ -40,6 +40,10 @@
 #include "Os_Arch_HCS12.h"
 #endif
 
+#ifndef OS_ERROR_EXT_ENABLE
+#define OS_ERROR_EXT_ENABLE 1
+#endif
+
 /**
  * @brief Structure describing a tasks static configuration
  */
