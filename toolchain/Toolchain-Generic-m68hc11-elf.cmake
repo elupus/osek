@@ -16,4 +16,4 @@ set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
 set(HCS12 1)
 
 set(CMAKE_EXE_LINKER_FLAGS "-Wl,-Map=test.map")
-set(CMAKE_C_FLAGS "-Os -fomit-frame-pointer -mshort -ffixed-z -m68hcs12")
+set(CMAKE_C_FLAGS "-mshort -ffixed-z -m68hcs12")

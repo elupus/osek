@@ -23,7 +23,8 @@ elseif ((HCS12) OR (DEFINED HC12_CORE))
     set (Os_SRCS ${Os_SRCS}
         src/Os_Arch_HCS12.c
     )
-    add_definitions(-DOS_CFG_ARCH_HCS12 -fomit-frame-pointer -Os)
+    add_definitions(-DOS_CFG_ARCH_HCS12)
+    set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Os -fomit-frame-pointer")
     set (Os_HCS12 1)
 endif()
 
