@@ -205,10 +205,13 @@ static void Os_TaskInit(Os_TaskType task)
 static void Os_TaskPeek(Os_PriorityType min_priority, Os_TaskType* task)
 {
     Os_PriorityType prio;
-    *task = OS_INVALID_TASK;
-    for(prio = OS_PRIO_COUNT; prio > min_priority && *task == OS_INVALID_TASK; --prio) {
-        *task = Os_TaskReady[prio-1].head;
+    for(prio = OS_PRIO_COUNT - 1; prio > min_priority; --prio) {
+        *task = Os_TaskReady[prio].head;
+        if(*task != OS_INVALID_TASK) {
+            return;
+        }
     }
+    *task = OS_INVALID_TASK;
 }
 
 /**
@@ -304,13 +307,10 @@ static __inline void Os_State_Running_To_Suspended(Os_TaskType task)
  * This will push the task back into the ready list at the top
  * of the list so it's next in line to execute again
  */
-static __inline void Os_State_Running_To_Ready(Os_TaskType task)
+static __inline void Os_State_Running_To_Ready(Os_TaskType task, Os_PriorityType prio)
 {
-    Os_PriorityType prio;
-
     OS_CHECK_EXT(Os_TaskControls[task].state == OS_TASK_RUNNING, E_OS_STATE);
 
-    prio = Os_TaskPrio(task);
     Os_ReadyListPushHead(&Os_TaskReady[prio], task);
     Os_TaskControls[task].state = OS_TASK_READY;
     Os_TaskRunning = OS_INVALID_TASK;
@@ -369,7 +369,7 @@ void Os_Start(void)
 {
 
     Os_TaskType     task;
-    Os_TaskPeek(0, &task);
+    Os_TaskPeek(-1, &task);
     if (task == OS_INVALID_TASK) {
         /* no task found, just wait for tick to trigger one */
         Os_Arch_EnableAllInterrupts();
@@ -407,7 +407,7 @@ void Os_Shutdown(void)
 
     if (prev != OS_INVALID_TASK) {
         /* put preempted task as first ready */
-        Os_State_Running_To_Ready(prev);
+        Os_State_Running_To_Ready(prev, Os_TaskPrio(prev));
     }
 
     /* swap back if os support it */
@@ -431,9 +431,9 @@ Os_StatusType Os_Schedule_Internal(void)
     Os_TaskType     task, prev;
 
     if (Os_TaskRunning == OS_INVALID_TASK) {
-        prio = 0u;
+        prio = -1;
     } else {
-        prio = Os_TaskPrio(Os_TaskRunning) + 1u;
+        prio = Os_TaskPrio(Os_TaskRunning);
     }
 
     while(1) {
@@ -454,9 +454,9 @@ Os_StatusType Os_Schedule_Internal(void)
         /* store previous to be able to swap state later */
         prev = Os_TaskRunning;
 
-        if (prev != OS_INVALID_TASK) {
+        if (Os_TaskRunning != OS_INVALID_TASK) {
             /* put preempted task as first ready */
-            Os_State_Running_To_Ready(prev);
+            Os_State_Running_To_Ready(Os_TaskRunning, prio);
         }
 
         /* pop this task out from ready */

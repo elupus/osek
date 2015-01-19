@@ -28,7 +28,7 @@
 
 typedef uint8 Os_TaskType;        /**< task identifier */
 typedef uint8 Os_ResourceType;    /**< resource identifier */
-typedef uint8 Os_PriorityType;    /**< priority level */
+typedef sint8 Os_PriorityType;    /**< priority level */
 
 typedef uint8 Os_StatusType;      /**< return value for os functions */
 
