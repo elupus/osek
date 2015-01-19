@@ -202,7 +202,7 @@ static void Os_TaskInit(Os_TaskType task)
  * @param[in]  min_priority minimal task priority to find
  * @param[out] task the found task. will be Os_TaskIdNone if none was found
  */
-static void Os_TaskPeek(Os_PriorityType min_priority, Os_TaskType* task)
+static __inline void Os_TaskPeek(Os_PriorityType min_priority, Os_TaskType* task)
 {
     Os_PriorityType prio;
     for(prio = OS_PRIO_COUNT - 1; prio > min_priority; --prio) {
