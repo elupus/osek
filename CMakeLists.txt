@@ -32,9 +32,7 @@ include_directories(include src)
 
 if (DEFINED HC12_CORE)
     include_directories(include/chc)
-endif()
-
-if (CMAKE_COMPILER_IS_GNUCC)
+else()
     include_directories(include/gcc)
 endif()
 
