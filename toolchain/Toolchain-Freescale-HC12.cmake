@@ -20,11 +20,11 @@ SET (CMAKE_SYSTEM_PROCESSOR     "hc12")
 # Toolchain - Compilers, librarian (archiver) and linker.
 #              Piper is a Freescale command line tool that is used to redirect their GUI tools output to stdout.
 #
-SET (HC12_PIPER			 		"piper"		CACHE STRING "Freescale tool to capture GUI output to stdout")
-SET (CMAKE_C_COMPILER 	 		"chc12" 	CACHE STRING "Tool chain C compiler")
-SET (CMAKE_CXX_COMPILER	 		"chc12"		CACHE STRING "Tool chain C++ compiler")
-SET (CMAKE_AR 			 		"libmaker"	CACHE STRING "Tool chain library archiver")
-SET (CMAKE_LINKER 		 		"linker"	CACHE STRING "Tool chain linker")
+find_program(HC12_PIPER         NAMES piper)
+find_program(CMAKE_C_COMPILER   NAMES chc12)
+find_program(CMAKE_CXX_COMPILER NAMES chc12)
+find_program(CMAKE_AR           NAMES libmaker)
+find_program(CMAKE_LINKER       NAMES linker)
 
 #
 # We have to setup the object type very early, as this can't be overridden later on.
