@@ -11,6 +11,9 @@
 
 MESSAGE ("Loaded: Toolchain-Freescale-HC12.cmake")
 
+LIST(APPEND CMAKE_PROGRAM_PATH "C:/Program Files (x86)/Freescale/CWS12v5.1/Prog")
+
+SET (HC12_LIB_SEARCH_DIR "C:/Program Files (x86)/Freescale/CWS12v5.1/lib/hc12c/lib")
 
 SET (CMAKE_SYSTEM_NAME          "Freescale")
 SET (CMAKE_SYSTEM_VERSION       "0.0")
