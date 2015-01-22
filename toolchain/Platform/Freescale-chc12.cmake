@@ -145,7 +145,7 @@ SET (CMAKE_EXECUTABLE_SUFFIX 						".elf")
 #
 # C compiler.
 #
-SET (CMAKE_C_FLAGS_INIT 							"${CMAKE_C_FLAGS_INIT} -ViewHidden -Cc -NoEnv -NoBeep -WOutFileOn -WmsgNu=abcde -Env\"LIBPATH=$ENV{LIBPATH}\"")
+SET (CMAKE_C_FLAGS_INIT 							"${CMAKE_C_FLAGS_INIT} -ViewHidden -Cc -NoEnv -NoBeep -WOutFileOn -WmsgNu=abcde")
 SET (CMAKE_C_FLAGS_DEBUG_INIT 						"")
 SET (CMAKE_C_FLAGS_MINSIZEREL_INIT 					"")
 SET (CMAKE_C_FLAGS_RELEASE_INIT 					"")
