@@ -24,6 +24,11 @@
 #include "Os.h"
 #include "Os_Arch_Fibers.h"
 
+#ifdef __MINGW32__
+/* avoid strange linker error */
+#define GetCurrentFiber() ((PVOID)__readfsdword(0x10))
+#endif
+
 typedef struct Os_Arch_StateType {
     LPVOID fiber_old;
     LPVOID fiber;
@@ -48,7 +53,7 @@ VOID CALLBACK Os_Arch_FiberStart(LPVOID lpParameter)
 
 #if defined(__x86_64)
 void Os_Arch_Isr(DWORD rcx, DWORD rdx, DWORD r8, DWORD r9, void (*isr)())
-#elif defined(__x86)
+#elif defined(__x86) || defined(_X86_)
 void Os_Arch_Isr(void (*isr)())
 #else
 #error How is the calling convention?
@@ -93,7 +98,7 @@ void Os_Arch_InjectFunction(void* fun, void (*isr)())
         stack_ptr[4] = 0;
         stack_ptr[5] = (DWORD64)isr;
         ctx.Rip = (DWORD64)fun;
-#elif defined(__x86)
+#elif defined(__x86) || defined(_X86_)
         ctx.Esp -= 2 * sizeof(DWORD);
         DWORD* stack_ptr = (DWORD*)ctx.Esp;
         stack_ptr[0] = ctx.Eip;
