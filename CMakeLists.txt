@@ -62,12 +62,12 @@ if(BUILD_TESTS)
 	# Library
 	ExternalProject_Get_Property(googletest binary_dir)
 
-	set(GTEST_LIBRARY_PATH ${binary_dir}/${CMAKE_FIND_LIBRARY_PREFIXES}gtest.a)
+	set(GTEST_LIBRARY_PATH "${binary_dir}/libgtest.a")
 	add_library(gtest UNKNOWN IMPORTED)
 	set_property(TARGET gtest PROPERTY IMPORTED_LOCATION ${GTEST_LIBRARY_PATH} )
 	add_dependencies(gtest googletest)
 
-	set(GTEST_MAIN_PATH ${binary_dir}/${CMAKE_FIND_LIBRARY_PREFIXES}gtest_main.a)
+	set(GTEST_MAIN_PATH "${binary_dir}/libgtest_main.a")
 	add_library(gtest_main UNKNOWN IMPORTED)
 	set_property(TARGET gtest_main PROPERTY IMPORTED_LOCATION ${GTEST_MAIN_PATH} )
 	add_dependencies(gtest_main googletest)
