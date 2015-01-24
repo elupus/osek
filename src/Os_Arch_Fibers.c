@@ -134,6 +134,12 @@ void Os_Arch_Init(void)
                   , DUPLICATE_SAME_ACCESS);
 
     Os_Arch_System = ConvertThreadToFiber(NULL);
+    if (Os_Arch_System == NULL) {
+        Os_Arch_System = GetCurrentFiber();
+        if (Os_Arch_System == NULL) {
+            exit(GetLastError());
+        }
+    }
 
     Os_Arch_Section_Count = 0;
     InitializeCriticalSection(&Os_Arch_Section);
