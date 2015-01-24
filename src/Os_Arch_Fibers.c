@@ -95,7 +95,7 @@ void Os_Arch_InjectFunction(void* fun, void (*isr)())
         ctx.Rip = (DWORD64)fun;
 #elif defined(__x86)
         ctx.Esp -= 2 * sizeof(DWORD);
-        DWORD64* stack_ptr = (DWORD*)ctx.Esp;
+        DWORD* stack_ptr = (DWORD*)ctx.Esp;
         stack_ptr[0] = ctx.Eip;
         stack_ptr[1] = (DWORD)isr;
         ctx.Eip = (DWORD)fun;
