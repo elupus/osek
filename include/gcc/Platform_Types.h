@@ -6,7 +6,7 @@
 #include <stddef.h>
 #include <limits.h>
 
-#ifdef __CYGWIN__
+#if defined(__CYGWIN__) || defined(WIN32)
 typedef unsigned char boolean;
 #else
 typedef _Bool           boolean;
