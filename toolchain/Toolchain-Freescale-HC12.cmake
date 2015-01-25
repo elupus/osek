@@ -11,9 +11,13 @@
 
 MESSAGE ("Loaded: Toolchain-Freescale-HC12.cmake")
 
-LIST(APPEND CMAKE_PROGRAM_PATH "C:/Program Files (x86)/Freescale/CWS12v5.1/Prog")
+# Look for modules in this path
+SET (CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR})
 
-SET (HC12_LIB_SEARCH_DIR "C:/Program Files (x86)/Freescale/CWS12v5.1/lib/hc12c/lib")
+# Path to compiler, must not contain spaces
+SET (HC12_PATH "P:")
+
+LIST(APPEND CMAKE_PROGRAM_PATH "${HC12_PATH}/Prog")
 
 SET (CMAKE_SYSTEM_NAME          "Freescale")
 SET (CMAKE_SYSTEM_VERSION       "0.0")
@@ -28,6 +32,10 @@ find_program(CMAKE_C_COMPILER   NAMES chc12)
 find_program(CMAKE_CXX_COMPILER NAMES chc12)
 find_program(CMAKE_AR           NAMES libmaker)
 find_program(CMAKE_LINKER       NAMES linker)
+
+include_directories(${HC12_PATH}/lib/hc12c/include)
+link_directories(${HC12_PATH}/lib/hc12c/lib)
+set (HC12_LINK_PRM_FILE ${HC12_PATH}/lib/hc12c/prm/mc9s12e128.prm)
 
 #
 # We have to setup the object type very early, as this can't be overridden later on.

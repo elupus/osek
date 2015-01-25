@@ -16,7 +16,6 @@ MESSAGE ("Loaded: Freescale-chc12.cmake")
 # currently: image, lst, err, lib
 #
 # HC12_LINK_PRM_FILE		: Input linker prm file (controls memory/segment allocation, see Freescale compiler manual).
-# HC12_LIB_SEARCH_DIR		: Default user directory to search for libraries.
 # HC12_LINK_OUTPUT_DIR		: Output directory for '.elf' and map etc.
 # HC12_LST_OUTPUT_DIR		: Output directory for '.lst' assembler list files.
 # HC12_ERR_OUTPUT_DIR		: Output directory for '.err' error files.
@@ -98,13 +97,6 @@ IF (NOT DEFINED HC12_LINK_PRM_FILE)
 	SET (HC12_LINK_PRM_FILE "${CMAKE_CURRENT_SOURCE_DIR}/link.prm" CACHE STRING "HC12 linker prm file")
 ENDIF (NOT DEFINED HC12_LINK_PRM_FILE)
 
-#
-# Output directories.
-#
-IF (NOT DEFINED HC12_LIB_SEARCH_DIR)
-	SET (HC12_LIB_SEARCH_DIR "${CMAKE_BINARY_DIR}/lib" CACHE STRING "HC12 library search directory")
-ENDIF (NOT DEFINED HC12_LIB_SEARCH_DIR)
-
 IF (NOT DEFINED HC12_LINK_OUTPUT_DIR)
 	SET (HC12_LINK_OUTPUT_DIR "${CMAKE_BINARY_DIR}/image" CACHE STRING "HC12 linker output directory")
 ENDIF (NOT DEFINED HC12_LINK_OUTPUT_DIR)
@@ -126,7 +118,6 @@ MESSAGE ("HC12 memory model .........: ${HC12_MEMORY_MODEL}")
 MESSAGE ("HC12 start12*.o ...........: ${HC12_START12}")
 MESSAGE ("HC12 RTL ..................: ${HC12_RTL_LIBS}")
 MESSAGE ("HC12 linker prm file ......: ${HC12_LINK_PRM_FILE}")
-MESSAGE ("HC12 library search dir ...: ${HC12_LIB_SEARCH_DIR}")
 MESSAGE ("HC12 linker o/p directory .: ${HC12_LINK_OUTPUT_DIR}")
 MESSAGE ("HC12 list file directory ..: ${HC12_LST_OUTPUT_DIR}")
 MESSAGE ("HC12 error file directory .: ${HC12_ERR_OUTPUT_DIR}")
@@ -165,7 +156,7 @@ SET (CMAKE_CXX_STANDARD_LIBRARIES_INIT 				"")
 #
 # Flags used by the linker.
 #
-SET (CMAKE_EXE_LINKER_FLAGS_INIT 					"-ViewHidden -NoBeep -WErrFileOn -WmsgNu=abe -EnvERRORFILE=${HC12_LINK_OUTPUT_DIR}/link.err -EnvTEXTPATH=${HC12_LINK_OUTPUT_DIR} -L\"${HC12_LIB_SEARCH_DIR}\"")
+SET (CMAKE_EXE_LINKER_FLAGS_INIT 					"-ViewHidden -NoBeep -WErrFileOn -WmsgNu=abe -EnvERRORFILE=${HC12_LINK_OUTPUT_DIR}/link.err -EnvTEXTPATH=${HC12_LINK_OUTPUT_DIR}")
 SET (CMAKE_EXE_LINKER_FLAGS_DEBUG_INIT				"")
 SET (CMAKE_EXE_LINKER_FLAGS_MINSIZEREL_INIT 		"")
 SET (CMAKE_EXE_LINKER_FLAGS_RELEASE_INIT 			"")
@@ -186,37 +177,25 @@ SET (CMAKE_SHARED_LINKER_FLAGS_RELWITHDEBINFO_INIT	"")
 #
 # Compiler invocation.
 #
-SET (CMAKE_C_COMPILE_OBJECT 			"${HC12_PIPER} \"${CMAKE_C_COMPILER}\" <FLAGS> -ObjN=<OBJECT> -EnvERRORFILE=${HC12_ERR_OUTPUT_DIR}/%n.err -Lasm=${HC12_LST_OUTPUT_DIR}/%n.lst <SOURCE>")
-SET (CMAKE_CXX_COMPILE_OBJECT 			"${HC12_PIPER} \"${CMAKE_CXX_COMPILER}\" <FLAGS> -ObjN=<OBJECT> -EnvERRORFILE=${HC12_ERR_OUTPUT_DIR}/%n.err -Lasm=${HC12_LST_OUTPUT_DIR}/%n.lst <SOURCE>")
+SET (CMAKE_C_COMPILE_OBJECT 			"\"${HC12_PIPER}\" \"${CMAKE_C_COMPILER}\" <FLAGS> -ObjN=<OBJECT> -EnvERRORFILE=${HC12_ERR_OUTPUT_DIR}/%n.err -Lasm=${HC12_LST_OUTPUT_DIR}/%n.lst <SOURCE>")
+SET (CMAKE_CXX_COMPILE_OBJECT 			"\"${HC12_PIPER}\" \"${CMAKE_CXX_COMPILER}\" <FLAGS> -ObjN=<OBJECT> -EnvERRORFILE=${HC12_ERR_OUTPUT_DIR}/%n.err -Lasm=${HC12_LST_OUTPUT_DIR}/%n.lst <SOURCE>")
 
 #
 # Librarian invocation.
 #
-SET (CMAKE_C_CREATE_STATIC_LIBRARY 		"${HC12_PIPER} \"${CMAKE_AR}\" -ViewHidden -WmsgNu=abcde -NoBeep -WOutFileOn -EnvERRORFILE=${HC12_ERR_OUTPUT_DIR}/%n_lib.err -Mar{<TARGET> <OBJECTS>}")
+SET (CMAKE_C_CREATE_STATIC_LIBRARY 		"\"${HC12_PIPER}\" \"${CMAKE_AR}\" -ViewHidden -WmsgNu=abcde -NoBeep -WOutFileOn -EnvERRORFILE=${HC12_ERR_OUTPUT_DIR}/%n_lib.err -Mar{<TARGET> <OBJECTS>}")
 SET (CMAKE_CXX_CREATE_STATIC_LIBRARY 	"${CMAKE_C_CREATE_STATIC_LIBRARY}")
 
 #
 # Link support.
 #
-# Note that we can't use CMAKE_LIBRARY_PATH_FLAG to specify the "-L" library path, as CMake will expand it
-# next to the libraries which unfortunately due to the context sensitve order of the linker args will fail.
-# Instead we workaround by defining -L${HC12_LIB_SEARCH_DIR} in the linker flags, but all libs need to be
-# placed in this directory (or CMAKE_EXE_LINKER_FLAGS added to for other paths).
-#
-SET (CMAKE_LIBRARY_PATH_FLAG "")
-SET (CMAKE_LINK_LIBRARY_FLAG "")
+SET (CMAKE_LIBRARY_PATH_FLAG "-L")
+SET (CMAKE_LINK_LIBRARY_FLAG "-Add")
 
 #
 # Link invocation.
 #
-# Note we use CMake's abilitly to specify a number of separate commands to the linker
-# to generate our response file, as this allows us to use GNU make (which doesn't support
-# response files like NMake).
-#
-SET (CMAKE_C_LINK_EXECUTABLE
-	"\"${CMAKE_COMMAND}\" -E echo LINK <TARGET> NAMES ${HC12_START12} <OBJECTS> <LINK_LIBRARIES> ${HC12_RTL_LIBS} END INCLUDE ${HC12_LINK_PRM_FILE} > ${CMAKE_BINARY_DIR}/link.rsp"
-	"${HC12_PIPER} \"<CMAKE_LINKER>\" <LINK_FLAGS> -B ${CMAKE_BINARY_DIR}/link.rsp"
-	)
+SET (CMAKE_C_LINK_EXECUTABLE "\"${HC12_PIPER}\" \"<CMAKE_LINKER>\" -Add{<OBJECTS>} -Add{${HC12_START12}} -Add{${HC12_RTL_LIBS}} <LINK_FLAGS> <LINK_LIBRARIES> -O<TARGET> ${HC12_LINK_PRM_FILE}")
 
 #
 # Create custom output directories.
