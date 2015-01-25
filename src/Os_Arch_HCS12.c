@@ -39,6 +39,11 @@ void Os_Arch_Init(void)
     Os_Arch_Ctx_Next = &Os_Arch_State_None;
 }
 
+#ifdef __HIWARE__
+#warning store/restore not implemented
+#define OS_ARCH_STORE()
+#define OS_ARCH_RESTORE()
+#else
 #define OS_ARCH_STORE()                  \
     __asm __volatile__ (                 \
             "movw _.frame, 2   , -SP\n"  \
@@ -59,6 +64,7 @@ void Os_Arch_Init(void)
             "movw 0x2, SP+, _.frame\n"                \
             "movw Os_Arch_Ctx_Next, Os_Arch_Ctx_Prev" \
     )
+#endif
 
 __attribute__((interrupt)) void Os_Arch_Swi(void)
 {

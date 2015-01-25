@@ -8,6 +8,7 @@
 /* unsupported keywords */
 #define __inline
 #define __attribute(x)
+#define __attribute__(x)
 
 /* autosar defines */
 /* #define INLINE - clashes with pragma */

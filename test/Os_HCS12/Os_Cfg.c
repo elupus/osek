@@ -33,6 +33,12 @@
 unsigned char task0_stack[1024];
 unsigned char task1_stack[1024];
 
+#ifdef __HIWARE__
+#define NAMED_INIT(a)
+#else
+#define NAMED_INIT(a) .a =
+#endif
+
 void task0(void)
 {
     while(1) {
@@ -48,36 +54,37 @@ void task1(void)
 
 
 const Os_TaskConfigType Os_DefaultTasks[OS_TASK_COUNT] = {
-          { .entry      = task0,
-            .stack      = task0_stack,
-            .stack_size = sizeof(task0_stack),
-            .autostart  = 1,
-            .priority   = 0,
+          { NAMED_INIT(priority)    0,
+            NAMED_INIT(entry)       task0,
+            NAMED_INIT(stack)       task0_stack,
+            NAMED_INIT(stack_size)  sizeof(task0_stack),
+            NAMED_INIT(autostart)   1,
 #if( (OS_CONFORMANCE == OS_CONFORMANCE_ECC2) ||  (OS_CONFORMANCE == OS_CONFORMANCE_BCC2) )
 
-            .activation = 255u,
+            NAMED_INIT(activation)  255u,
 #endif
-            .resource   = OS_INVALID_RESOURCE,
+            NAMED_INIT(resource)    OS_INVALID_RESOURCE,
           }
-        , { .entry      = task1,
-            .stack      = task1_stack,
-            .stack_size = sizeof(task1_stack),
-            .autostart  = 0,
-            .priority   = 1,
+        , { NAMED_INIT(priority)    1,
+            NAMED_INIT(entry)       task1,
+            NAMED_INIT(stack)       task1_stack,
+            NAMED_INIT(stack_size)  sizeof(task1_stack),
+            NAMED_INIT(autostart)   0,
 #if( (OS_CONFORMANCE == OS_CONFORMANCE_ECC2) ||  (OS_CONFORMANCE == OS_CONFORMANCE_BCC2) )
-            .activation = 255u,
+            NAMED_INIT(activation)  255u,
 #endif
-            .resource   = OS_INVALID_RESOURCE,
+            NAMED_INIT(resource)    OS_INVALID_RESOURCE,
           }
 };
 
 const Os_ResourceConfigType Os_DefaultResources[OS_RES_COUNT] = {
-        {   .priority = OS_PRIO_COUNT
+        {   NAMED_INIT(priority)    OS_PRIO_COUNT
         },
 };
 
 const Os_AlarmConfigType Os_DefaultAlarms[OS_ALARM_COUNT] = {
-        {   .task  = 0 },
+        {   NAMED_INIT(task)        0
+        },
 };
 
 void Os_PreTaskHook(Os_TaskType task)
@@ -96,9 +103,9 @@ void Os_ErrorHook(Os_StatusType ret)
 }
 
 const Os_ConfigType Os_DefaultConfig = {
-        .tasks     = &Os_DefaultTasks,
-        .resources = &Os_DefaultResources,
-        .alarms    = &Os_DefaultAlarms,
+        NAMED_INIT(tasks)     &Os_DefaultTasks,
+        NAMED_INIT(resources) &Os_DefaultResources,
+        NAMED_INIT(alarms)    &Os_DefaultAlarms,
 };
 
 void exit(int err)
