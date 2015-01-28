@@ -28,6 +28,7 @@ SET (CMAKE_SYSTEM_PROCESSOR     "hc12")
 #              Piper is a Freescale command line tool that is used to redirect their GUI tools output to stdout.
 #
 find_program(HC12_PIPER         NAMES piper)
+find_program(HC12_BURNER        NAMES burner)
 find_program(CMAKE_C_COMPILER   NAMES chc12)
 find_program(CMAKE_CXX_COMPILER NAMES chc12)
 find_program(CMAKE_AR           NAMES libmaker)

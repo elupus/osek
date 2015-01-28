@@ -93,6 +93,10 @@ if(${Os_HCS12})
                            COMMAND ${CMAKE_OBJCOPY} --output-format=srec Os_HCS12 Os_HCS12.s19
                            COMMAND ${CMAKE_OBJDUMP} Os_HCS12 -S --disassemble   > Os_HCS12.lst)
     endif()
+    if(HC12_BURNER)
+        add_custom_command(TARGET Os_HCS12 POST_BUILD
+                           COMMAND ${HC12_BURNER} -Env\"ABS_FILE=$<TARGET_FILE:Os_HCS12>\" -F ${CMAKE_CURRENT_SOURCE_DIR}/test/Os_HCS12/burner.bbl)
+    endif()
 endif()
 
 
