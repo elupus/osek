@@ -52,9 +52,10 @@ static void Os_Arch_SuspendInterrupts(Os_IrqState* mask)
 static void __inline Os_Arch_SuspendInterrupts(Os_IrqState* mask)
 {
     __asm (
-        "tpa\n"
+        "tpa\n"                      /* (CCR) -> A */
         "sei\n"
-        : "=d"(*mask));
+        "staa 0, X\n"                /* (A)   -> (*X=mask) */
+        :: "x"(mask) : "a");
 }
 #endif
 
@@ -72,8 +73,9 @@ static void __inline Os_Arch_ResumeInterrupts(const Os_IrqState* mask)
 static void __inline Os_Arch_ResumeInterrupts(const Os_IrqState* mask)
 {
     __asm(
-        "tap\n"
-        : "d"(*mask));
+        "ldaa 0, X\n"                /* (*X=mask) -> (A) */
+        "tap\n"                      /* (A)       -> CCR */
+        :: "x"(mask) : "a");
 }
 #endif
 
