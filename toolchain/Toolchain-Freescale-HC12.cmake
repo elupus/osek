@@ -33,6 +33,9 @@ find_program(CMAKE_CXX_COMPILER NAMES chc12)
 find_program(CMAKE_AR           NAMES libmaker)
 find_program(CMAKE_LINKER       NAMES linker)
 
+set(CMAKE_OBJCOPY FALSE)
+set(CMAKE_OBJDUMP FALSE)
+
 include_directories(${HC12_PATH}/lib/hc12c/include)
 link_directories(${HC12_PATH}/lib/hc12c/lib)
 set (HC12_LINK_PRM_FILE ${HC12_PATH}/lib/hc12c/prm/mc9s12e128.prm)
