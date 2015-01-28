@@ -17,4 +17,4 @@ set(HCS12 1)
 
 set(CMAKE_C_LINK_EXECUTABLE "<CMAKE_C_COMPILER> <FLAGS> <CMAKE_C_LINK_FLAGS> <LINK_FLAGS> <OBJECTS>  -o <TARGET> -Wl,-Map,<TARGET_BASE>.map <LINK_LIBRARIES>")
 
-set(CMAKE_C_FLAGS "-mshort -ffixed-z -m68hcs12")
+set(CMAKE_C_FLAGS "-mshort -ffixed-z -m68hcs12 -Os -fomit-frame-pointer")
