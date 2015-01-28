@@ -16,7 +16,6 @@ MESSAGE ("Loaded: Freescale-chc12.cmake")
 # currently: image, lst, err, lib
 #
 # HC12_LINK_PRM_FILE		: Input linker prm file (controls memory/segment allocation, see Freescale compiler manual).
-# HC12_LINK_OUTPUT_DIR		: Output directory for '.elf' and map etc.
 # HC12_LST_OUTPUT_DIR		: Output directory for '.lst' assembler list files.
 # HC12_ERR_OUTPUT_DIR		: Output directory for '.err' error files.
 #
@@ -97,10 +96,6 @@ IF (NOT DEFINED HC12_LINK_PRM_FILE)
 	SET (HC12_LINK_PRM_FILE "${CMAKE_CURRENT_SOURCE_DIR}/link.prm" CACHE STRING "HC12 linker prm file")
 ENDIF (NOT DEFINED HC12_LINK_PRM_FILE)
 
-IF (NOT DEFINED HC12_LINK_OUTPUT_DIR)
-	SET (HC12_LINK_OUTPUT_DIR "${CMAKE_BINARY_DIR}/image" CACHE STRING "HC12 linker output directory")
-ENDIF (NOT DEFINED HC12_LINK_OUTPUT_DIR)
-
 IF (NOT DEFINED HC12_LST_OUTPUT_DIR)
 	SET (HC12_LST_OUTPUT_DIR "${CMAKE_BINARY_DIR}/lst" CACHE STRING "HC12 list output file directory")
 ENDIF (NOT DEFINED HC12_LST_OUTPUT_DIR)
@@ -118,7 +113,6 @@ MESSAGE ("HC12 memory model .........: ${HC12_MEMORY_MODEL}")
 MESSAGE ("HC12 start12*.o ...........: ${HC12_START12}")
 MESSAGE ("HC12 RTL ..................: ${HC12_RTL_LIBS}")
 MESSAGE ("HC12 linker prm file ......: ${HC12_LINK_PRM_FILE}")
-MESSAGE ("HC12 linker o/p directory .: ${HC12_LINK_OUTPUT_DIR}")
 MESSAGE ("HC12 list file directory ..: ${HC12_LST_OUTPUT_DIR}")
 MESSAGE ("HC12 error file directory .: ${HC12_ERR_OUTPUT_DIR}")
 MESSAGE ("")
@@ -156,7 +150,7 @@ SET (CMAKE_CXX_STANDARD_LIBRARIES_INIT 				"")
 #
 # Flags used by the linker.
 #
-SET (CMAKE_EXE_LINKER_FLAGS_INIT 					"-ViewHidden -NoBeep -WErrFileOn -WmsgNu=abe -EnvERRORFILE=${HC12_LINK_OUTPUT_DIR}/link.err -EnvTEXTPATH=${HC12_LINK_OUTPUT_DIR}")
+SET (CMAKE_EXE_LINKER_FLAGS_INIT 					"-ViewHidden -NoBeep -WErrFileOn -WmsgNu=abe")
 SET (CMAKE_EXE_LINKER_FLAGS_DEBUG_INIT				"")
 SET (CMAKE_EXE_LINKER_FLAGS_MINSIZEREL_INIT 		"")
 SET (CMAKE_EXE_LINKER_FLAGS_RELEASE_INIT 			"")
@@ -195,12 +189,11 @@ SET (CMAKE_LINK_LIBRARY_FLAG "-Add")
 #
 # Link invocation.
 #
-SET (CMAKE_C_LINK_EXECUTABLE "\"${HC12_PIPER}\" \"<CMAKE_LINKER>\" -Add{<OBJECTS>} -Add{${HC12_START12}} -Add{${HC12_RTL_LIBS}} <CMAKE_C_LINK_FLAGS> <LINK_FLAGS> <LINK_LIBRARIES> -O<TARGET> ${HC12_LINK_PRM_FILE}")
+SET (CMAKE_C_LINK_EXECUTABLE "\"${HC12_PIPER}\" \"<CMAKE_LINKER>\" -Add{<OBJECTS>} -Add{${HC12_START12}} -Add{${HC12_RTL_LIBS}} <CMAKE_C_LINK_FLAGS> <LINK_FLAGS> <LINK_LIBRARIES> -O<TARGET> -EnvERRORFILE=${HC12_ERR_OUTPUT_DIR}/link.err ${HC12_LINK_PRM_FILE}")
 
 #
 # Create custom output directories.
 #
-FILE (MAKE_DIRECTORY ${HC12_LINK_OUTPUT_DIR})
 FILE (MAKE_DIRECTORY ${HC12_LST_OUTPUT_DIR})
 FILE (MAKE_DIRECTORY ${HC12_ERR_OUTPUT_DIR})
 
