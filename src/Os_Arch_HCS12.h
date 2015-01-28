@@ -24,32 +24,58 @@ void       Os_Arch_Init(void);
 
 typedef    uint8_t Os_IrqState;
 
+#pragma INLINE
 static void __inline Os_Arch_DisableAllInterrupts(void)
 {
-	__asm(" sei");
+    __asm("sei");
 }
 
+
+#pragma INLINE
 static void __inline Os_Arch_EnableAllInterrupts(void)
 {
-	__asm(" cli");
+    __asm("cli");
 }
 
+#ifdef __HIWARE__
+#pragma NO_ENTRY
+static void Os_Arch_SuspendInterrupts(Os_IrqState* mask)
+{
+    __asm (
+        "tfr D,X\n"
+        "tpa\n"                      /* (CCR) -> A */
+        "sei\n"
+        "staa 0, X\n"                /* (A)   -> (*X=mask) */
+    );
+}
+#else
 static void __inline Os_Arch_SuspendInterrupts(Os_IrqState* mask)
 {
-#if(0)
-	__asm("tpa\n"
-		  "sei\n"
-		  : "=d"(*mask));
-#endif
+    __asm (
+        "tpa\n"
+        "sei\n"
+        : "=d"(*mask));
 }
+#endif
 
+#ifdef __HIWARE__
+#pragma NO_ENTRY
 static void __inline Os_Arch_ResumeInterrupts(const Os_IrqState* mask)
 {
-#if(0)
-	__asm("tap\n"
-		 : "d"(*mask));
-#endif
+    __asm (
+        "tfr D,X\n"
+        "ldaa 0, X\n"                /* (*X=mask) -> (A) */
+        "tap\n"                      /* (A)       -> CCR */
+    );
 }
+#else
+static void __inline Os_Arch_ResumeInterrupts(const Os_IrqState* mask)
+{
+    __asm(
+        "tap\n"
+        : "d"(*mask));
+}
+#endif
 
 void       Os_Arch_SwapState   (Os_TaskType task, Os_TaskType prev);
 void       Os_Arch_PrepareState(Os_TaskType task);

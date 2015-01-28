@@ -17,12 +17,15 @@
  */
 
 #include "Os.h"
+#include <string.h>
 
 typedef struct Os_Arch_StateType {
     uint16_t sp;
     uint8_t  ccr;
+#ifdef __GNUC__
     uint16_t frame;
     uint16_t d1;
+#endif
  } Os_Arch_StateType;
 
 Os_Arch_StateType  Os_Arch_State[OS_TASK_COUNT];
@@ -33,16 +36,30 @@ Os_Arch_StateType* Os_Arch_Ctx_Next = NULL;
 
 void Os_Arch_Init(void)
 {
-    memset(&Os_Arch_State, 0, sizeof(Os_Arch_State));
+    memset(&Os_Arch_State     , 0, sizeof(Os_Arch_State));
     memset(&Os_Arch_State_None, 0, sizeof(Os_Arch_State_None));
     Os_Arch_Ctx_Prev = &Os_Arch_State_None;
     Os_Arch_Ctx_Next = &Os_Arch_State_None;
 }
 
 #ifdef __HIWARE__
-#warning store/restore not implemented
-#define OS_ARCH_STORE()
-#define OS_ARCH_RESTORE()
+#define OS_ARCH_STORE()                 \
+    __asm  (                           \
+            "ldx Os_Arch_Ctx_Prev\n"     \
+            "sts           0x0 , X\n"    \
+            "tpa\n"                      \
+            "staa          0x2 , X\n"    \
+     )
+
+#define OS_ARCH_RESTORE()                               \
+    __asm (                                            \
+            "ldx Os_Arch_Ctx_Next\n"                    \
+            "lds  0x0 , X\n"                            \
+            "ldaa 0x2 , X\n"                            \
+            "tap\n"                                     \
+            "movw Os_Arch_Ctx_Next, Os_Arch_Ctx_Prev\n" \
+    )
+
 #else
 #define OS_ARCH_STORE()                  \
     __asm __volatile__ (                 \
