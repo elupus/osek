@@ -90,8 +90,8 @@ if(${Os_HCS12})
     target_include_directories(Os_HCS12 PRIVATE test/Os_HCS12)
     if(CMAKE_OBJCOPY AND CMAKE_OBJDUMP)
         add_custom_command(TARGET Os_HCS12 POST_BUILD
-                           COMMAND ${CMAKE_OBJCOPY} --output-format=srec Os_HCS12 Os_HCS12.s19
-                           COMMAND ${CMAKE_OBJDUMP} Os_HCS12 -S --disassemble   > Os_HCS12.lst)
+                           COMMAND ${CMAKE_OBJCOPY} --output-format=srec $<TARGET_FILE:Os_HCS12> Os_HCS12.s19
+                           COMMAND ${CMAKE_OBJDUMP} $<TARGET_FILE:Os_HCS12> -S --disassemble   > Os_HCS12.lst)
     endif()
     if(HC12_BURNER)
         add_custom_command(TARGET Os_HCS12 POST_BUILD
