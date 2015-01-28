@@ -108,11 +108,13 @@ const Os_ConfigType Os_DefaultConfig = {
         NAMED_INIT(alarms)    &Os_DefaultAlarms,
 };
 
+#ifdef __GNUC__
 void exit(int err)
 {
     while(1)
         ;
 }
+#endif
 
 int main(void)
 {
