@@ -95,7 +95,7 @@ if(${Os_HCS12})
     endif()
     if(HC12_BURNER)
         add_custom_command(TARGET Os_HCS12 POST_BUILD
-                           COMMAND ${HC12_BURNER} -Env\"ABS_FILE=$<TARGET_FILE:Os_HCS12>\" -F ${CMAKE_CURRENT_SOURCE_DIR}/test/Os_HCS12/burner.bbl)
+                           COMMAND ${HC12_PIPER} ${HC12_BURNER} -ViewHidden -EnvABS_FILE=$<TARGET_FILE:Os_HCS12> -F ${CMAKE_CURRENT_SOURCE_DIR}/test/Os_HCS12/burner.bbl)
     endif()
 endif()
 
