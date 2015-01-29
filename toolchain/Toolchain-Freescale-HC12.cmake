@@ -27,15 +27,15 @@ SET (CMAKE_SYSTEM_PROCESSOR     "hc12")
 # Toolchain - Compilers, librarian (archiver) and linker.
 #              Piper is a Freescale command line tool that is used to redirect their GUI tools output to stdout.
 #
-find_program(HC12_PIPER         NAMES piper)
-find_program(HC12_BURNER        NAMES burner)
-find_program(CMAKE_C_COMPILER   NAMES chc12)
-find_program(CMAKE_CXX_COMPILER NAMES chc12)
-find_program(CMAKE_AR           NAMES libmaker)
-find_program(CMAKE_LINKER       NAMES linker)
+set(HC12_PIPER         ${HC12_PATH}/Prog/piper)
+set(HC12_BURNER        ${HC12_PATH}/Prog/burner.exe)
+set(CMAKE_C_COMPILER   ${HC12_PATH}/Prog/chc12.exe)
+set(CMAKE_CXX_COMPILER ${HC12_PATH}/Prog/chc12.exe)
+set(CMAKE_AR           ${HC12_PATH}/Prog/libmaker.exe)
+set(CMAKE_LINKER       ${HC12_PATH}/Prog/linker.exe)
 
-set(CMAKE_OBJCOPY FALSE)
-set(CMAKE_OBJDUMP FALSE)
+set(CMAKE_OBJCOPY      FALSE)
+set(CMAKE_OBJDUMP      FALSE)
 
 include_directories(${HC12_PATH}/lib/hc12c/include)
 link_directories(${HC12_PATH}/lib/hc12c/lib)
