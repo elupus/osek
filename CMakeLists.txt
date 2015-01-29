@@ -1,5 +1,9 @@
 cmake_minimum_required (VERSION 2.8.4)
-project (OsekOs)
+project (OsekOs C)
+
+if(BUILD_TESTS)
+	enable_language(CXX)
+endif()
 
 set (OsekOs_VERSION_MAJOR 1)
 set (OsekOs_VERSION_MINOR 0)
