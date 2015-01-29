@@ -99,6 +99,19 @@ void Os_Arch_Init(void)
     res = setitimer(ITIMER_REAL, &val, NULL);
 }
 
+void Os_Arch_SuspendInterrupts(Os_IrqState* mask)
+{
+    sigset_t  set;
+    sigemptyset(&set);
+    sigaddset(&set, SIGALRM);
+    sigprocmask(SIG_BLOCK, &set, mask);
+}
+
+void Os_Arch_ResumeInterrupts(const Os_IrqState* mask)
+{
+    sigprocmask(SIG_BLOCK, mask, NULL);
+}
+
 void Os_Arch_DisableAllInterrupts(void)
 {
     sigset_t  set;
