@@ -6,8 +6,8 @@
 # Important, make sure you include the ":string" type option, otherwise the entries won't be placed in the
 # cache causing later problems when make automatically invokes a CMake rebuild.
 #
-
-MESSAGE ("Loaded: Toolchain-Generic-HC12.cmake")
+INCLUDE(CMakeForceCompiler)
+MESSAGE ("Loaded: Toolchain-Generic-chc12 .cmake")
 
 # Look for modules in this path
 SET (CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR})
@@ -32,11 +32,10 @@ SET (HC12_MEMORY_MODEL Banked)
 # Toolchain - Compilers, librarian (archiver) and linker.
 #              Piper is a Freescale command line tool that is used to redirect their GUI tools output to stdout.
 #
-set(CMAKE_C_COMPILER   ${HC12_PATH}/Prog/chc12.exe)
-set(CMAKE_CXX_COMPILER ${HC12_PATH}/Prog/chc12.exe)
-set(CMAKE_AR           ${HC12_PATH}/Prog/libmaker.exe)
-set(CMAKE_LINKER       ${HC12_PATH}/Prog/linker.exe)
-
+CMAKE_FORCE_C_COMPILER  (${HC12_PATH}/Prog/chc12.exe     chc12)
+CMAKE_FORCE_CXX_COMPILER(${HC12_PATH}/Prog/chc12.exe     chc12)
+set(CMAKE_AR             ${HC12_PATH}/Prog/libmaker.exe)
+set(CMAKE_LINKER         ${HC12_PATH}/Prog/linker.exe)
 
 include_directories(${HC12_PATH}/lib/hc12c/include)
 link_directories(${HC12_PATH}/lib/hc12c/lib)
