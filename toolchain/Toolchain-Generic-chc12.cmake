@@ -13,7 +13,11 @@ MESSAGE ("Loaded: Toolchain-Generic-HC12.cmake")
 SET (CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR})
 
 # Path to compiler, must not contain spaces
+IF (WIN32)
+SET (HC12_PATH "P:")
+ELSE()
 SET (HC12_PATH "/Users/joakim/.wine/drive_c/P")
+ENDIF()
 
 LIST(APPEND CMAKE_PROGRAM_PATH "${HC12_PATH}/Prog")
 
