@@ -11,6 +11,7 @@ set (OsekOs_VERSION_MINOR 0)
 set (Os_SRCS
     src/Os.c
 )
+
 if (WIN32 OR CYGWIN)
     set (Os_SRCS ${Os_SRCS}
         src/Os_Arch_Fibers.c
@@ -23,7 +24,7 @@ elseif (UNIX)
     )
     add_definitions(-D_XOPEN_SOURCE=600 -DOS_CFG_ARCH_POSIX)
     set (Os_Run 1)
-elseif ((HCS12) OR (DEFINED HC12_CORE))
+elseif (HC12_CORE)
     set (Os_SRCS ${Os_SRCS}
         src/Os_Arch_HCS12.c
     )
@@ -33,7 +34,7 @@ endif()
 
 include_directories(include src)
 
-if (DEFINED HC12_CORE)
+if (CMAKE_C_COMPILER_ID MATCHES chc12)
     include_directories(include/chc)
 else()
     include_directories(include/gcc)
@@ -97,9 +98,9 @@ if(${Os_HCS12})
                            COMMAND ${CMAKE_OBJCOPY} --output-format=srec $<TARGET_FILE:Os_HCS12> Os_HCS12.s19
                            COMMAND ${CMAKE_OBJDUMP} $<TARGET_FILE:Os_HCS12> -S --disassemble   > Os_HCS12.lst)
     endif()
-    if(HC12_BURNER)
+    if(CHC12_BURNER)
         add_custom_command(TARGET Os_HCS12 POST_BUILD
-                           COMMAND ${HC12_PIPER} ${HC12_BURNER} -ViewHidden -EnvABS_FILE=$<TARGET_FILE:Os_HCS12> -F ${CMAKE_CURRENT_SOURCE_DIR}/test/Os_HCS12/burner.bbl)
+                           COMMAND ${CHC12_PIPER} ${CHC12_BURNER} -ViewHidden -EnvABS_FILE=$<TARGET_FILE:Os_HCS12> -F ${CMAKE_CURRENT_SOURCE_DIR}/test/Os_HCS12/burner.bbl)
     endif()
 endif()
 
