@@ -179,7 +179,7 @@ struct Os_Test_ResourceOrder : public Os_Test_Default
 {
     virtual void task_prio0(void)
     {
-        Os_ActivateTask(OS_TASK_PRIO1);
+        EXPECT_EQ(E_OK       , Os_ActivateTask(OS_TASK_PRIO1));
         Os_Shutdown();
     }
 
@@ -209,7 +209,7 @@ struct Os_Test_ResourceTaskPriority : public Os_Test_Default
 {
     virtual void task_prio0(void)
     {
-        Os_ActivateTask(OS_TASK_PRIO2);
+        EXPECT_EQ(E_OK       , Os_ActivateTask(OS_TASK_PRIO2));
         Os_Shutdown();
     }
 
@@ -238,7 +238,7 @@ struct Os_Test_ResourceLockTest : public Os_Test_Default
 
     virtual void task_prio0(void)
     {
-        Os_ActivateTask(OS_TASK_PRIO1);
+        EXPECT_EQ(E_OK       , Os_ActivateTask(OS_TASK_PRIO1));
         EXPECT_EQ(E_OK       , Os_GetResource    (OS_RES_PRIO1));
         EXPECT_EQ(1          , task_prio1_count) << "Higher prio task has run more than once";
         EXPECT_EQ(E_OK       , Os_ActivateTask   (OS_TASK_PRIO1));
