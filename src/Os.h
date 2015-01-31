@@ -177,7 +177,11 @@ extern Os_StatusType Os_GetAlarm   (Os_AlarmType alarm, Os_TickType* tick);
  */
 static __inline Os_StatusType Os_GetTaskId   (Os_TaskType* task)
 {
-    *task = Os_TaskRunning;
+    if (Os_TaskControls[Os_TaskRunning].state == OS_TASK_RUNNING) {
+        *task = Os_TaskRunning;
+    } else {
+        *task = OS_INVALID_TASK;
+    }
     return E_OK;
 }
 

@@ -313,7 +313,6 @@ static __inline void Os_State_Running_To_Ready(Os_TaskType task, Os_PriorityType
 
     Os_ReadyListPushHead(&Os_TaskReady[prio], task);
     Os_TaskControls[task].state = OS_TASK_READY;
-    Os_TaskRunning = OS_INVALID_TASK;
 
     OS_POSTTASKHOOK(task);
 }
@@ -357,7 +356,6 @@ static __inline void Os_State_Ready_To_Running(Os_TaskType task)
     OS_CHECK_EXT(task2 == task, E_OS_STATE);
 
     Os_TaskControls[task].state = OS_TASK_RUNNING;
-    Os_TaskRunning = task;
 
     OS_PRETASKHOOK(task);
 }
@@ -367,11 +365,16 @@ static __inline void Os_State_Ready_To_Running(Os_TaskType task)
  */
 void Os_Start(void)
 {
-
     Os_TaskType     task;
+
+    Os_Arch_DisableAllInterrupts();
+
     Os_TaskPeek(-1, &task);
     if (task == OS_INVALID_TASK) {
-        /* no task found, just wait for tick to trigger one */
+        /* no task found, just wait for tick to trigger one.
+         * we say we are task 0 in suspended state until next comes along */
+
+        Os_TaskRunning = (Os_TaskType)0u;
         Os_Arch_EnableAllInterrupts();
         while(Os_Continue) {
             ; /* NOP */
@@ -387,6 +390,7 @@ void Os_Start(void)
         Os_TaskInternalResource_Get();
 
         /* swap into first task */
+        Os_TaskRunning = task;
         Os_Arch_SwapState(task, OS_INVALID_TASK);
 
         while(Os_Continue) {
@@ -405,13 +409,14 @@ void Os_Shutdown(void)
     /* store previous to be able to swap state later */
     prev = Os_TaskRunning;
 
-    if (prev != OS_INVALID_TASK) {
+    if (Os_TaskControls[Os_TaskRunning].state == OS_TASK_RUNNING) {
         /* put preempted task as first ready */
-        Os_State_Running_To_Ready(prev, Os_TaskPrio(prev));
+        Os_State_Running_To_Ready(Os_TaskRunning, Os_TaskPrio(Os_TaskRunning));
     }
 
     /* swap back if os support it */
-    Os_Arch_SwapState(OS_INVALID_TASK, prev);
+    Os_TaskRunning = OS_INVALID_TASK;
+    Os_Arch_SwapState(Os_TaskRunning, prev);
 }
 
 /**
@@ -430,19 +435,20 @@ Os_StatusType Os_Schedule_Internal(void)
     Os_PriorityType prio;
     Os_TaskType     task, prev;
 
-    if (Os_TaskRunning == OS_INVALID_TASK) {
-        prio = -1;
-    } else {
+    if (Os_TaskControls[Os_TaskRunning].state == OS_TASK_RUNNING) {
         prio = Os_TaskPrio(Os_TaskRunning);
+    } else {
+        prio = -1;
     }
 
     while(1) {
         Os_TaskPeek(prio, &task);
 
         if (task == OS_INVALID_TASK) {
-            if (Os_TaskRunning != OS_INVALID_TASK) {
+            if (Os_TaskControls[Os_TaskRunning].state == OS_TASK_RUNNING) {
                 break;    /* continue with current */
             }
+
             if (Os_CallContext != OS_CONTEXT_TASK) {
                 break;    /* no new task, and we are inside tick, so we need to return out */
             }
@@ -454,13 +460,14 @@ Os_StatusType Os_Schedule_Internal(void)
         /* store previous to be able to swap state later */
         prev = Os_TaskRunning;
 
-        if (Os_TaskRunning != OS_INVALID_TASK) {
+        if (Os_TaskControls[Os_TaskRunning].state == OS_TASK_RUNNING) {
             /* put preempted task as first ready */
             Os_State_Running_To_Ready(Os_TaskRunning, prio);
         }
 
         /* pop this task out from ready */
         Os_State_Ready_To_Running(task);
+        Os_TaskRunning = task;
 
         /* re-grab internal resource if not held */
         Os_TaskInternalResource_Get();
@@ -530,7 +537,6 @@ Os_StatusType Os_TerminateTask_Internal(void)
     }
 #endif
 
-    Os_TaskRunning = OS_INVALID_TASK;
     return E_OK;
 
 OS_ERRORCHECK_EXIT_POINT:
@@ -614,8 +620,6 @@ Os_StatusType Os_ChainTask_Internal(Os_TaskType task)
         Os_State_Suspended_To_Ready(Os_TaskRunning);
     }
 #endif
-
-    Os_TaskRunning = OS_INVALID_TASK;
 
     /* may return early here after activation limit is reached */
 #if( (OS_CONFORMANCE == OS_CONFORMANCE_ECC2) ||  (OS_CONFORMANCE == OS_CONFORMANCE_BCC2) )
