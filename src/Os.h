@@ -147,7 +147,7 @@ typedef struct Os_ErrorType {
 extern Os_ErrorType                    Os_Error;
 extern Os_TaskControlType              Os_TaskControls        [OS_TASK_COUNT];
 extern Os_ReadyListType                Os_TaskReady           [OS_PRIO_COUNT];
-extern Os_TaskType                     Os_TaskRunning;
+extern Os_TaskType                     Os_ActiveTask;
 extern Os_ContextType                  Os_CallContext;
 extern const Os_TaskConfigType *       Os_TaskConfigs;
 
@@ -177,8 +177,8 @@ extern Os_StatusType Os_GetAlarm   (Os_AlarmType alarm, Os_TickType* tick);
  */
 static __inline Os_StatusType Os_GetTaskId   (Os_TaskType* task)
 {
-    if (Os_TaskControls[Os_TaskRunning].state == OS_TASK_RUNNING) {
-        *task = Os_TaskRunning;
+    if (Os_TaskControls[Os_ActiveTask].state == OS_TASK_RUNNING) {
+        *task = Os_ActiveTask;
     } else {
         *task = OS_INVALID_TASK;
     }

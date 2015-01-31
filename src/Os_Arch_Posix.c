@@ -151,7 +151,7 @@ void Os_Arch_SwapState(Os_TaskType task, Os_TaskType prev)
             getcontext(&Os_Arch_State[prev]);
         }
 
-        if (prev != Os_TaskRunning) {
+        if (prev != Os_ActiveTask) {
             if (task == OS_INVALID_TASK) {
                 setcontext(&Os_Arch_State_None);
             } else {

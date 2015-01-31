@@ -39,7 +39,7 @@
 Os_ErrorType                    Os_Error;
 Os_TaskControlType              Os_TaskControls        [OS_TASK_COUNT]; /**< control array for tasks */
 Os_ReadyListType                Os_TaskReady           [OS_PRIO_COUNT]; /**< array of ready lists based on priority */
-Os_TaskType                     Os_TaskRunning;                         /**< currently running task */
+Os_TaskType                     Os_ActiveTask;                         /**< currently running task */
 Os_ContextType                  Os_CallContext;                         /**< current call context */
 const Os_TaskConfigType *       Os_TaskConfigs;                         /**< config array for tasks */
 
@@ -258,9 +258,9 @@ void Os_TaskInternalResource_Release(void)
     Os_ResourceType res;
 
     OS_CHECK_EXT(Os_CallContext == OS_CONTEXT_TASK, E_OS_STATE);
-    OS_CHECK_EXT(Os_TaskRunning != OS_INVALID_TASK, E_OS_STATE);
+    OS_CHECK_EXT(Os_ActiveTask  != OS_INVALID_TASK, E_OS_STATE);
 
-    res = Os_TaskConfigs[Os_TaskRunning].resource;
+    res = Os_TaskConfigs[Os_ActiveTask].resource;
     if (res != OS_INVALID_RESOURCE) {
         (void)Os_ReleaseResource_Task(res);
     }
@@ -277,11 +277,11 @@ void Os_TaskInternalResource_Get(void)
 {
     Os_ResourceType res;
 
-    OS_CHECK_EXT(Os_TaskRunning != OS_INVALID_TASK  , E_OS_STATE);
+    OS_CHECK_EXT(Os_ActiveTask != OS_INVALID_TASK  , E_OS_STATE);
 
-    res = Os_TaskConfigs[Os_TaskRunning].resource;
+    res = Os_TaskConfigs[Os_ActiveTask].resource;
     if (res != OS_INVALID_RESOURCE) {
-        if (Os_ResourceControls[res].task != Os_TaskRunning) {
+        if (Os_ResourceControls[res].task != Os_ActiveTask) {
             (void)Os_GetResource_Task(res);
         }
     }
@@ -374,7 +374,7 @@ void Os_Start(void)
         /* no task found, just wait for tick to trigger one.
          * we say we are task 0 in suspended state until next comes along */
 
-        Os_TaskRunning = (Os_TaskType)0u;
+        Os_ActiveTask = (Os_TaskType)0u;
         Os_Arch_EnableAllInterrupts();
         while(Os_Continue) {
             ; /* NOP */
@@ -390,7 +390,7 @@ void Os_Start(void)
         Os_TaskInternalResource_Get();
 
         /* swap into first task */
-        Os_TaskRunning = task;
+        Os_ActiveTask = task;
         Os_Arch_SwapState(task, OS_INVALID_TASK);
 
         while(Os_Continue) {
@@ -407,16 +407,16 @@ void Os_Shutdown(void)
 
     Os_Continue = FALSE;
     /* store previous to be able to swap state later */
-    prev = Os_TaskRunning;
+    prev = Os_ActiveTask;
 
-    if (Os_TaskControls[Os_TaskRunning].state == OS_TASK_RUNNING) {
+    if (Os_TaskControls[Os_ActiveTask].state == OS_TASK_RUNNING) {
         /* put preempted task as first ready */
-        Os_State_Running_To_Ready(Os_TaskRunning, Os_TaskPrio(Os_TaskRunning));
+        Os_State_Running_To_Ready(Os_ActiveTask, Os_TaskPrio(Os_ActiveTask));
     }
 
     /* swap back if os support it */
-    Os_TaskRunning = OS_INVALID_TASK;
-    Os_Arch_SwapState(Os_TaskRunning, prev);
+    Os_ActiveTask = OS_INVALID_TASK;
+    Os_Arch_SwapState(Os_ActiveTask, prev);
 }
 
 /**
@@ -435,8 +435,8 @@ Os_StatusType Os_Schedule_Internal(void)
     Os_PriorityType prio;
     Os_TaskType     task, prev;
 
-    if (Os_TaskControls[Os_TaskRunning].state == OS_TASK_RUNNING) {
-        prio = Os_TaskPrio(Os_TaskRunning);
+    if (Os_TaskControls[Os_ActiveTask].state == OS_TASK_RUNNING) {
+        prio = Os_TaskPrio(Os_ActiveTask);
     } else {
         prio = -1;
     }
@@ -445,7 +445,7 @@ Os_StatusType Os_Schedule_Internal(void)
         Os_TaskPeek(prio, &task);
 
         if (task == OS_INVALID_TASK) {
-            if (Os_TaskControls[Os_TaskRunning].state == OS_TASK_RUNNING) {
+            if (Os_TaskControls[Os_ActiveTask].state == OS_TASK_RUNNING) {
                 break;    /* continue with current */
             }
 
@@ -458,16 +458,16 @@ Os_StatusType Os_Schedule_Internal(void)
         }
 
         /* store previous to be able to swap state later */
-        prev = Os_TaskRunning;
+        prev = Os_ActiveTask;
 
-        if (Os_TaskControls[Os_TaskRunning].state == OS_TASK_RUNNING) {
+        if (Os_TaskControls[Os_ActiveTask].state == OS_TASK_RUNNING) {
             /* put preempted task as first ready */
-            Os_State_Running_To_Ready(Os_TaskRunning, prio);
+            Os_State_Running_To_Ready(Os_ActiveTask, prio);
         }
 
         /* pop this task out from ready */
         Os_State_Ready_To_Running(task);
-        Os_TaskRunning = task;
+        Os_ActiveTask = task;
 
         /* re-grab internal resource if not held */
         Os_TaskInternalResource_Get();
@@ -524,16 +524,16 @@ void Os_Isr(void)
  */
 Os_StatusType Os_TerminateTask_Internal(void)
 {
-    OS_CHECK_EXT_R(Os_TaskControls[Os_TaskRunning].state == OS_TASK_RUNNING       , E_OS_STATE);
+    OS_CHECK_EXT_R(Os_TaskControls[Os_ActiveTask].state == OS_TASK_RUNNING        , E_OS_STATE);
     OS_CHECK_EXT_R(Os_CallContext == OS_CONTEXT_TASK                              , E_OS_CALLEVEL);
-    OS_CHECK_EXT_R(Os_TaskControls[Os_TaskRunning].resource == OS_INVALID_RESOURCE, E_OS_RESOURCE);
+    OS_CHECK_EXT_R(Os_TaskControls[Os_ActiveTask].resource == OS_INVALID_RESOURCE , E_OS_RESOURCE);
 
-    Os_State_Running_To_Suspended(Os_TaskRunning);
+    Os_State_Running_To_Suspended(Os_ActiveTask);
 
 #if( (OS_CONFORMANCE == OS_CONFORMANCE_ECC2) ||  (OS_CONFORMANCE == OS_CONFORMANCE_BCC2) )
-    Os_TaskControls[Os_TaskRunning].activation--;
-    if (Os_TaskControls[Os_TaskRunning].activation) {
-        Os_State_Suspended_To_Ready(Os_TaskRunning);
+    Os_TaskControls[Os_ActiveTask].activation--;
+    if (Os_TaskControls[Os_ActiveTask].activation) {
+        Os_State_Suspended_To_Ready(Os_ActiveTask);
     }
 #endif
 
@@ -607,17 +607,17 @@ Os_StatusType Os_TerminateTask(void)
  */
 Os_StatusType Os_ChainTask_Internal(Os_TaskType task)
 {
-    OS_CHECK_EXT_R(Os_TaskControls[Os_TaskRunning].state == OS_TASK_RUNNING       , E_OS_STATE);
+    OS_CHECK_EXT_R(Os_TaskControls[Os_ActiveTask].state == OS_TASK_RUNNING        , E_OS_STATE);
     OS_CHECK_EXT_R(Os_CallContext == OS_CONTEXT_TASK                              , E_OS_CALLEVEL);
-    OS_CHECK_EXT_R(Os_TaskControls[Os_TaskRunning].resource == OS_INVALID_RESOURCE, E_OS_RESOURCE);
+    OS_CHECK_EXT_R(Os_TaskControls[Os_ActiveTask].resource == OS_INVALID_RESOURCE , E_OS_RESOURCE);
     OS_CHECK_EXT_R(task < OS_TASK_COUNT                                           , E_OS_ID);
 
-    Os_State_Running_To_Suspended(Os_TaskRunning);
+    Os_State_Running_To_Suspended(Os_ActiveTask);
 
 #if( (OS_CONFORMANCE == OS_CONFORMANCE_ECC2) ||  (OS_CONFORMANCE == OS_CONFORMANCE_BCC2) )
-    Os_TaskControls[Os_TaskRunning].activation--;
-    if (Os_TaskControls[Os_TaskRunning].activation > 0u) {
-        Os_State_Suspended_To_Ready(Os_TaskRunning);
+    Os_TaskControls[Os_ActiveTask].activation--;
+    if (Os_TaskControls[Os_ActiveTask].activation > 0u) {
+        Os_State_Suspended_To_Ready(Os_ActiveTask);
     }
 #endif
 
@@ -727,10 +727,10 @@ static Os_StatusType Os_GetResource_Task(Os_ResourceType res)
 {
     OS_CHECK_EXT_R(res < OS_RES_COUNT                                               , E_OS_ID);
     OS_CHECK_EXT_R(Os_ResourceControls[res].task == OS_INVALID_TASK                 , E_OS_ACCESS);
-    OS_CHECK_EXT_R(Os_TaskPrio(Os_TaskRunning)   <= Os_ResourceConfigs[res].priority, E_OS_ACCESS);
-    Os_ResourceControls[res].task            = Os_TaskRunning;
-    Os_ResourceControls[res].next            = Os_TaskControls[Os_TaskRunning].resource;
-    Os_TaskControls[Os_TaskRunning].resource = res;
+    OS_CHECK_EXT_R(Os_TaskPrio(Os_ActiveTask)    <= Os_ResourceConfigs[res].priority, E_OS_ACCESS);
+    Os_ResourceControls[res].task            = Os_ActiveTask;
+    Os_ResourceControls[res].next            = Os_TaskControls[Os_ActiveTask].resource;
+    Os_TaskControls[Os_ActiveTask].resource = res;
 
     return E_OK;
 
@@ -792,10 +792,10 @@ OS_ERRORCHECK_EXIT_POINT:
 Os_StatusType Os_ReleaseResource_Task(Os_ResourceType res)
 {
     OS_CHECK_EXT_R(res < OS_RES_COUNT                             , E_OS_ID);
-    OS_CHECK_EXT_R(Os_ResourceControls[res].task == Os_TaskRunning, E_OS_NOFUNC);
-    OS_CHECK_EXT_R(Os_TaskControls[Os_TaskRunning].resource == res, E_OS_NOFUNC);
+    OS_CHECK_EXT_R(Os_ResourceControls[res].task == Os_ActiveTask , E_OS_NOFUNC);
+    OS_CHECK_EXT_R(Os_TaskControls[Os_ActiveTask].resource == res , E_OS_NOFUNC);
 
-    Os_TaskControls[Os_TaskRunning].resource = Os_ResourceControls[res].next;
+    Os_TaskControls[Os_ActiveTask].resource = Os_ResourceControls[res].next;
     Os_ResourceControls[res].task  = OS_INVALID_TASK;
     Os_ResourceControls[res].next  = OS_INVALID_RESOURCE;
 
@@ -1088,7 +1088,7 @@ void Os_Init(const Os_ConfigType* config)
     Os_ResourceConfigs = *config->resources;
     Os_AlarmConfigs    = *config->alarms;
     Os_CallContext     = OS_CONTEXT_NONE;
-    Os_TaskRunning     = OS_INVALID_TASK;
+    Os_ActiveTask      = OS_INVALID_TASK;
     Os_Ticks           = 0u;
     Os_AlarmNext       = OS_INVALID_TASK;
     Os_Continue        = TRUE;
