@@ -106,6 +106,8 @@ template<typename T> struct Os_Test : public testing::Test {
         Os_TaskType task;
         Os_GetTaskId(&task);
         (active->*(active->m_task_entries[task]))();
+        EXPECT_TRUE(false) << "Reached outside of task without terminate task";
+        Os_TerminateTask();
     }
 
     void task_add(Os_TaskType id, task_entry_type entry, int autostart, Os_PriorityType priority, Os_ResourceType resource)
@@ -166,7 +168,6 @@ struct Os_Test_Default : public Os_Test<Os_Test_Default>
     virtual void task_prio0(void)
     {
         Os_Shutdown();
-        Os_TerminateTask();
     }
 
     virtual void task_prio1(void) { Os_TerminateTask(); }
@@ -180,7 +181,6 @@ struct Os_Test_ResourceOrder : public Os_Test_Default
     {
         Os_ActivateTask(OS_TASK_PRIO1);
         Os_Shutdown();
-        Os_TerminateTask();
     }
 
     virtual void task_prio1(void)
@@ -211,7 +211,6 @@ struct Os_Test_ResourceTaskPriority : public Os_Test_Default
     {
         Os_ActivateTask(OS_TASK_PRIO2);
         Os_Shutdown();
-        Os_TerminateTask();
     }
 
     virtual void task_prio2(void)
@@ -247,7 +246,6 @@ struct Os_Test_ResourceLockTest : public Os_Test_Default
         EXPECT_EQ(E_OK       , Os_ReleaseResource(OS_RES_PRIO1));
         EXPECT_EQ(2          , task_prio1_count) << "Higher prio task didn't run after resource was released";
         Os_Shutdown();
-        Os_TerminateTask();
     }
 
     virtual void task_prio1(void)
