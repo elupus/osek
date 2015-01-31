@@ -150,9 +150,9 @@ struct Os_Test_Default : public Os_Test<Os_Test_Default>
     void test_main(void)
     {
         task_add(OS_TASK_PRIO0, &ParentType::task_prio0, 1u, 0u, OS_INVALID_RESOURCE);
-        task_add(OS_TASK_PRIO1, &ParentType::task_prio1, 1u, 1u, OS_INVALID_RESOURCE);
-        task_add(OS_TASK_PRIO2, &ParentType::task_prio2, 1u, 2u, OS_INVALID_RESOURCE);
-        task_add(OS_TASK_PRIO3, &ParentType::task_prio3, 1u, 3u, OS_INVALID_RESOURCE);
+        task_add(OS_TASK_PRIO1, &ParentType::task_prio1, 0u, 1u, OS_INVALID_RESOURCE);
+        task_add(OS_TASK_PRIO2, &ParentType::task_prio2, 0u, 2u, OS_INVALID_RESOURCE);
+        task_add(OS_TASK_PRIO3, &ParentType::task_prio3, 0u, 3u, OS_INVALID_RESOURCE);
         m_resources[OS_RES_PRIO1].priority = 1;
         m_resources[OS_RES_PRIO2].priority = 2;
         m_resources[OS_RES_PRIO3].priority = 3;
@@ -176,6 +176,13 @@ struct Os_Test_Default : public Os_Test<Os_Test_Default>
 
 struct Os_Test_ResourceOrder : public Os_Test_Default
 {
+    virtual void task_prio0(void)
+    {
+        Os_ActivateTask(OS_TASK_PRIO1);
+        Os_Shutdown();
+        Os_TerminateTask();
+    }
+
     virtual void task_prio1(void)
     {
         /* check standard order */
@@ -200,6 +207,13 @@ TEST_F(Os_Test_ResourceOrder, Main) {
 
 struct Os_Test_ResourceTaskPriority : public Os_Test_Default
 {
+    virtual void task_prio0(void)
+    {
+        Os_ActivateTask(OS_TASK_PRIO2);
+        Os_Shutdown();
+        Os_TerminateTask();
+    }
+
     virtual void task_prio2(void)
     {
         /* check standard order */
@@ -225,6 +239,7 @@ struct Os_Test_ResourceLockTest : public Os_Test_Default
 
     virtual void task_prio0(void)
     {
+        Os_ActivateTask(OS_TASK_PRIO1);
         EXPECT_EQ(E_OK       , Os_GetResource    (OS_RES_PRIO1));
         EXPECT_EQ(1          , task_prio1_count) << "Higher prio task has run more than once";
         EXPECT_EQ(E_OK       , Os_ActivateTask   (OS_TASK_PRIO1));
