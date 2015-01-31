@@ -166,6 +166,7 @@ struct Os_Test_Default : public Os_Test<Os_Test_Default>
         m_hooks.shutdown = false;
         Os_Init(&m_config);
         Os_Start();
+        EXPECT_GT(m_task_activations[OS_TASK_PRIO0], 0);
     }
 
     virtual void task_prio0(void)
@@ -229,6 +230,7 @@ struct Os_Test_ResourceTaskPriority : public Os_Test_Default
 
 TEST_F(Os_Test_ResourceTaskPriority, Main) {
     test_main();
+    EXPECT_EQ(m_task_activations[OS_TASK_PRIO2], 1);
 }
 
 struct Os_Test_ResourceLockTest : public Os_Test_Default
@@ -262,4 +264,5 @@ struct Os_Test_ResourceLockTest : public Os_Test_Default
 
 TEST_F(Os_Test_ResourceLockTest, Main) {
     test_main();
+    EXPECT_EQ(m_task_activations[OS_TASK_PRIO1], 2);
 }
