@@ -34,6 +34,7 @@ template<typename T> struct Os_Test : public testing::Test {
         memset(m_tasks    , 0, sizeof(m_tasks));
         memset(m_resources, 0, sizeof(m_resources));
         memset(m_alarms   , 0, sizeof(m_alarms));
+        memset(m_task_activations, 0, sizeof(m_task_activations));
         for(Os_TaskType i = 0; i < OS_TASK_COUNT; ++i) {
             m_tasks[i].resource = OS_INVALID_RESOURCE;
         }
@@ -105,6 +106,7 @@ template<typename T> struct Os_Test : public testing::Test {
     {
         Os_TaskType task;
         Os_GetTaskId(&task);
+        active->m_task_activations[task]++;
         (active->*(active->m_task_entries[task]))();
         EXPECT_TRUE(false) << "Reached outside of task without terminate task";
         Os_TerminateTask();
@@ -124,6 +126,7 @@ template<typename T> struct Os_Test : public testing::Test {
         m_task_entries[id]     = entry;
     }
 
+    unsigned int          m_task_activations[OS_TASK_COUNT];
     Os_TaskConfigType     m_tasks    [OS_TASK_COUNT];
     Os_ResourceConfigType m_resources[OS_RES_COUNT];
     Os_AlarmConfigType    m_alarms   [OS_ALARM_COUNT];
