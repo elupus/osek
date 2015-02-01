@@ -91,18 +91,27 @@ void Os_Arch_Init(void)
     sigstack.ss_size  = SIGSTKSZ;
     sigstack.ss_flags = 0;
     res = sigaltstack(&sigstack, NULL);
+    if (res == -1) {
+        exit(-1);
+    }
 
     struct sigaction sact;
     sigemptyset( &sact.sa_mask );
     sact.sa_flags   = SA_RESTART | SA_ONSTACK;
     sact.sa_handler = Os_Arch_Alarm;
     res = sigaction(SIGALRM, &sact, NULL);
+    if (res == -1) {
+        exit(-1);
+    }
 
      // start up the "interrupt"!
     struct itimerval val;
     val.it_interval.tv_sec  = val.it_value.tv_sec  = OS_TICK_US / 1000000u;
     val.it_interval.tv_usec = val.it_value.tv_usec = OS_TICK_US;
     res = setitimer(ITIMER_REAL, &val, NULL);
+    if (res == -1) {
+        exit(-1);
+    }
 }
 
 void Os_Arch_SuspendInterrupts(Os_IrqState* mask)
