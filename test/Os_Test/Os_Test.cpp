@@ -269,3 +269,54 @@ TEST_F(Os_Test_ResourceLockTest, Main) {
     test_main();
     EXPECT_EQ(m_task_activations[OS_TASK_PRIO1], 2);
 }
+
+struct Os_Test_AlarmTest : public Os_Test_Default
+{
+    virtual void task_prio0(void)
+    {
+        Os_GetResource(OS_RES_PRIO4);
+        EXPECT_NE(E_OK       , Os_SetRelAlarm(OS_ALARM_COUNT, 3, 0)) << "invalid alarm";
+
+        /* setup high prio task running each cycle */
+        EXPECT_EQ(E_OK       , Os_SetRelAlarm(2, 1, 1));
+
+        /* setup two alarms running a bit later */
+        EXPECT_EQ(E_OK       , Os_SetRelAlarm(0, 2, 0));
+        EXPECT_EQ(E_OK       , Os_SetRelAlarm(1, 3, 0));
+
+        /* trigger shutdown later */
+        EXPECT_EQ(E_OK       , Os_SetRelAlarm(3, 4, 0));
+        Os_ReleaseResource(OS_RES_PRIO4);
+
+        while(1) {
+            /* NOP */
+        }
+    }
+
+    virtual void task_prio1(void)
+    {
+        EXPECT_EQ(m_task_activations[OS_TASK_PRIO1]+1, m_task_activations[OS_TASK_PRIO2]);
+        EXPECT_EQ(E_OK       , Os_TerminateTask());
+    }
+
+    virtual void task_prio2(void)
+    {
+        EXPECT_EQ(E_OK       , Os_TerminateTask());
+    }
+
+    virtual void task_prio3(void)
+    {
+        Os_Shutdown();
+    }
+};
+
+TEST_F(Os_Test_AlarmTest, Main) {
+    m_alarms[0].task = OS_TASK_PRIO1;
+    m_alarms[1].task = OS_TASK_PRIO1;
+    m_alarms[2].task = OS_TASK_PRIO2;
+    m_alarms[3].task = OS_TASK_PRIO3;
+    test_main();
+    EXPECT_EQ(m_task_activations[OS_TASK_PRIO1], 2);
+    EXPECT_EQ(m_task_activations[OS_TASK_PRIO2], 3);
+    EXPECT_EQ(m_task_activations[OS_TASK_PRIO3], 1);
+}
