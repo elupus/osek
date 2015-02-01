@@ -15,7 +15,6 @@ MESSAGE ("Loaded: Generic-chc12-hc12.cmake")
 # By default the various output files are placed in subdirectories of CMAKE_BINARY_DIR,
 # currently: image, lst, err, lib
 #
-# HC12_LINK_PRM_FILE          : Input linker prm file (controls memory/segment allocation, see Freescale compiler manual).
 # HC12_LST_OUTPUT_DIR         : Output directory for '.lst' assembler list files.
 # HC12_ERR_OUTPUT_DIR         : Output directory for '.err' error files.
 #
@@ -94,9 +93,6 @@ SET (CMAKE_C_STANDARD_LIBRARIES_INIT "-Add${HC12_RTL_LIBS} -Add${HC12_START12}")
 #
 # Input control files.
 #
-IF (NOT DEFINED HC12_LINK_PRM_FILE)
-    SET (HC12_LINK_PRM_FILE "${CMAKE_CURRENT_SOURCE_DIR}/link.prm" CACHE STRING "HC12 linker prm file")
-ENDIF (NOT DEFINED HC12_LINK_PRM_FILE)
 
 IF (NOT DEFINED HC12_LST_OUTPUT_DIR)
     SET (HC12_LST_OUTPUT_DIR "${CMAKE_BINARY_DIR}/lst" CACHE STRING "HC12 list output file directory")
@@ -114,7 +110,6 @@ MESSAGE ("HC12 core .................: ${HC12_CORE}")
 MESSAGE ("HC12 memory model .........: ${HC12_MEMORY_MODEL}")
 MESSAGE ("HC12 start12*.o ...........: ${HC12_START12}")
 MESSAGE ("HC12 RTL ..................: ${HC12_RTL_LIBS}")
-MESSAGE ("HC12 linker prm file ......: ${HC12_LINK_PRM_FILE}")
 MESSAGE ("HC12 list file directory ..: ${HC12_LST_OUTPUT_DIR}")
 MESSAGE ("HC12 error file directory .: ${HC12_ERR_OUTPUT_DIR}")
 MESSAGE ("")

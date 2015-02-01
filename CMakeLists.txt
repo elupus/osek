@@ -92,6 +92,9 @@ endif()
 if(${Os_HCS12})
     # Simple Os_Run test
     add_executable(Os_HCS12 ${Os_SRCS} test/Os_HCS12/Os_Cfg.c)
+    if (CMAKE_C_COMPILER_ID MATCHES chc12)
+        set_target_properties(Os_HCS12 PROPERTIES LINK_FLAGS ${CMAKE_CURRENT_SOURCE_DIR}/test/Os_HCS12/link.prm)
+    endif()
     target_include_directories(Os_HCS12 PRIVATE test/Os_HCS12)
     if(CMAKE_OBJCOPY AND CMAKE_OBJDUMP)
         add_custom_command(TARGET Os_HCS12 POST_BUILD

@@ -39,4 +39,3 @@ set(CMAKE_LINKER         ${HC12_PATH}/Prog/linker.exe)
 
 include_directories(${HC12_PATH}/lib/hc12c/include)
 link_directories(${HC12_PATH}/lib/hc12c/lib)
-set (HC12_LINK_PRM_FILE ${HC12_PATH}/lib/hc12c/prm/mc9s12p128.prm)
