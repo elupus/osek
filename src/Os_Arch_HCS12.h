@@ -19,10 +19,20 @@
 #ifndef OS_ARCH_HCS12_H_
 #define OS_ARCH_HCS12_H_
 
+#include "Std_Types.h"
+
 void       Os_Arch_Init(void);
 
 
 typedef    uint8_t Os_IrqState;
+
+#pragma CODE_SEG __NEAR_SEG NON_BANKED
+__interrupt __near void Os_Arch_Swi(void);
+#pragma CODE_SEG DEFAULT
+
+#pragma CODE_SEG __NEAR_SEG NON_BANKED
+__interrupt __near void Os_Arch_Isr(void);
+#pragma CODE_SEG DEFAULT
 
 #pragma INLINE
 static void __inline Os_Arch_DisableAllInterrupts(void)

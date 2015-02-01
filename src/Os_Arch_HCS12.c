@@ -76,18 +76,26 @@ void Os_Arch_Init(void)
     )
 #endif
 
-__attribute__((interrupt)) void Os_Arch_Swi(void)
+#pragma CODE_SEG __NEAR_SEG NON_BANKED
+
+__interrupt __near void Os_Arch_Swi(void)
 {
     OS_ARCH_STORE();
     OS_ARCH_RESTORE();
 }
 
-__attribute__((interrupt)) void Os_Arch_Isr(void)
+#pragma CODE_SEG DEFAULT
+
+#pragma CODE_SEG __NEAR_SEG NON_BANKED
+
+__interrupt __near void Os_Arch_Isr(void)
 {
     OS_ARCH_STORE();
     Os_Isr();
     OS_ARCH_RESTORE();
 }
+
+#pragma CODE_SEG DEFAULT
 
 void Os_Arch_SwapState   (Os_TaskType task, Os_TaskType prev)
 {
