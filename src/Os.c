@@ -150,6 +150,7 @@ void Os_AlarmTick(void)
     while (Os_AlarmNext != OS_INVALID_ALARM && Os_AlarmControls[Os_AlarmNext].ticks == 0u) {
         Os_AlarmType alarm = Os_AlarmNext;
         Os_AlarmNext = Os_AlarmControls[Os_AlarmNext].next;
+        Os_AlarmControls[alarm].next = OS_INVALID_ALARM;
         Os_AlarmTrigger(alarm);
     }
     /* decrement last active */
@@ -179,6 +180,7 @@ void Os_AlarmAdd(Os_AlarmType alarm, Os_TickType delay)
 
     if (prev == OS_INVALID_ALARM) {
         /* empty list or first in list */
+        Os_AlarmControls[alarm].next = Os_AlarmNext;
         Os_AlarmNext = alarm;
     } else {
         /* insert in list */
