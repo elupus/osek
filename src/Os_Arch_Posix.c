@@ -86,6 +86,12 @@ void Os_Arch_Init(void)
     memset(&Os_Arch_State_None, 0, sizeof(Os_Arch_State_None));
     memset(&Os_Arch_State, 0, sizeof(Os_Arch_State));
 
+    stack_t sigstack;
+    sigstack.ss_sp    = malloc(SIGSTKSZ);
+    sigstack.ss_size  = SIGSTKSZ;
+    sigstack.ss_flags = 0;
+    res = sigaltstack(&sigstack, NULL);
+
     struct sigaction sact;
     sigemptyset( &sact.sa_mask );
     sact.sa_flags   = SA_RESTART | SA_ONSTACK;
