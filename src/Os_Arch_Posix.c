@@ -33,10 +33,6 @@ void Os_Arch_Alarm(int signal)
 
     (void)Os_GetTaskId(&task_before);
     Os_Isr();
-
-    ucontext_t ctx;
-    getcontext(&ctx);
-
     (void)Os_GetTaskId(&task_after);
 
     if (task_before != task_after) {
@@ -47,8 +43,7 @@ void Os_Arch_Alarm(int signal)
             ctx_after = &Os_Arch_State[task_after];
         }
 
-        if (task_before != OS_INVALID_TASK) {
-            ctx_before = &Os_Arch_State[task_before];
+        if (task_before == OS_INVALID_TASK) {
             if (Os_Arch_State_Started == FALSE) {
                 Os_Arch_State_Started = TRUE;
                 ctx_before = &Os_Arch_State_None;
@@ -59,19 +54,9 @@ void Os_Arch_Alarm(int signal)
             ctx_before = &Os_Arch_State[task_before];
         }
 
-        if (ctx.uc_stack.ss_flags & SS_ONSTACK) {
-            if (ctx_before) {
-                *ctx_before = *ctx.uc_link;
-            }
-
-            if (ctx.uc_link != ctx_after) {
-                ctx.uc_link = ctx_after;
-                setcontext(&ctx);
-            }
+        if (ctx_before) {
+            swapcontext(ctx_before, ctx_after);
         } else {
-            if (ctx_before) {
-                *ctx_before = ctx;
-            }
             setcontext(ctx_after);
         }
     }
@@ -86,18 +71,9 @@ void Os_Arch_Init(void)
     memset(&Os_Arch_State_None, 0, sizeof(Os_Arch_State_None));
     memset(&Os_Arch_State, 0, sizeof(Os_Arch_State));
 
-    stack_t sigstack;
-    sigstack.ss_sp    = malloc(SIGSTKSZ);
-    sigstack.ss_size  = SIGSTKSZ;
-    sigstack.ss_flags = 0;
-    res = sigaltstack(&sigstack, NULL);
-    if (res == -1) {
-        exit(-1);
-    }
-
     struct sigaction sact;
     sigemptyset( &sact.sa_mask );
-    sact.sa_flags   = SA_RESTART | SA_ONSTACK;
+    sact.sa_flags   = SA_RESTART;
     sact.sa_handler = Os_Arch_Alarm;
     res = sigaction(SIGALRM, &sact, NULL);
     if (res == -1) {
