@@ -57,6 +57,9 @@ template<typename T> struct Os_Test : public testing::Test {
     virtual void TearDown()
     {
         Os_Hooks = NULL;
+        for(Os_TaskType i = 0; i < OS_TASK_COUNT; ++i) {
+            free(m_tasks[i].stack);
+        }
     }
 
     struct Hooks : Os_HooksInterface {
