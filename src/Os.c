@@ -388,11 +388,13 @@ void Os_Start(void)
         /* call context will be task after this */
         Os_CallContext = OS_CONTEXT_TASK;
 
+        /* set active task */
+        Os_ActiveTask = task;
+
         /* re-grab internal resource if not held */
         Os_TaskInternalResource_Get();
 
         /* swap into first task */
-        Os_ActiveTask = task;
         Os_Arch_SwapState(task, OS_INVALID_TASK);
 
         while(Os_Continue) {
