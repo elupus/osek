@@ -111,7 +111,7 @@ template<typename T> struct Os_Test : public testing::Test {
         Os_GetTaskId(&task);
         active->m_task_activations[task]++;
         (active->*(active->m_task_entries[task]))();
-        EXPECT_TRUE(false) << "Reached outside of task without terminate task";
+        EXPECT_TRUE(false) << "Reached outside of task without terminate task: " << task;
         Os_TerminateTask();
     }
 
