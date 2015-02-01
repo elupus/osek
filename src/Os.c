@@ -457,12 +457,14 @@ Os_StatusType Os_Schedule_Internal(void)
             continue;
         }
 
-        /* store previous to be able to swap state later */
-        prev = Os_ActiveTask;
 
         if (Os_TaskControls[Os_ActiveTask].state == OS_TASK_RUNNING) {
             /* put preempted task as first ready */
             Os_State_Running_To_Ready(Os_ActiveTask, prio);
+            /* store previous to be able to swap state later */
+            prev = Os_ActiveTask;
+        } else {
+            prev = OS_INVALID_TASK;
         }
 
         /* pop this task out from ready */
