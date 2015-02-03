@@ -36,29 +36,7 @@ void Os_Arch_Alarm(int signal)
     (void)Os_GetTaskId(&task_after);
 
     if (task_before != task_after) {
-        ucontext_t *ctx_after, *ctx_before;
-        if (task_after == OS_INVALID_TASK) {
-            ctx_after = &Os_Arch_State_None;
-        } else {
-            ctx_after = &Os_Arch_State[task_after];
-        }
-
-        if (task_before == OS_INVALID_TASK) {
-            if (Os_Arch_State_Started == FALSE) {
-                Os_Arch_State_Started = TRUE;
-                ctx_before = &Os_Arch_State_None;
-            } else {
-                ctx_before = NULL;
-            }
-        } else {
-            ctx_before = &Os_Arch_State[task_before];
-        }
-
-        if (ctx_before) {
-            swapcontext(ctx_before, ctx_after);
-        } else {
-            setcontext(ctx_after);
-        }
+        Os_Arch_SwapState(task_after, task_before);
     }
 }
 
@@ -133,21 +111,28 @@ void Os_Arch_PrepareState(Os_TaskType task)
 void Os_Arch_SwapState(Os_TaskType task, Os_TaskType prev)
 {
     if (Os_CallContext == OS_CONTEXT_TASK) {
+        ucontext_t *ctx_after, *ctx_before;
+        if (task == OS_INVALID_TASK) {
+            ctx_after = &Os_Arch_State_None;
+        } else {
+            ctx_after = &Os_Arch_State[task];
+        }
+
         if (prev == OS_INVALID_TASK) {
             if (Os_Arch_State_Started == FALSE) {
                 Os_Arch_State_Started = TRUE;
-                getcontext(&Os_Arch_State_None);
+                ctx_before = &Os_Arch_State_None;
+            } else {
+                ctx_before = NULL;
             }
         } else {
-            getcontext(&Os_Arch_State[prev]);
+            ctx_before = &Os_Arch_State[prev];
         }
 
-        if (prev != Os_ActiveTask) {
-            if (task == OS_INVALID_TASK) {
-                setcontext(&Os_Arch_State_None);
-            } else {
-                setcontext(&Os_Arch_State[task]);
-            }
+        if (ctx_before) {
+            swapcontext(ctx_before, ctx_after);
+        } else {
+            setcontext(ctx_after);
         }
     }
 }
