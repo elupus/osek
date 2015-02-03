@@ -60,10 +60,11 @@ typedef enum Os_ContextType {
  * @brief State of a task
  */
 typedef enum Os_TaskStateEnum {
-    OS_TASK_SUSPENDED = 0,        /**< OS_TASK_SUSPENDED */
-    OS_TASK_READY     = 1,        /**< OS_TASK_READY */
-    OS_TASK_WAITING   = 2,        /**< OS_TASK_WAITING */
-    OS_TASK_RUNNING   = 3,        /**< OS_TASK_RUNNING */
+    OS_TASK_SUSPENDED   = 0,        /**< OS_TASK_SUSPENDED */
+    OS_TASK_READY       = 1,        /**< OS_TASK_READY */
+    OS_TASK_WAITING     = 2,        /**< OS_TASK_WAITING */
+    OS_TASK_RUNNING     = 3,        /**< OS_TASK_RUNNING */
+    OS_TASK_READY_FIRST = 4,        /**< OS_TASK_READY_FIRST */
 } __attribute__ ((__packed__)) Os_TaskStateEnum;
 
 #define OS_RES_SCHEDULER (Os_ResourceType)0

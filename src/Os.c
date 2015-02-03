@@ -332,10 +332,9 @@ static __inline void Os_State_Suspended_To_Ready(Os_TaskType task)
 
     OS_CHECK_EXT(Os_TaskControls[task].state == OS_TASK_SUSPENDED, E_OS_STATE);
 
-    Os_Arch_PrepareState(task);
     prio = Os_TaskPrio(task);
     Os_ReadyListPushTail(&Os_TaskReady[prio], task);
-    Os_TaskControls[task].state = OS_TASK_READY;
+    Os_TaskControls[task].state = OS_TASK_READY_FIRST;
 }
 
 /**
@@ -350,12 +349,17 @@ static __inline void Os_State_Ready_To_Running(Os_TaskType task)
     Os_PriorityType prio;
     Os_TaskType     task2;
 
-    OS_CHECK_EXT(Os_TaskControls[task].state == OS_TASK_READY   , E_OS_STATE);
+    OS_CHECK_EXT( Os_TaskControls[task].state == OS_TASK_READY
+               || Os_TaskControls[task].state == OS_TASK_READY_FIRST, E_OS_STATE);
 
     prio = Os_TaskPrio(task);
     Os_ReadyListPopHead(&Os_TaskReady[prio], &task2);
 
     OS_CHECK_EXT(task2 == task, E_OS_STATE);
+
+    if(Os_TaskControls[task].state == OS_TASK_READY_FIRST) {
+        Os_Arch_PrepareState(task);
+    }
 
     Os_TaskControls[task].state = OS_TASK_RUNNING;
 
