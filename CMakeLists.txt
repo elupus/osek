@@ -81,6 +81,23 @@ if(BUILD_TESTS)
 	target_include_directories(Os_Test PRIVATE test/Os_Test ${GTEST_INCLUDE_DIR})
 	target_link_libraries(Os_Test gtest gtest_main pthread)
 
+	set_target_properties(Os_Test PROPERTIES COMPILE_FLAGS "--coverage")
+	set_target_properties(Os_Test PROPERTIES LINK_FLAGS "--coverage")
+
+    find_program( GCOV_PATH gcov )
+    find_program( LCOV_PATH lcov )
+    find_program( GENHTML_PATH genhtml )
+	if(GCOV_PATH)
+        add_custom_target(Os_Test_Coverage
+            DEPENDS Os_Test
+            COMMAND ${LCOV_PATH} --directory . --zerocounters
+            COMMAND ./Os_Test
+            COMMAND ${LCOV_PATH} --directory . --capture --output-file Os_Test_Coverage.info.full
+            COMMAND ${LCOV_PATH} --remove Os_Test_Coverage.info.full 'test/*' '/usr/*' '/gtest/*' --output-file Os_Test_Coverage.info
+            COMMAND ${GENHTML_PATH} -o Os_Test_Coverage Os_Test_Coverage.info
+            COMMAND ${CMAKE_COMMAND} -E remove Os_Test_Coverage.info Os_Test_Coverage.info.full
+        )
+    endif()
 endif()
 
 if(${Os_Run})
