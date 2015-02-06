@@ -39,6 +39,6 @@ Os_Arch_Trap:
 	add $4, esp  /* clean stack from parameters */
 	pop %ebp
 	add $4, %esp /* ret */
-	jmp *-4(esp)
+	jmp *-4(%esp)
 #endif
 
