@@ -13,8 +13,10 @@ set (Os_SRCS
 )
 
 if (WIN32 OR CYGWIN)
+	enable_language(ASM)
     set (Os_SRCS ${Os_SRCS}
         src/Os_Arch_Fibers.c
+        src/Os_Arch_Fibers.S
     )
     add_definitions(-DOS_CFG_ARCH_FIBERS)
     set (Os_Run 1)

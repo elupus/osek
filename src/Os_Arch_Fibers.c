@@ -41,6 +41,8 @@ uint32            Os_Arch_Section_Count;
 Os_Arch_StateType Os_Arch_State[OS_TASK_COUNT];
 HANDLE            Os_Arch_Thread;
 
+extern void Os_Arch_Trap(void);
+
 VOID CALLBACK Os_Arch_FiberStart(LPVOID lpParameter)
 {
     Os_TaskType task = (Os_TaskType)(intptr_t)lpParameter;
@@ -51,13 +53,7 @@ VOID CALLBACK Os_Arch_FiberStart(LPVOID lpParameter)
     Os_TaskConfigs[task].entry();
 }
 
-#if defined(__x86_64)
-void Os_Arch_Isr(DWORD rcx, DWORD rdx, DWORD r8, DWORD r9, void (*isr)())
-#elif defined(__x86) || defined(_X86_)
 void Os_Arch_Isr(void (*isr)())
-#else
-#error How is the calling convention?
-#endif
 {
     Os_TaskType task_before, task_after;
     Os_Arch_DisableAllInterrupts();
@@ -89,15 +85,21 @@ void Os_Arch_InjectFunction(void* fun, void (*isr)())
 
     if (GetThreadContext(Os_Arch_Thread, &ctx)) {
 #if defined(__x86_64)
-        ctx.Rsp -= 6 * sizeof(DWORD64);
-        DWORD64* stack_ptr = (DWORD64*)ctx.Rsp;
-        stack_ptr[0] = ctx.Rip;
-        stack_ptr[1] = 0;
-        stack_ptr[2] = 0;
-        stack_ptr[3] = 0;
-        stack_ptr[4] = 0;
-        stack_ptr[5] = (DWORD64)isr;
-        ctx.Rip = (DWORD64)fun;
+    	DWORD64* stack_ptr;
+        stack_ptr    = (DWORD64*)ctx.Rsp;
+        stack_ptr   -= 8;
+        stack_ptr[0] = ctx.Rax;
+        stack_ptr[1] = ctx.Rcx;
+        stack_ptr[2] = ctx.Rdx;
+        stack_ptr[3] = ctx.R8;
+        stack_ptr[4] = ctx.R9;
+        stack_ptr[5] = ctx.R10;
+        stack_ptr[6] = ctx.R11;
+        stack_ptr[7] = ctx.Rip;
+        ctx.Rsp = (DWORD64)stack_ptr;
+        ctx.Rip = (DWORD64)Os_Arch_Trap;
+        ctx.Rcx = (DWORD64)isr;
+
 #elif defined(__x86) || defined(_X86_)
         ctx.Esp -= 2 * sizeof(DWORD);
         DWORD* stack_ptr = (DWORD*)ctx.Esp;
