@@ -104,7 +104,7 @@ void Os_Arch_InjectFunction(void* fun, void (*isr)())
         DWORD* stack_ptr;
         stack_ptr    = (DWORD*)ctx.Esp;
         stack_ptr   -= 3;
-        stack_ptr[0] = isr;
+        stack_ptr[0] = (DWORD)isr;
         stack_ptr[1] = ctx.Ebp;
         stack_ptr[2] = ctx.Eip;
         ctx.Ebp = ctx.Esp;
