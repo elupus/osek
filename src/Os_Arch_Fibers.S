@@ -20,25 +20,25 @@
     .global _Os_Arch_Isr
 
 
- 	.text
+    .text
 
 _Os_Arch_Trap:
 #if defined(__x86_64)
     call _Os_Arch_Isr
- 	pop %rax
- 	pop %rcx
- 	pop %rdx
- 	pop %r8
- 	pop %r9
- 	pop %r10
- 	pop %r11
- 	add $8, %rsp /* ret */
- 	jmp *-8(%rsp)
+    pop %rax
+    pop %rcx
+    pop %rdx
+    pop %r8
+    pop %r9
+    pop %r10
+    pop %r11
+    add $8, %rsp /* ret */
+    jmp *-8(%rsp)
 #elif defined(__x86) || defined(_X86_)
     call _Os_Arch_Isr
     add $4, %esp  /* clean stack from parameters */
-	pop %ebp
-	add $4, %esp /* ret */
-	jmp *-4(%esp)
+    pop %ebp
+    add $4, %esp /* ret */
+    jmp *-4(%esp)
 #endif
 
