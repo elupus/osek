@@ -34,5 +34,11 @@ Os_Arch_Trap:
  	pop %r11
  	add $8, %rsp /* ret */
  	jmp *-8(%rsp)
+#elif defined(__x86) || defined(_X86_)
+	call Os_Arch_Isr
+	add $4, esp  /* clean stack from parameters */
+	pop %ebp
+	add $4, %esp /* ret */
+	jmp *-4(esp)
 #endif
 

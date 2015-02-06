@@ -101,11 +101,15 @@ void Os_Arch_InjectFunction(void* fun, void (*isr)())
         ctx.Rcx = (DWORD64)isr;
 
 #elif defined(__x86) || defined(_X86_)
-        ctx.Esp -= 2 * sizeof(DWORD);
-        DWORD* stack_ptr = (DWORD*)ctx.Esp;
-        stack_ptr[0] = ctx.Eip;
-        stack_ptr[1] = (DWORD)isr;
-        ctx.Eip = (DWORD)fun;
+        DWORD* stack_ptr;
+        stack_ptr    = (DWORD*)ctx.Esp;
+        stack_ptr   -= 3;
+        stack_ptr[0] = isr;
+        stack_ptr[1] = ctx.Ebp;
+        stack_ptr[2] = ctx.Eip;
+        ctx.Ebp = ctx.Esp;
+        ctx.Esp = (DWORD)stack_ptr;
+        ctx.Eip = (DWORD)Os_Arch_Trap;
 #else
 #error Not supported
 #endif
