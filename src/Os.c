@@ -481,7 +481,8 @@ Os_StatusType Os_Schedule_Internal(void)
 Os_StatusType Os_Schedule(void)
 {
     Os_StatusType result;
-    Os_Arch_DisableAllInterrupts();
+    Os_IrqState   irq;
+    Os_Arch_SuspendInterrupts(&irq);
 
     Os_TaskInternalResource_Release();
 
@@ -489,7 +490,7 @@ Os_StatusType Os_Schedule(void)
 
     Os_TaskInternalResource_Get();
 
-    Os_Arch_EnableAllInterrupts();
+    Os_Arch_ResumeInterrupts(&irq);
     return result;
 }
 
@@ -543,7 +544,8 @@ OS_ERRORCHECK_EXIT_POINT:
 Os_StatusType Os_TerminateTask(void)
 {
     Os_StatusType result;
-    Os_Arch_DisableAllInterrupts();
+    Os_IrqState   irq;
+    Os_Arch_SuspendInterrupts(&irq);
 
     Os_TaskInternalResource_Release();
 
@@ -562,7 +564,7 @@ Os_StatusType Os_TerminateTask(void)
 
     Os_TaskInternalResource_Get();
 
-    Os_Arch_EnableAllInterrupts();
+    Os_Arch_ResumeInterrupts(&irq);
     return result;
 }
 
@@ -649,7 +651,8 @@ OS_ERRORCHECK_EXIT_POINT:
 Os_StatusType Os_ChainTask(Os_TaskType task)
 {
     Os_StatusType result;
-    Os_Arch_DisableAllInterrupts();
+    Os_IrqState   irq;
+    Os_Arch_SuspendInterrupts(&irq);
 
     Os_TaskInternalResource_Release();
 
@@ -668,7 +671,7 @@ Os_StatusType Os_ChainTask(Os_TaskType task)
 
     Os_TaskInternalResource_Get();
 
-    Os_Arch_EnableAllInterrupts();
+    Os_Arch_ResumeInterrupts(&irq);
     return result;
 }
 
@@ -712,12 +715,15 @@ OS_ERRORCHECK_EXIT_POINT:
 Os_StatusType Os_ActivateTask(Os_TaskType task)
 {
     Os_StatusType result;
-    Os_Arch_DisableAllInterrupts();
+    Os_IrqState   irq;
+    Os_Arch_SuspendInterrupts(&irq);
+
     result = Os_ActivateTask_Internal(task);
     if (result == E_OK) {
         result = Os_Schedule_Internal();
     }
-    Os_Arch_EnableAllInterrupts();
+
+    Os_Arch_ResumeInterrupts(&irq);
     return result;
 }
 
@@ -755,11 +761,12 @@ OS_ERRORCHECK_EXIT_POINT:
 Os_StatusType Os_GetResource(Os_ResourceType res)
 {
     Os_StatusType result;
-    Os_Arch_DisableAllInterrupts();
+    Os_IrqState   irq;
+    Os_Arch_SuspendInterrupts(&irq);
 
     result = Os_GetResource_Internal(res);
 
-    Os_Arch_EnableAllInterrupts();
+    Os_Arch_ResumeInterrupts(&irq);
     return result;
 
 OS_ERRORCHECK_EXIT_POINT:
@@ -806,13 +813,14 @@ OS_ERRORCHECK_EXIT_POINT:
 Os_StatusType Os_ReleaseResource(Os_ResourceType res)
 {
     Os_StatusType result;
-    Os_Arch_DisableAllInterrupts();
+    Os_IrqState   irq;
+    Os_Arch_SuspendInterrupts(&irq);
 
     result = Os_ReleaseResource_Internal(res);
     if (result == E_OK) {
         result = Os_Schedule_Internal();
     }
-    Os_Arch_EnableAllInterrupts();
+    Os_Arch_ResumeInterrupts(&irq);
     return result;
 }
 
@@ -883,9 +891,10 @@ OS_ERRORCHECK_EXIT_POINT:
 Os_StatusType Os_SetRelAlarm(Os_AlarmType alarm, Os_TickType increment, Os_TickType cycle)
 {
     Os_StatusType result;
-    Os_Arch_DisableAllInterrupts();
+    Os_IrqState   irq;
+    Os_Arch_SuspendInterrupts(&irq);
     result = Os_SetRelAlarm_Internal(alarm, increment, cycle);
-    Os_Arch_EnableAllInterrupts();
+    Os_Arch_ResumeInterrupts(&irq);
     return result;
 }
 
@@ -951,9 +960,10 @@ OS_ERRORCHECK_EXIT_POINT:
 Os_StatusType Os_SetAbsAlarm(Os_AlarmType alarm, Os_TickType start, Os_TickType cycle)
 {
     Os_StatusType result;
-    Os_Arch_DisableAllInterrupts();
+    Os_IrqState   irq;
+    Os_Arch_SuspendInterrupts(&irq);
     result = Os_SetAbsAlarm_Internal(alarm, start, cycle);
-    Os_Arch_EnableAllInterrupts();
+    Os_Arch_ResumeInterrupts(&irq);
     return result;
 }
 
@@ -1007,9 +1017,10 @@ OS_ERRORCHECK_EXIT_POINT:
 Os_StatusType Os_CancelAlarm(Os_AlarmType alarm)
 {
     Os_StatusType result;
-    Os_Arch_DisableAllInterrupts();
+    Os_IrqState   irq;
+    Os_Arch_SuspendInterrupts(&irq);
     result = Os_CancelAlarm_Internal(alarm);
-    Os_Arch_EnableAllInterrupts();
+    Os_Arch_ResumeInterrupts(&irq);
     return result;
 }
 
@@ -1057,9 +1068,10 @@ OS_ERRORCHECK_EXIT_POINT:
 Os_StatusType Os_GetAlarm(Os_AlarmType alarm, Os_TickType* tick)
 {
     Os_StatusType result;
-    Os_Arch_DisableAllInterrupts();
+    Os_IrqState   irq;
+    Os_Arch_SuspendInterrupts(&irq);
     result = Os_GetAlarm_Internal(alarm, tick);
-    Os_Arch_EnableAllInterrupts();
+    Os_Arch_ResumeInterrupts(&irq);
     return result;
 }
 
