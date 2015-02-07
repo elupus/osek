@@ -445,14 +445,9 @@ Os_StatusType Os_Schedule_Internal(void)
         prio = -1;
     }
 
-    while(1) {
-        Os_TaskPeek(prio, &task);
+    Os_TaskPeek(prio, &task);
 
-        if (task == OS_INVALID_TASK) {
-            /* no new task, so we are done */
-            break;
-        }
-
+    if(task != OS_INVALID_TASK) {
         if (Os_TaskControls[Os_ActiveTask].state == OS_TASK_RUNNING) {
             /* put preempted task as first ready */
             Os_State_Running_To_Ready(Os_ActiveTask, prio);
@@ -475,7 +470,6 @@ Os_StatusType Os_Schedule_Internal(void)
          * current running task to check if it
          * just restored to this state */
         Os_Arch_SwapState(task, prev);
-        break;
     }
     return E_OK;
 }
