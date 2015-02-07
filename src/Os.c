@@ -886,6 +886,7 @@ void Os_AlarmInit(Os_AlarmType alarm)
 Os_StatusType Os_SetRelAlarm_Internal(Os_AlarmType alarm, Os_TickType increment, Os_TickType cycle)
 {
     OS_CHECK_EXT_R(alarm < OS_ALARM_COUNT             , E_OS_ID);
+    OS_CHECK_R    (increment != 0u                    , E_OS_VALUE); /**< @req SWS_Os_00304 */
     OS_CHECK_R    (Os_AlarmControls[alarm].ticks == 0u, E_OS_ID); /* TODO can fail this check */
     Os_AlarmControls[alarm].cycle = cycle;
     Os_AlarmAdd(alarm, increment);
