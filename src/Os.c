@@ -228,7 +228,7 @@ static __inline Os_PriorityType Os_TaskPrio(Os_TaskType task)
 {
     Os_PriorityType prio;
     Os_ResourceType resource = Os_TaskControls[task].resource;
-    if (resource == OS_INVALID_TASK) {
+    if (resource == OS_INVALID_RESOURCE) {
         prio = Os_TaskConfigs[task].priority;
     } else {
         prio = Os_ResourceConfigs[resource].priority;
