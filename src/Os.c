@@ -383,7 +383,7 @@ void Os_Start(void)
         Os_ActiveTask = (Os_TaskType)0u;
         Os_Arch_EnableAllInterrupts();
         while(Os_Continue) {
-            ; /* NOP */
+            Os_Arch_Wait();
         }
     } else {
         /* pop this task out from ready */
@@ -449,18 +449,9 @@ Os_StatusType Os_Schedule_Internal(void)
         Os_TaskPeek(prio, &task);
 
         if (task == OS_INVALID_TASK) {
-            if (Os_TaskControls[Os_ActiveTask].state == OS_TASK_RUNNING) {
-                break;    /* continue with current */
-            }
-
-            if (Os_CallContext != OS_CONTEXT_TASK) {
-                break;    /* no new task, and we are inside tick, so we need to return out */
-            }
-
-            /* idling in last task */
-            continue;
+            /* no new task, so we are done */
+            break;
         }
-
 
         if (Os_TaskControls[Os_ActiveTask].state == OS_TASK_RUNNING) {
             /* put preempted task as first ready */
@@ -560,8 +551,16 @@ Os_StatusType Os_TerminateTask(void)
     Os_TaskInternalResource_Release();
 
     result = Os_TerminateTask_Internal();
+
     if (result == E_OK) {
         result = Os_Schedule_Internal();
+    }
+
+    if (result == E_OK) {
+        Os_Arch_EnableAllInterrupts();
+        while(1) {
+            Os_Arch_Wait();
+        }
     }
 
     Os_TaskInternalResource_Get();
@@ -658,8 +657,16 @@ Os_StatusType Os_ChainTask(Os_TaskType task)
     Os_TaskInternalResource_Release();
 
     result = Os_ChainTask_Internal(task);
+
     if (result == E_OK) {
         result = Os_Schedule_Internal();
+    }
+
+    if (result == E_OK) {
+        Os_Arch_EnableAllInterrupts();
+        while(1) {
+            Os_Arch_Wait();
+        }
     }
 
     Os_TaskInternalResource_Get();
