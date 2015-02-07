@@ -60,8 +60,8 @@ static Os_StatusType Os_Schedule_Internal(void);
 static Os_StatusType Os_ChainTask_Internal(Os_TaskType task);
 static Os_StatusType Os_TerminateTask_Internal(void);
 static Os_StatusType Os_ActivateTask_Internal(Os_TaskType task);
-static Os_StatusType Os_GetResource_Task(Os_ResourceType res);
-static Os_StatusType Os_ReleaseResource_Task(Os_ResourceType res);
+static Os_StatusType Os_GetResource_Internal(Os_ResourceType res);
+static Os_StatusType Os_ReleaseResource_Internal(Os_ResourceType res);
 
 static void Os_AlarmTrigger(Os_AlarmType alarm);
 static void Os_AlarmTick(void);
@@ -264,7 +264,7 @@ void Os_TaskInternalResource_Release(void)
 
     res = Os_TaskConfigs[Os_ActiveTask].resource;
     if (res != OS_INVALID_RESOURCE) {
-        (void)Os_ReleaseResource_Task(res);
+        (void)Os_ReleaseResource_Internal(res);
     }
 }
 
@@ -284,7 +284,7 @@ void Os_TaskInternalResource_Get(void)
     res = Os_TaskConfigs[Os_ActiveTask].resource;
     if (res != OS_INVALID_RESOURCE) {
         if (Os_ResourceControls[res].task != Os_ActiveTask) {
-            (void)Os_GetResource_Task(res);
+            (void)Os_GetResource_Internal(res);
         }
     }
 }
@@ -439,8 +439,11 @@ Os_StatusType Os_Schedule_Internal(void)
     Os_PriorityType prio;
     Os_TaskType     task, prev;
 
-    if (Os_TaskControls[Os_ActiveTask].state == OS_TASK_RUNNING) {
-        prio = Os_TaskPrio(Os_ActiveTask);
+    Os_ResourceType resource = Os_TaskControls[Os_ActiveTask].resource;
+    if (resource != OS_INVALID_RESOURCE) {
+        prio = Os_ResourceConfigs[resource].priority;
+    } else if (Os_TaskControls[Os_ActiveTask].state == OS_TASK_RUNNING) {
+        prio = Os_TaskConfigs[Os_ActiveTask].priority;
     } else {
         prio = -1;
     }
@@ -730,7 +733,7 @@ Os_StatusType Os_ActivateTask(Os_TaskType task)
  *
  * Call contexts: TASK, ISR2
  */
-static Os_StatusType Os_GetResource_Task(Os_ResourceType res)
+static Os_StatusType Os_GetResource_Internal(Os_ResourceType res)
 {
     OS_CHECK_EXT_R(res < OS_RES_COUNT                                               , E_OS_ID);
     OS_CHECK_EXT_R(Os_ResourceControls[res].task == OS_INVALID_TASK                 , E_OS_ACCESS);
@@ -748,30 +751,14 @@ OS_ERRORCHECK_EXIT_POINT:
     return Os_Error.status;
 }
 
-static Os_StatusType Os_GetResource_Isr(Os_ResourceType res)
-{
-    OS_CHECK_EXT_R(0, E_OS_SYS_NOT_IMPLEMENTED);
-
-    return E_OK;
-
-OS_ERRORCHECK_EXIT_POINT:
-    Os_Error.service   = OSServiceId_GetResource;
-    Os_Error.params[0] = res;
-    OS_ERRORHOOK(Os_Error.status);
-    return Os_Error.status;
-}
-
 /** @copydoc Os_GetResource_Task */
 Os_StatusType Os_GetResource(Os_ResourceType res)
 {
     Os_StatusType result;
     Os_Arch_DisableAllInterrupts();
-    if (Os_CallContext == OS_CONTEXT_TASK) {
-        result = Os_GetResource_Task(res);
-    } else {
-        result = Os_GetResource_Isr(res);
-        OS_CHECK_EXT_R(result == E_OK, result);
-    }
+
+    result = Os_GetResource_Internal(res);
+
     Os_Arch_EnableAllInterrupts();
     return result;
 
@@ -796,7 +783,7 @@ OS_ERRORCHECK_EXIT_POINT:
  *
  * Call contexts: TASK, ISR2
  */
-Os_StatusType Os_ReleaseResource_Task(Os_ResourceType res)
+Os_StatusType Os_ReleaseResource_Internal(Os_ResourceType res)
 {
     OS_CHECK_EXT_R(res < OS_RES_COUNT                             , E_OS_ID);
     OS_CHECK_EXT_R(Os_ResourceControls[res].task == Os_ActiveTask , E_OS_NOFUNC);
@@ -820,11 +807,8 @@ Os_StatusType Os_ReleaseResource(Os_ResourceType res)
 {
     Os_StatusType result;
     Os_Arch_DisableAllInterrupts();
-    if (Os_CallContext == OS_CONTEXT_TASK) {
-        result = Os_ReleaseResource_Task(res);
-    } else {
-        result = E_OS_SYS_NOT_IMPLEMENTED;
-    }
+
+    result = Os_ReleaseResource_Internal(res);
     if (result == E_OK) {
         result = Os_Schedule_Internal();
     }
