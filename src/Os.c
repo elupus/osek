@@ -400,10 +400,6 @@ void Os_Start(void)
 
         /* swap into first task */
         Os_Arch_SwapState(task, OS_INVALID_TASK);
-
-        while(Os_Continue) {
-            ; /* NOP */
-        }
     }
 }
 
