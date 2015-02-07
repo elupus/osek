@@ -78,7 +78,7 @@ void Os_Arch_SuspendInterrupts(Os_IrqState* mask)
 
 void Os_Arch_ResumeInterrupts(const Os_IrqState* mask)
 {
-    sigprocmask(SIG_BLOCK, mask, NULL);
+    sigprocmask(SIG_SETMASK, mask, NULL);
 }
 
 void Os_Arch_DisableAllInterrupts(void)
