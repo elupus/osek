@@ -8,11 +8,12 @@
 #ifndef STATUSTYPEDEFINED
 #define STATUSTYPEDEFINED
     typedef uint8 StatusType;
-    #define E_OK 0
+    #define E_OK    (StatusType)0x00u
 #endif
 
-#define E_NOT_OK 1
-#define E_COM_ID 2
+typedef StatusType  Std_ReturnType;
+
+#define E_NOT_OK    (Std_ReturnType)0x01u
 
 #define STD_HIGH    0x01
 #define STD_LOW     0x00
@@ -26,7 +27,6 @@
 #define STD_TRUE    0x01
 #define STD_FALSE   0x00
 
-typedef uint16 Std_ReturnType;
 
 typedef struct {
     uint16 VendorId;
