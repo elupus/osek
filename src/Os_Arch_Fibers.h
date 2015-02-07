@@ -19,10 +19,17 @@
 #ifndef OS_ARCH_FIBERS_H_
 #define OS_ARCH_FIBERS_H_
 
+#include <Std_Types.h>
+
+typedef    uint32 Os_IrqState;
+
 void       Os_Arch_Init(void);
 
 void       Os_Arch_DisableAllInterrupts(void);
 void       Os_Arch_EnableAllInterrupts(void);
+
+void       Os_Arch_SuspendInterrupts(Os_IrqState* mask);
+void       Os_Arch_ResumeInterrupts(const Os_IrqState* mask);
 
 void       Os_Arch_SwapState   (Os_TaskType task, Os_TaskType prev);
 void       Os_Arch_PrepareState(Os_TaskType task);

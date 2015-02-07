@@ -161,9 +161,10 @@ void Os_Arch_Init(void)
                          , WT_EXECUTEINTIMERTHREAD);
 }
 
-void Os_Arch_DisableAllInterrupts(void)
+void Os_Arch_SuspendInterrupts(Os_IrqState* mask)
 {
     EnterCriticalSection(&Os_Arch_Section);
+    *mask = Os_Arch_Section_Count;
     Os_Arch_Section_Count++;
     if(Os_Arch_Section_Count != 1) {
         Os_Arch_Section_Count = 1;
@@ -171,10 +172,24 @@ void Os_Arch_DisableAllInterrupts(void)
     }
 }
 
+void Os_Arch_ResumeInterrupts(const Os_IrqState* mask)
+{
+    Os_Arch_Section_Count = *mask;
+    if(*mask == 0u) {
+        LeaveCriticalSection(&Os_Arch_Section);
+    }
+}
+
+void Os_Arch_DisableAllInterrupts(void)
+{
+    Os_IrqState state;
+    Os_Arch_SuspendInterrupts(&state);
+}
+
 void Os_Arch_EnableAllInterrupts(void)
 {
-    Os_Arch_Section_Count = 0;
-    LeaveCriticalSection(&Os_Arch_Section);
+    Os_IrqState state = 0u;
+    Os_Arch_ResumeInterrupts(state);
 }
 
 void Os_Arch_SwapState(Os_TaskType task, Os_TaskType prev)
