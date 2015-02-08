@@ -36,6 +36,6 @@
 #define OS_PRETASKHOOK_ENABLE  0
 #define OS_POSTTASKHOOK_ENABLE 0
 #define OS_ERRORHOOK_ENABLE    1
-#define OS_ERROR_EXT_ENABLE    1
+#define OS_ERROR_EXT_ENABLE    0
 
 #endif /* OS_CFG_H_ */
