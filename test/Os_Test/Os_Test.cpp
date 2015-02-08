@@ -320,3 +320,41 @@ TEST_F(Os_Test_AlarmTest, Main) {
     EXPECT_EQ(m_task_activations[OS_TASK_PRIO2], 3);
     EXPECT_EQ(m_task_activations[OS_TASK_PRIO3], 1);
 }
+
+
+struct Os_Test_AlarmTest2 : public Os_Test_Default
+{
+    virtual void task_prio0(void)
+    {
+        Os_GetResource(OS_RES_PRIO4);
+        EXPECT_EQ(E_OS_ID    , Os_SetRelAlarm(OS_ALARM_COUNT, 3, 0)) << "invalid alarm";
+        EXPECT_EQ(E_OS_VALUE , Os_SetRelAlarm(0, 0, 0))              << "invalid increment";
+        EXPECT_EQ(E_OK       , Os_SetRelAlarm(0, 1, 1))              << "recurring alarm that will be cancelled";
+        EXPECT_EQ(E_OK       , Os_SetRelAlarm(2, 4, 0))              << "alarm for shutdown";
+        Os_ReleaseResource(OS_RES_PRIO4);
+
+        while(1) {
+            /* NOP */
+        }
+    }
+
+    virtual void task_prio1(void)
+    {
+        EXPECT_EQ(E_OK       , Os_CancelAlarm(0));
+        EXPECT_EQ(E_OK       , Os_TerminateTask());
+    }
+
+    virtual void task_prio2(void)
+    {
+        Os_Shutdown();
+    }
+};
+
+TEST_F(Os_Test_AlarmTest2, Main) {
+    m_alarms[0].task = OS_TASK_PRIO1;
+    m_alarms[1].task = OS_TASK_PRIO1;
+    m_alarms[2].task = OS_TASK_PRIO2;
+    test_main();
+    EXPECT_EQ(m_task_activations[OS_TASK_PRIO1], 1);
+    EXPECT_EQ(m_task_activations[OS_TASK_PRIO2], 1);
+}
