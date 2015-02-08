@@ -244,7 +244,9 @@ static void Os_ResourceInit(Os_ResourceType res)
 {
     memset(&Os_ResourceControls[res], 0, sizeof(Os_ResourceControls[res]));
     Os_ResourceControls[res].next = OS_INVALID_RESOURCE;
+#if(OS_ERROR_EXT_ENABLE)
     Os_ResourceControls[res].task = OS_INVALID_TASK;
+#endif
 }
 
 /**
@@ -263,7 +265,7 @@ void Os_TaskInternalResource_Release(void)
     OS_CHECK_EXT(Os_ActiveTask  != OS_INVALID_TASK, E_OS_STATE);
 
     res = Os_TaskConfigs[Os_ActiveTask].resource;
-    if (res != OS_INVALID_RESOURCE) {
+    if (res != OS_INVALID_RESOURCE && Os_TaskControls[Os_ActiveTask].resource == res) {
         (void)Os_ReleaseResource_Internal(res);
     }
 }
@@ -282,10 +284,8 @@ void Os_TaskInternalResource_Get(void)
     OS_CHECK_EXT(Os_ActiveTask != OS_INVALID_TASK  , E_OS_STATE);
 
     res = Os_TaskConfigs[Os_ActiveTask].resource;
-    if (res != OS_INVALID_RESOURCE) {
-        if (Os_ResourceControls[res].task != Os_ActiveTask) {
-            (void)Os_GetResource_Internal(res);
-        }
+    if (res != OS_INVALID_RESOURCE && Os_TaskControls[Os_ActiveTask].resource == OS_INVALID_RESOURCE) {
+        (void)Os_GetResource_Internal(res);
     }
 }
 
@@ -742,9 +742,13 @@ Os_StatusType Os_ActivateTask(Os_TaskType task)
 static Os_StatusType Os_GetResource_Internal(Os_ResourceType res)
 {
     OS_CHECK_EXT_R(res < OS_RES_COUNT                                               , E_OS_ID);
-    OS_CHECK_EXT_R(Os_ResourceControls[res].task == OS_INVALID_TASK                 , E_OS_ACCESS);
     OS_CHECK_EXT_R(Os_TaskPrio(Os_ActiveTask)    <= Os_ResourceConfigs[res].priority, E_OS_ACCESS);
+
+#if(OS_ERROR_EXT_ENABLE)
+    OS_CHECK_EXT_R(Os_ResourceControls[res].task == OS_INVALID_TASK                 , E_OS_ACCESS);
     Os_ResourceControls[res].task            = Os_ActiveTask;
+#endif
+
     Os_ResourceControls[res].next            = Os_TaskControls[Os_ActiveTask].resource;
     Os_TaskControls[Os_ActiveTask].resource = res;
 
@@ -793,11 +797,14 @@ OS_ERRORCHECK_EXIT_POINT:
 Os_StatusType Os_ReleaseResource_Internal(Os_ResourceType res)
 {
     OS_CHECK_EXT_R(res < OS_RES_COUNT                             , E_OS_ID);
-    OS_CHECK_EXT_R(Os_ResourceControls[res].task == Os_ActiveTask , E_OS_NOFUNC);
     OS_CHECK_EXT_R(Os_TaskControls[Os_ActiveTask].resource == res , E_OS_NOFUNC);
 
-    Os_TaskControls[Os_ActiveTask].resource = Os_ResourceControls[res].next;
+#if(OS_ERROR_EXT_ENABLE)
+    OS_CHECK_EXT_R(Os_ResourceControls[res].task == Os_ActiveTask , E_OS_NOFUNC);
     Os_ResourceControls[res].task  = OS_INVALID_TASK;
+#endif
+
+    Os_TaskControls[Os_ActiveTask].resource = Os_ResourceControls[res].next;
     Os_ResourceControls[res].next  = OS_INVALID_RESOURCE;
 
     return E_OK;
