@@ -1121,10 +1121,12 @@ void Os_Init(const Os_ConfigType* config)
         Os_ResourceInit(res);
     }
 
+#ifdef OS_ALARM_COUNT
     /* initialize alarms */
     for (alarm  = 0u; alarm  < OS_ALARM_COUNT; ++alarm) {
         Os_AlarmInit(alarm);
     }
+#endif
 
     /* run arch init */
     Os_Arch_Init();
