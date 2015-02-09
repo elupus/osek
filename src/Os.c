@@ -46,14 +46,16 @@ const Os_TaskConfigType *       Os_TaskConfigs;                         /**< con
 const Os_ResourceConfigType *   Os_ResourceConfigs;                     /**< config array for resources */
 Os_ResourceControlType          Os_ResourceControls    [OS_RES_COUNT];  /**< control array for resources */
 
-volatile Os_TickType            Os_Ticks;                               /**< os ticks that have elapsed */
 volatile boolean                Os_Continue;                            /**< should starting task continue */
 
 
 #ifdef OS_ALARM_COUNT
 Os_AlarmControlType             Os_AlarmControls       [OS_ALARM_COUNT]; /**< control array for alarms */
 const Os_AlarmConfigType *      Os_AlarmConfigs;                         /**< config array for alarms  */
-Os_AlarmType                    Os_AlarmNext;
+#endif
+
+#ifdef OS_COUNTER_COUNT
+Os_CounterControlType           Os_CounterControls     [OS_COUNTER_COUNT]; /**< control array for counters */
 #endif
 
 static Os_StatusType Os_Schedule_Internal(void);
@@ -62,10 +64,12 @@ static Os_StatusType Os_TerminateTask_Internal(void);
 static Os_StatusType Os_ActivateTask_Internal(Os_TaskType task);
 static Os_StatusType Os_GetResource_Internal(Os_ResourceType res);
 static Os_StatusType Os_ReleaseResource_Internal(Os_ResourceType res);
+static Os_StatusType Os_IncrementCounter_Internal(Os_CounterType counter);
 
-static void Os_AlarmTrigger(Os_AlarmType alarm);
-static void Os_AlarmTick(void);
-static void Os_AlarmAdd(Os_AlarmType alarm, Os_TickType delay);
+
+static void Os_AlarmTrigger(Os_AlarmType* head, Os_AlarmType alarm);
+static void Os_AlarmTick   (Os_AlarmType* head);
+static void Os_AlarmAdd    (Os_AlarmType* head, Os_AlarmType alarm, Os_TickType delay);
 
 /**
  * @brief Add task to the given ready list at the head of the list
@@ -131,7 +135,7 @@ static void Os_ReadyListInit(Os_ReadyListType* list)
  * @brief Execute the configured action of an alarm
  * @param alarm
  */
-void Os_AlarmTrigger(Os_AlarmType alarm)
+void Os_AlarmTrigger(Os_AlarmType* head, Os_AlarmType alarm)
 {
     /* TODO */
     if (Os_AlarmConfigs[alarm].task != OS_INVALID_TASK) {
@@ -140,28 +144,32 @@ void Os_AlarmTrigger(Os_AlarmType alarm)
     }
 
     if (Os_AlarmControls[alarm].cycle) {
-        Os_AlarmAdd(alarm, Os_AlarmControls[alarm].cycle);
+        Os_AlarmAdd(head, alarm, Os_AlarmControls[alarm].cycle);
     }
 }
 
-void Os_AlarmTick(void)
+/**
+ * @brief Ticks the given alarm chain
+ * @param[in,out] head start of chain to tick, will be updated to current head
+ */
+void Os_AlarmTick(Os_AlarmType *head)
 {
     /* trigger and consume any expired */
-    while (Os_AlarmNext != OS_INVALID_ALARM && Os_AlarmControls[Os_AlarmNext].ticks == 0u) {
-        Os_AlarmType alarm = Os_AlarmNext;
-        Os_AlarmNext = Os_AlarmControls[Os_AlarmNext].next;
+    while (*head != OS_INVALID_ALARM && Os_AlarmControls[*head].ticks == 0u) {
+        Os_AlarmType alarm = *head;
+        *head = Os_AlarmControls[*head].next;
         Os_AlarmControls[alarm].next = OS_INVALID_ALARM;
-        Os_AlarmTrigger(alarm);
+        Os_AlarmTrigger(head, alarm);
     }
     /* decrement last active */
-    if (Os_AlarmNext != OS_INVALID_ALARM) {
-        Os_AlarmControls[Os_AlarmNext].ticks--;
+    if (*head != OS_INVALID_ALARM) {
+        Os_AlarmControls[*head].ticks--;
     }
 }
 
-void Os_AlarmAdd(Os_AlarmType alarm, Os_TickType delay)
+void Os_AlarmAdd(Os_AlarmType *head, Os_AlarmType alarm, Os_TickType delay)
 {
-    Os_AlarmType index = Os_AlarmNext
+    Os_AlarmType index = *head
                , prev  = OS_INVALID_ALARM;
 
     while (index != OS_INVALID_ALARM && Os_AlarmControls[index].ticks <= delay) {
@@ -180,8 +188,8 @@ void Os_AlarmAdd(Os_AlarmType alarm, Os_TickType delay)
 
     if (prev == OS_INVALID_ALARM) {
         /* empty list or first in list */
-        Os_AlarmControls[alarm].next = Os_AlarmNext;
-        Os_AlarmNext = alarm;
+        Os_AlarmControls[alarm].next = *head;
+        *head = alarm;
     } else {
         /* insert in list */
         Os_AlarmControls[prev ].next = alarm;
@@ -497,8 +505,7 @@ Os_StatusType Os_Schedule(void)
 void Os_Isr(void)
 {
     Os_CallContext = OS_CONTEXT_ISR1;
-    Os_Ticks++;
-    Os_AlarmTick();
+    Os_IncrementCounter_Internal(0u);
     Os_Schedule_Internal();
     Os_CallContext = OS_CONTEXT_TASK;
 }
@@ -878,11 +885,16 @@ void Os_AlarmInit(Os_AlarmType alarm)
  */
 Os_StatusType Os_SetRelAlarm_Internal(Os_AlarmType alarm, Os_TickType increment, Os_TickType cycle)
 {
+    Os_AlarmType* head;
+
     OS_CHECK_EXT_R(alarm < OS_ALARM_COUNT             , E_OS_ID);
     OS_CHECK_R    (increment != 0u                    , E_OS_VALUE); /**< @req SWS_Os_00304 */
     OS_CHECK_R    (Os_AlarmControls[alarm].ticks == 0u, E_OS_ID); /* TODO can fail this check */
+
+    head = &Os_CounterControls[Os_AlarmConfigs[alarm].counter].next;
+
     Os_AlarmControls[alarm].cycle = cycle;
-    Os_AlarmAdd(alarm, increment);
+    Os_AlarmAdd(head, alarm, increment);
     return E_OK;
 
 OS_ERRORCHECK_EXIT_POINT:
@@ -944,13 +956,20 @@ Os_StatusType Os_SetRelAlarm(Os_AlarmType alarm, Os_TickType increment, Os_TickT
  */
 Os_StatusType Os_SetAbsAlarm_Internal(Os_AlarmType alarm, Os_TickType start, Os_TickType cycle)
 {
+    Os_TickType   ticks;
+    Os_AlarmType* head;
+
     OS_CHECK_EXT_R(alarm < OS_ALARM_COUNT, E_OS_ID);
     OS_CHECK_R    (Os_AlarmControls[alarm].ticks == 0u, E_OS_ID); /* TODO can fail this check */
+
+    ticks =  Os_CounterControls[Os_AlarmConfigs[alarm].counter].ticks;
+    head  = &Os_CounterControls[Os_AlarmConfigs[alarm].counter].next;
+
     Os_AlarmControls[alarm].cycle = cycle;
-    if (start >= Os_Ticks) {
-        Os_AlarmAdd(alarm, start - Os_Ticks);
+    if (start >= ticks) {
+        Os_AlarmAdd(head, alarm, start - ticks);
     } else {
-        Os_AlarmAdd(alarm, OS_MAXALLOWEDVALUE - Os_Ticks + start + 1u);
+        Os_AlarmAdd(head, alarm, OS_MAXALLOWEDVALUE - ticks + start + 1u);
     }
     return E_OK;
 
@@ -985,8 +1004,9 @@ Os_StatusType Os_SetAbsAlarm(Os_AlarmType alarm, Os_TickType start, Os_TickType 
  */
 Os_StatusType Os_CancelAlarm_Internal(Os_AlarmType alarm)
 {
-    Os_AlarmType next = Os_AlarmNext
-               , prev = OS_INVALID_ALARM;
+    Os_AlarmType* head = &Os_CounterControls[Os_AlarmConfigs[alarm].counter].next;
+    Os_AlarmType  next = *head
+               ,  prev = OS_INVALID_ALARM;
 
     OS_CHECK_EXT_R(alarm < OS_ALARM_COUNT   , E_OS_ID);
 
@@ -999,7 +1019,7 @@ Os_StatusType Os_CancelAlarm_Internal(Os_AlarmType alarm)
 
     next = Os_AlarmControls[alarm].next;
     if (prev == OS_INVALID_ALARM) {
-        Os_AlarmNext = next;
+        *head = next;
     } else {
         Os_AlarmControls[prev].next = next ;
     }
@@ -1048,12 +1068,12 @@ Os_StatusType Os_CancelAlarm(Os_AlarmType alarm)
  */
 Os_StatusType Os_GetAlarm_Internal(Os_AlarmType alarm, Os_TickType* tick)
 {
-    Os_AlarmType index;
+    Os_AlarmType  index;
 
     OS_CHECK_EXT_R(alarm < OS_ALARM_COUNT, E_OS_ID);
 
     *tick = 0u;
-    index = Os_AlarmNext;
+    index = Os_CounterControls[Os_AlarmConfigs[alarm].counter].next;
     while (index != OS_INVALID_ALARM && index != alarm) {
         index  = Os_AlarmControls[index].next;
         *tick += Os_AlarmControls[index].ticks;
@@ -1084,6 +1104,54 @@ Os_StatusType Os_GetAlarm(Os_AlarmType alarm, Os_TickType* tick)
 
 #endif /* OS_ALARM_COUNT */
 
+#ifdef OS_COUNTER_COUNT
+
+/**
+ * @brief Initializes a counter to it's starting setup
+ * @param counter Counter to initialize
+ */
+void Os_CounterInit(Os_CounterType counter)
+{
+    Os_CounterControls[counter].next  = OS_INVALID_ALARM;
+    Os_CounterControls[counter].ticks = 0u;
+}
+
+/**
+ * @brief Increment given counter by one and trigger any alarms linked to it
+ * @param[in] counter Counter to increment
+ */
+Os_StatusType Os_IncrementCounter_Internal(Os_CounterType counter)
+{
+    OS_CHECK_EXT_R(counter < OS_COUNTER_COUNT, E_OS_VALUE);
+    Os_CounterControls[counter].ticks++;
+    Os_AlarmTick(&Os_CounterControls[counter].next);
+    return E_OK;
+
+OS_ERRORCHECK_EXIT_POINT:
+    Os_Error.service   = OSServiceId_CounterIncrement;
+    Os_Error.params[0] = counter;
+    OS_ERRORHOOK(Os_Error.status);
+    return Os_Error.status;
+}
+
+/** @copydoc Os_TerminateTask_Internal */
+Os_StatusType Os_IncrementCounter(Os_CounterType counter)
+{
+    Os_StatusType result;
+    Os_IrqState   irq;
+    Os_Arch_SuspendInterrupts(&irq);
+
+    result = Os_IncrementCounter_Internal(counter);
+    if (result == E_OK) {
+        result = Os_Schedule();
+    }
+
+    Os_Arch_ResumeInterrupts(&irq);
+    return E_OK;
+}
+
+#endif /* OS_COUNTER_COUNT */
+
 /**
  * @brief Initializes OS internal structures with given config
  * @param config Configuration to use
@@ -1093,6 +1161,7 @@ void Os_Init(const Os_ConfigType* config)
     Os_TaskType     task;
     Os_ResourceType res;
     Os_AlarmType    alarm;
+    Os_CounterType  counter;
     uint_least8_t prio;
 
     Os_TaskConfigs     = *config->tasks;
@@ -1100,8 +1169,6 @@ void Os_Init(const Os_ConfigType* config)
     Os_AlarmConfigs    = *config->alarms;
     Os_CallContext     = OS_CONTEXT_NONE;
     Os_ActiveTask      = OS_INVALID_TASK;
-    Os_Ticks           = 0u;
-    Os_AlarmNext       = OS_INVALID_TASK;
     Os_Continue        = TRUE;
 
     memset(&Os_TaskControls    , 0u, sizeof(Os_TaskControls));
@@ -1125,6 +1192,12 @@ void Os_Init(const Os_ConfigType* config)
     /* initialize alarms */
     for (alarm  = 0u; alarm  < OS_ALARM_COUNT; ++alarm) {
         Os_AlarmInit(alarm);
+    }
+#endif
+
+#ifdef OS_COUNTER_COUNT
+    for (counter = 0u; counter < OS_COUNTER_COUNT; ++counter) {
+        Os_CounterInit(counter);
     }
 #endif
 

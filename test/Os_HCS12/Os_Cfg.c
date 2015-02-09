@@ -83,7 +83,8 @@ const Os_ResourceConfigType Os_DefaultResources[OS_RES_COUNT] = {
 };
 
 const Os_AlarmConfigType Os_DefaultAlarms[OS_ALARM_COUNT] = {
-        {   NAMED_INIT(task)        0
+        {   NAMED_INIT(task)        0,
+            NAMED_INIT(counter)     OS_COUNTER_SYSTEM,
         },
 };
 

@@ -33,6 +33,7 @@ typedef sint8 Os_PriorityType;    /**< priority level */
 typedef uint8 Os_StatusType;      /**< return value for os functions */
 
 typedef uint8  Os_AlarmType;      /**< alarm identifier */
+typedef uint8  Os_CounterType;    /**< counter identifer */
 typedef uint16 Os_TickType;       /**< tick value identifier */
 
 #define OS_MAXALLOWEDVALUE UINT8_MAX
@@ -40,6 +41,7 @@ typedef uint16 Os_TickType;       /**< tick value identifier */
 #define OS_INVALID_TASK      (Os_TaskType)(-1)
 #define OS_INVALID_RESOURCE  (Os_ResourceType)(-1)
 #define OS_INVALID_ALARM     (Os_AlarmType)(-1)
+#define OS_INVALID_COUNTER   (Os_CounterType)(-1)
 
 #define OS_CONFORMANCE_BCC1 0u
 #define OS_CONFORMANCE_BCC2 1u

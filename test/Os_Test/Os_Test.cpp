@@ -42,7 +42,8 @@ template<typename T> struct Os_Test : public testing::Test {
             ;
         }
         for(Os_AlarmType i = 0; i < OS_ALARM_COUNT; ++i) {
-            m_alarms[i].task = OS_INVALID_TASK;
+            m_alarms[i].task    = OS_INVALID_TASK;
+            m_alarms[i].counter = OS_COUNTER_SYSTEM;
         }
 
         m_resources[OS_RES_SCHEDULER].priority = OS_PRIO_COUNT;

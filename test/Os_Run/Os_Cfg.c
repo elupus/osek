@@ -133,9 +133,15 @@ const Os_ResourceConfigType Os_DefaultResources[OS_RES_COUNT] = {
 };
 
 const Os_AlarmConfigType Os_DefaultAlarms[OS_ALARM_COUNT] = {
-        {   .task  = 3 },
-        {   .task  = 3 },
-        {   .task  = 3 },
+        {   .task    = 3,
+            .counter = OS_COUNTER_SYSTEM
+        },
+        {   .task  = 3,
+            .counter = OS_COUNTER_SYSTEM
+        },
+        {   .task  = 3,
+            .counter = OS_COUNTER_SYSTEM
+        },
 };
 
 void Os_PreTaskHook(Os_TaskType task)

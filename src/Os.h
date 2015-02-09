@@ -48,6 +48,11 @@
 #define OS_CONFORMANCE OS_CONFORMANCE_ECC2
 #endif
 
+#ifndef OS_COUNTER_COUNT
+#define OS_COUNTER_COUNT  (Os_CounterType)1u
+#define OS_COUNTER_SYSTEM (Os_CounterType)0u
+#endif
+
 #ifdef __GNUC__
 #define Os_Unlikely(x)  __builtin_expect((x),0)
 #define Os_Likely(x)    __builtin_expect((x),1)
@@ -105,6 +110,7 @@ typedef struct Os_ResourceControlType {
  */
 typedef struct Os_AlarmConfigType {
     Os_TaskType     task;         /**< @brief task to activate */
+    Os_CounterType  counter;      /**< @brief counter driving this alarm */
 } Os_AlarmConfigType;
 
 /**
@@ -115,6 +121,11 @@ typedef struct Os_AlarmControlType {
     Os_TickType     ticks;        /**< @brief number of ticks until trigger */
     Os_TickType     cycle;        /**< @brief number of ticks in each cycle */
 } Os_AlarmControlType;
+
+typedef struct Os_CounterControlType {
+    Os_TickType     ticks;
+    Os_AlarmType    next;
+} Os_CounterControlType;
 
 /**
  * @brief Linked list of ready tasks
@@ -172,6 +183,8 @@ extern Os_StatusType Os_SetAbsAlarm(Os_AlarmType alarm, Os_TickType start    , O
 extern Os_StatusType Os_CancelAlarm(Os_AlarmType alarm);
 extern Os_StatusType Os_GetAlarm   (Os_AlarmType alarm, Os_TickType* tick);
 
+extern Os_StatusType Os_IncrementCounter(Os_CounterType counter);
+
 /**
  * @brief Get the identifier of the currently executing task
  * @param[out] task Currently running task or Os_TaskIdNone if no task is running
@@ -199,6 +212,7 @@ enum {
     OSServiceId_CancelAlarm,
     OSServiceId_GetAlarm,
     OSServiceId_ChainTask,
+    OSServiceId_CounterIncrement,
 };
 
 #if(OS_PRETASKHOOK_ENABLE)
