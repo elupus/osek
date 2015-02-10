@@ -372,34 +372,19 @@ static __inline void Os_State_Ready_To_Running(Os_TaskType task)
 void Os_Start(void)
 {
     Os_TaskType     task;
+    Os_StatusType   res;
 
     Os_Arch_DisableAllInterrupts();
 
-    Os_TaskPeek(-1, &task);
-    if (task == OS_INVALID_TASK) {
-        /* no task found, just wait for tick to trigger one.
-         * we say we are task 0 in suspended state until next comes along */
+    Os_ActiveTask  = (Os_TaskType)0u;
+    Os_CallContext = OS_CONTEXT_TASK;
+    res = Os_Schedule_Internal();
 
-        Os_ActiveTask = (Os_TaskType)0u;
+    if (res == E_OK) {
         Os_Arch_EnableAllInterrupts();
         while(Os_Continue) {
             Os_Arch_Wait();
         }
-    } else {
-        /* pop this task out from ready */
-        Os_State_Ready_To_Running(task);
-
-        /* call context will be task after this */
-        Os_CallContext = OS_CONTEXT_TASK;
-
-        /* set active task */
-        Os_ActiveTask = task;
-
-        /* re-grab internal resource if not held */
-        Os_TaskInternalResource_Get();
-
-        /* swap into first task */
-        Os_Arch_SwapState(task, OS_INVALID_TASK);
     }
 }
 
