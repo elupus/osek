@@ -66,8 +66,6 @@ static Os_StatusType Os_GetResource_Internal(Os_ResourceType res);
 static Os_StatusType Os_ReleaseResource_Internal(Os_ResourceType res);
 static Os_StatusType Os_IncrementCounter_Internal(Os_CounterType counter);
 
-
-static void Os_AlarmTrigger(Os_AlarmType* head, Os_AlarmType alarm);
 static void Os_AlarmTick   (Os_AlarmType* head);
 static void Os_AlarmAdd    (Os_AlarmType* head, Os_AlarmType alarm, Os_TickType delay);
 
@@ -132,23 +130,6 @@ static void Os_ReadyListInit(Os_ReadyListType* list)
 }
 
 /**
- * @brief Execute the configured action of an alarm
- * @param alarm
- */
-void Os_AlarmTrigger(Os_AlarmType* head, Os_AlarmType alarm)
-{
-    /* TODO */
-    if (Os_AlarmConfigs[alarm].task != OS_INVALID_TASK) {
-        /* TODO event */
-        (void)Os_ActivateTask_Internal(Os_AlarmConfigs[alarm].task);
-    }
-
-    if (Os_AlarmControls[alarm].cycle) {
-        Os_AlarmAdd(head, alarm, Os_AlarmControls[alarm].cycle);
-    }
-}
-
-/**
  * @brief Ticks the given alarm chain
  * @param[in,out] head start of chain to tick, will be updated to current head
  */
@@ -159,7 +140,18 @@ void Os_AlarmTick(Os_AlarmType *head)
         Os_AlarmType alarm = *head;
         *head = Os_AlarmControls[*head].next;
         Os_AlarmControls[alarm].next = OS_INVALID_ALARM;
-        Os_AlarmTrigger(head, alarm);
+
+        /* activate linked task */
+        if (Os_AlarmConfigs[alarm].task != OS_INVALID_TASK) {
+            (void)Os_ActivateTask_Internal(Os_AlarmConfigs[alarm].task);
+        }
+
+        /* trigger any event - TODO */
+
+        /* readd cyclic */
+        if (Os_AlarmControls[alarm].cycle) {
+            Os_AlarmAdd(head, alarm, Os_AlarmControls[alarm].cycle);
+        }
     }
     /* decrement last active */
     if (*head != OS_INVALID_ALARM) {
