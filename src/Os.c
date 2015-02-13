@@ -208,13 +208,10 @@ static void Os_TaskInit(Os_TaskType task)
 static __inline void Os_TaskPeek(Os_PriorityType min_priority, Os_TaskType* task)
 {
     Os_PriorityType prio;
-    for(prio = OS_PRIO_COUNT - 1; prio > min_priority; --prio) {
-        *task = Os_TaskReady[prio].head;
-        if(*task != OS_INVALID_TASK) {
-            return;
-        }
-    }
     *task = OS_INVALID_TASK;
+    for(prio = OS_PRIO_COUNT - 1; (prio > min_priority) && (*task == OS_INVALID_TASK); --prio) {
+        *task = Os_TaskReady[prio].head;
+    }
 }
 
 /**
