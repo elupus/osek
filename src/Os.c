@@ -734,7 +734,7 @@ static Os_StatusType Os_GetResource_Internal(Os_ResourceType res)
 #endif
 
     Os_ResourceControls[res].next            = Os_TaskControls[Os_ActiveTask].resource;
-    Os_TaskControls[Os_ActiveTask].resource = res;
+    Os_TaskControls[Os_ActiveTask].resource  = res;
 
     return E_OK;
 
