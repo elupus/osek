@@ -86,6 +86,7 @@ typedef struct Os_TaskControlType {
 #endif
     Os_TaskType      next;        /**< @brief next task in the same ready list */
     Os_ResourceType  resource;    /**< @brief last taken resource for task (rest is linked list */
+    Os_PriorityType  priority;
 } Os_TaskControlType;
 
 /**
