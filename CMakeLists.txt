@@ -84,7 +84,7 @@ if(BUILD_TESTS)
 	target_link_libraries(Os_Test gtest gtest_main pthread)
 
 	set_target_properties(Os_Test PROPERTIES COMPILE_FLAGS "--coverage -O0")
-	set_target_properties(Os_Test PROPERTIES LINK_FLAGS "--coverage -O0")
+	set_target_properties(Os_Test PROPERTIES LINK_FLAGS    "--coverage -O0")
 endif()
 
 if(${Os_Run})
