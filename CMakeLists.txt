@@ -12,6 +12,9 @@ set (Os_SRCS
     src/Os.c
 )
 
+# we must add these to get all defines even in C++ programs
+add_definitions(-D__STDC_LIMIT_MACROS -D__STDC_CONSTANT_MACROS)
+
 if (WIN32 OR CYGWIN)
 	enable_language(ASM)
     set (Os_SRCS ${Os_SRCS}
