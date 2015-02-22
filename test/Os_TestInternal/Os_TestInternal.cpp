@@ -105,19 +105,91 @@ struct Os_TestInternal : public testing::Test {
 
 Os_TestInternal* Os_TestInternal::active = NULL;
 
-TEST_F(Os_TestInternal, Main) {
-    Os_Init(&m_config);
+struct Os_TestAlarm : public Os_TestInternal
+{
+    virtual void SetUp()
+    {
+        Os_TestInternal::SetUp();
+        Os_Init(&m_config);
+    }
+};
+
+TEST_F(Os_TestAlarm, SetAbsAlarm1) {
+    EXPECT_EQ(E_OS_ID    , Os_SetAbsAlarm_Internal(OS_ALARM_COUNT, 1, 0)) << "Alarm of invalid ID";
+}
+
+TEST_F(Os_TestAlarm, SetAbsAlarm2) {
     Os_TickType tick;
     EXPECT_EQ(E_OK       , Os_SetAbsAlarm_Internal(0, 1, 0));
     EXPECT_EQ(E_OK       , Os_SetAbsAlarm_Internal(1, 5, 0));
     EXPECT_EQ(E_OK       , Os_SetAbsAlarm_Internal(2, 3, 0));
 
-    EXPECT_EQ(E_OK       , Os_GetAlarm(0, &tick));
+    EXPECT_EQ(E_OK       , Os_GetAlarm_Internal(0, &tick));
     EXPECT_EQ(1          , tick);
 
-    EXPECT_EQ(E_OK       , Os_GetAlarm(1, &tick));
+    EXPECT_EQ(E_OK       , Os_GetAlarm_Internal(1, &tick));
     EXPECT_EQ(5          , tick);
 
-    EXPECT_EQ(E_OK       , Os_GetAlarm(2, &tick));
+    EXPECT_EQ(E_OK       , Os_GetAlarm_Internal(2, &tick));
     EXPECT_EQ(3          , tick);
+}
+
+TEST_F(Os_TestAlarm, SetAbsAlarm3) {
+    EXPECT_EQ(E_OK       , Os_SetAbsAlarm_Internal(0, 1, 0));
+    EXPECT_EQ(E_OS_STATE , Os_SetAbsAlarm_Internal(0, 1, 0)) << "Alarm should already have been set";
+}
+
+TEST_F(Os_TestAlarm, SetRelAlarm1) {
+    EXPECT_EQ(E_OS_ID    , Os_SetRelAlarm_Internal(OS_ALARM_COUNT, 1, 0)) << "Alarm of invalid ID";
+}
+
+TEST_F(Os_TestAlarm, SetRelAlarm2) {
+    Os_TickType tick;
+    EXPECT_EQ(E_OK       , Os_SetRelAlarm_Internal(0, 1, 0));
+    EXPECT_EQ(E_OK       , Os_SetRelAlarm_Internal(1, 5, 0));
+    EXPECT_EQ(E_OK       , Os_SetRelAlarm_Internal(2, 3, 0));
+
+    EXPECT_EQ(E_OK       , Os_GetAlarm_Internal(0, &tick));
+    EXPECT_EQ(1          , tick);
+
+    EXPECT_EQ(E_OK       , Os_GetAlarm_Internal(1, &tick));
+    EXPECT_EQ(5          , tick);
+
+    EXPECT_EQ(E_OK       , Os_GetAlarm_Internal(2, &tick));
+    EXPECT_EQ(3          , tick);
+}
+
+
+TEST_F(Os_TestAlarm, SetRelAlarm3) {
+    EXPECT_EQ(E_OK       , Os_SetRelAlarm_Internal(0, 1, 0));
+    EXPECT_EQ(E_OS_STATE , Os_SetRelAlarm_Internal(0, 1, 0)) << "Alarm should already have been set";
+}
+
+
+TEST_F(Os_TestAlarm, CancelAlarm1) {
+    EXPECT_EQ(E_OS_ID    , Os_CancelAlarm_Internal(OS_ALARM_COUNT)) << "Alarm of invalid ID";
+}
+
+TEST_F(Os_TestAlarm, CancelAlarm2) {
+    Os_TickType tick;
+    EXPECT_EQ(E_OK       , Os_SetAbsAlarm_Internal(0, 1, 0));
+    EXPECT_EQ(E_OK       , Os_CancelAlarm_Internal(0));
+    EXPECT_EQ(E_OS_NOFUNC, Os_CancelAlarm_Internal(0))     << "Already canceled this alarm";
+}
+
+TEST_F(Os_TestAlarm, CancelAlarm3) {
+    Os_TickType tick;
+    EXPECT_EQ(E_OK       , Os_SetAbsAlarm_Internal(0, 1, 0));
+    EXPECT_EQ(E_OK       , Os_SetAbsAlarm_Internal(1, 5, 0));
+    EXPECT_EQ(E_OK       , Os_SetAbsAlarm_Internal(2, 3, 0));
+
+    EXPECT_EQ(E_OK       , Os_CancelAlarm_Internal(2));
+
+    EXPECT_EQ(E_OK       , Os_GetAlarm_Internal(0, &tick));
+    EXPECT_EQ(1          , tick);
+
+    EXPECT_EQ(E_OK       , Os_GetAlarm_Internal(1, &tick));
+    EXPECT_EQ(5          , tick);
+
+    EXPECT_EQ(E_OS_NOFUNC, Os_GetAlarm_Internal(2, &tick)) << "Alarm should have been cancelled";
 }
