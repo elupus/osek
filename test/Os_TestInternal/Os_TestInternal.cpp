@@ -193,3 +193,26 @@ TEST_F(Os_TestAlarm, CancelAlarm3) {
 
     EXPECT_EQ(E_OS_NOFUNC, Os_GetAlarm_Internal(2, &tick)) << "Alarm should have been cancelled";
 }
+
+TEST_F(Os_TestAlarm, GetAlarm1) {
+    Os_TickType tick;
+    EXPECT_EQ(E_OS_ID    , Os_GetAlarm_Internal(OS_ALARM_COUNT, &tick)) << "Alarm of invalid ID";
+}
+
+
+struct Os_TestResource : public Os_TestInternal
+{
+    virtual void SetUp()
+    {
+        Os_TestInternal::SetUp();
+        Os_Init(&m_config);
+    }
+};
+
+TEST_F(Os_TestResource, GetResource1) {
+    EXPECT_EQ(E_OS_ID    , Os_GetResource_Internal(OS_RES_COUNT))       << "Resource of invalid ID";
+}
+
+TEST_F(Os_TestResource, ReleaseResource1) {
+    EXPECT_EQ(E_OS_ID    , Os_ReleaseResource_Internal(OS_RES_COUNT))   << "Resource of invalid ID";
+}
