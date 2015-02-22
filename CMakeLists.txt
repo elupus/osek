@@ -85,6 +85,15 @@ if(BUILD_TESTS)
 
 	set_target_properties(Os_Test PROPERTIES COMPILE_FLAGS "--coverage -O0")
 	set_target_properties(Os_Test PROPERTIES LINK_FLAGS    "--coverage -O0")
+
+	# GTest type test
+	add_executable(Os_TestInternal test/Os_TestInternal/Os_TestInternal.cpp)
+	target_include_directories(Os_TestInternal PRIVATE test/Os_TestInternal ${GTEST_INCLUDE_DIR})
+	target_link_libraries(Os_TestInternal gtest gtest_main pthread)
+
+	set_target_properties(Os_TestInternal PROPERTIES COMPILE_FLAGS "--coverage -O0")
+	set_target_properties(Os_TestInternal PROPERTIES LINK_FLAGS    "--coverage -O0")
+
 endif()
 
 if(${Os_Run})
