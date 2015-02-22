@@ -1041,8 +1041,8 @@ Os_StatusType Os_GetAlarm_Internal(Os_AlarmType alarm, Os_TickType* tick)
     *tick = 0u;
     index = Os_CounterControls[Os_AlarmConfigs[alarm].counter].next;
     while (index != OS_INVALID_ALARM && index != alarm) {
-        index  = Os_AlarmControls[index].next;
         *tick += Os_AlarmControls[index].ticks;
+        index  = Os_AlarmControls[index].next;
     }
 
     OS_CHECK_R(index != OS_INVALID_ALARM, E_OS_NOFUNC);
