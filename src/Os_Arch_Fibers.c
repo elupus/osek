@@ -189,7 +189,7 @@ void Os_Arch_DisableAllInterrupts(void)
 void Os_Arch_EnableAllInterrupts(void)
 {
     Os_IrqState state = 0u;
-    Os_Arch_ResumeInterrupts(state);
+    Os_Arch_ResumeInterrupts(&state);
 }
 
 void Os_Arch_SwapState(Os_TaskType task, Os_TaskType prev)
