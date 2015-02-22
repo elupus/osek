@@ -855,7 +855,7 @@ Os_StatusType Os_SetRelAlarm_Internal(Os_AlarmType alarm, Os_TickType increment,
 
     OS_CHECK_EXT_R(alarm < OS_ALARM_COUNT             , E_OS_ID);
     OS_CHECK_R    (increment != 0u                    , E_OS_VALUE); /**< @req SWS_Os_00304 */
-    OS_CHECK_R    (Os_AlarmControls[alarm].ticks == 0u, E_OS_ID); /* TODO can fail this check */
+    OS_CHECK_R    (Os_AlarmControls[alarm].ticks == 0u, E_OS_STATE); /* TODO can fail this check */
 
     head = &Os_CounterControls[Os_AlarmConfigs[alarm].counter].next;
 
@@ -926,7 +926,7 @@ Os_StatusType Os_SetAbsAlarm_Internal(Os_AlarmType alarm, Os_TickType start, Os_
     Os_AlarmType* head;
 
     OS_CHECK_EXT_R(alarm < OS_ALARM_COUNT, E_OS_ID);
-    OS_CHECK_R    (Os_AlarmControls[alarm].ticks == 0u, E_OS_ID); /* TODO can fail this check */
+    OS_CHECK_R    (Os_AlarmControls[alarm].ticks == 0u, E_OS_STATE); /* TODO can fail this check */
 
     ticks =  Os_CounterControls[Os_AlarmConfigs[alarm].counter].ticks;
     head  = &Os_CounterControls[Os_AlarmConfigs[alarm].counter].next;
