@@ -29,6 +29,7 @@ elseif (UNIX)
     )
     add_definitions(-D_XOPEN_SOURCE=600 -DOS_CFG_ARCH_POSIX)
     set (Os_Run 1)
+    set (Os_MetricCooperative 1)
 elseif (HC12_CORE)
     set (Os_SRCS ${Os_SRCS}
         src/Os_Arch_HCS12.c
@@ -96,7 +97,12 @@ if(BUILD_TESTS)
 
 	set_target_properties(Os_TestInternal PROPERTIES COMPILE_FLAGS "--coverage -O0")
 	set_target_properties(Os_TestInternal PROPERTIES LINK_FLAGS    "--coverage -O0")
+endif()
 
+if(${Os_MetricCooperative})
+    # Cooperative test
+    add_executable(Os_MetricCooperative ${Os_SRCS} test/Os_MetricCooperative/Os_Cfg.c)
+    target_include_directories(Os_MetricCooperative PRIVATE test/Os_MetricCooperative)
 endif()
 
 if(${Os_Run})
