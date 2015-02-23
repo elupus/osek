@@ -133,8 +133,38 @@ VOID CALLBACK Os_Arch_TimerCallback(PVOID lpParameter, BOOLEAN TimerOrWaitFired)
     Os_Arch_InjectFunction(Os_Arch_Isr, Os_Isr);
 }
 
+void Os_Arch_Deinit(void)
+{
+    if (Os_Arch_Thread) {
+        CloseHandle(Os_Arch_Thread);
+        Os_Arch_Thread = NULL;
+    }
+
+    if (Os_Arch_Timer) {
+        DeleteTimerQueueTimer( NULL
+                             , Os_Arch_Timer
+                             , INVALID_HANDLE_VALUE );
+        Os_Arch_Timer = NULL;
+    }
+
+    Os_TaskType task;
+    for (task = 0; task < OS_TASK_COUNT; ++task) {
+        Os_Arch_DeleteFiber(&Os_Arch_State[task].fiber_old);
+        Os_Arch_DeleteFiber(&Os_Arch_State[task].fiber);
+    }
+
+    if (Os_Arch_System) {
+        ConvertFiberToThread();
+        Os_Arch_System = NULL;
+        DeleteCriticalSection(&Os_Arch_Section);
+    }
+    Os_Arch_Section_Count = 0;
+}
+
 void Os_Arch_Init(void)
 {
+    Os_Arch_Deinit();
+
     memset(&Os_Arch_State, 0, sizeof(Os_Arch_State));
 
     DuplicateHandle(GetCurrentProcess()
@@ -147,10 +177,7 @@ void Os_Arch_Init(void)
 
     Os_Arch_System = ConvertThreadToFiber(NULL);
     if (Os_Arch_System == NULL) {
-        Os_Arch_System = GetCurrentFiber();
-        if (Os_Arch_System == NULL) {
-            exit(GetLastError());
-        }
+        exit(GetLastError());
     }
 
     Os_Arch_Section_Count = 0;
