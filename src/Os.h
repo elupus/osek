@@ -176,6 +176,7 @@ void       Os_Isr(void);
 extern Os_StatusType Os_Schedule(void);
 extern Os_StatusType Os_TerminateTask(void);
 extern Os_StatusType Os_ActivateTask(Os_TaskType task);
+extern Os_StatusType Os_ChainTask(Os_TaskType task);
 extern Os_StatusType Os_GetResource(Os_ResourceType res);
 extern Os_StatusType Os_ReleaseResource(Os_ResourceType res);
 
