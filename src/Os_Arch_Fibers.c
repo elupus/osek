@@ -50,6 +50,7 @@ VOID CALLBACK Os_Arch_FiberStart(LPVOID lpParameter)
         DeleteFiber(Os_Arch_State[task].fiber_old);
         Os_Arch_State[task].fiber_old = NULL;
     }
+    Os_Arch_EnableAllInterrupts();
     Os_TaskConfigs[task].entry();
 }
 
