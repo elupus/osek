@@ -43,13 +43,18 @@ HANDLE            Os_Arch_Thread;
 
 extern void Os_Arch_Trap(void);
 
+static void Os_Arch_DeleteFiber(PVOID* fiber)
+{
+    if(*fiber && (*fiber != GetCurrentFiber())) {
+        DeleteFiber(*fiber);
+        *fiber = NULL;
+    }
+}
+
 VOID CALLBACK Os_Arch_FiberStart(LPVOID lpParameter)
 {
     Os_TaskType task = (Os_TaskType)(intptr_t)lpParameter;
-    if (Os_Arch_State[task].fiber_old) {
-        DeleteFiber(Os_Arch_State[task].fiber_old);
-        Os_Arch_State[task].fiber_old = NULL;
-    }
+    Os_Arch_DeleteFiber(&Os_Arch_State[task].fiber_old);
     Os_Arch_EnableAllInterrupts();
     Os_TaskConfigs[task].entry();
 }
@@ -204,14 +209,6 @@ void Os_Arch_SwapState(Os_TaskType task, Os_TaskType prev)
         }
     } else {
         /* NOP - switch will occur at end of ISR */
-    }
-}
-
-static __inline void Os_Arch_DeleteFiber(PVOID* fiber)
-{
-    if(*fiber && (*fiber != GetCurrentFiber())) {
-        DeleteFiber(*fiber);
-        *fiber = NULL;
     }
 }
 
