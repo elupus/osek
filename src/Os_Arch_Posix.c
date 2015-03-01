@@ -42,9 +42,9 @@ void Os_Arch_Alarm(int signal)
 
 void Os_Arch_Init(void)
 {
-    Os_Arch_DisableAllInterrupts();
     int res;
     Os_TaskType task;
+    Os_Arch_DisableAllInterrupts();
 
     Os_Arch_State_Started = FALSE;
     memset(&Os_Arch_State_None, 0, sizeof(Os_Arch_State_None));
