@@ -104,7 +104,7 @@ if(${Os_Metric})
     add_executable(Os_MetricCooperative ${Os_SRCS} test/Os_MetricCooperative/Os_Cfg.c)
     target_include_directories(Os_MetricCooperative PRIVATE test/Os_MetricCooperative)
 
-    # Premtive test
+    # Preemtive test
     add_executable(Os_MetricPreemptive ${Os_SRCS} test/Os_MetricPreemptive/Os_Cfg.c)
     target_include_directories(Os_MetricPreemptive PRIVATE test/Os_MetricPreemptive)
 endif()
