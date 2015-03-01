@@ -53,39 +53,44 @@ unsigned int  task5_count;
 void task0(void)
 {
     task0_count++;
-    Os_ChainTask(1);
+    Os_ChainTask(0);
 }
 
 void task1(void)
 {
     task1_count++;
-    Os_ChainTask(2);
+    Os_ChainTask(1);
 }
 
 void task2(void)
 {
     task2_count++;
-    Os_ChainTask(3);
+    Os_ChainTask(2);
 }
 
 void task3(void)
 {
     task3_count++;
-    Os_ChainTask(4);
+    Os_ChainTask(3);
 }
 
 void task4(void)
 {
     task4_count++;
-    Os_ChainTask(0);
+    Os_ChainTask(4);
 }
 
 void task5(void)
 {
     task5_count++;
     if(task5_count == 1) {
-        Os_SetRelAlarm(0, 1000u*1000u/OS_TICK_US, 0u);
-        Os_ChainTask(0);
+        Os_SetRelAlarm(0, 1000u*1000u/OS_TICK_US+1, 0u);
+        Os_ActivateTask(0);
+        Os_ActivateTask(1);
+        Os_ActivateTask(2);
+        Os_ActivateTask(3);
+        Os_ActivateTask(4);
+        Os_TerminateTask();
     } else {
         Os_Shutdown();
     }
