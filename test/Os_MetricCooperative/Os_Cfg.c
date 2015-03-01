@@ -180,7 +180,18 @@ int main(void)
 {
     Os_Init(&Os_DefaultConfig);
     Os_Start();
-    printf("Execution counts %d\n", task4_count);
+    unsigned int total = task0_count
+                       + task1_count
+                       + task2_count
+                       + task3_count
+                       + task4_count;
+    printf("Execution counts %d (%d, %d, %d, %d, %d)\n"
+            , total / 5
+            , task0_count
+            , task1_count
+            , task2_count
+            , task3_count
+            , task4_count);
     return 0;
 }
 
