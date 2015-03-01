@@ -100,6 +100,10 @@ if(BUILD_TESTS)
 endif()
 
 if(${Os_Metric})
+    # Preemtive test
+    add_executable(Os_MetricBasic ${Os_SRCS} test/Os_MetricBasic/Os_Cfg.c)
+    target_include_directories(Os_MetricBasic PRIVATE test/Os_MetricBasic)
+
     # Cooperative test
     add_executable(Os_MetricCooperative ${Os_SRCS} test/Os_MetricCooperative/Os_Cfg.c)
     target_include_directories(Os_MetricCooperative PRIVATE test/Os_MetricCooperative)
