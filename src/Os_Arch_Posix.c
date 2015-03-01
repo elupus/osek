@@ -44,10 +44,16 @@ void Os_Arch_Init(void)
 {
     Os_Arch_DisableAllInterrupts();
     int res;
+    Os_TaskType task;
 
     Os_Arch_State_Started = FALSE;
     memset(&Os_Arch_State_None, 0, sizeof(Os_Arch_State_None));
     memset(&Os_Arch_State, 0, sizeof(Os_Arch_State));
+
+    for (task = 0u; task < OS_TASK_COUNT; ++task) {
+        ucontext_t* ctx = &Os_Arch_State[task];
+        getcontext(ctx);
+    }
 
     struct sigaction sact;
     sigemptyset( &sact.sa_mask );
@@ -100,7 +106,6 @@ void Os_Arch_EnableAllInterrupts(void)
 void Os_Arch_PrepareState(Os_TaskType task)
 {
     ucontext_t* ctx = &Os_Arch_State[task];
-    getcontext(ctx);
     sigdelset(&ctx->uc_sigmask, SIGALRM); /* we start with interrupts enabled */
     ctx->uc_link           = NULL;
     ctx->uc_stack.ss_size  = Os_TaskConfigs[task].stack_size;
