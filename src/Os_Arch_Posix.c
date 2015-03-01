@@ -102,9 +102,10 @@ void Os_Arch_PrepareState(Os_TaskType task)
     ucontext_t* ctx = &Os_Arch_State[task];
     getcontext(ctx);
     sigdelset(&ctx->uc_sigmask, SIGALRM); /* we start with interrupts enabled */
-    ctx->uc_link          = NULL;
-    ctx->uc_stack.ss_size = Os_TaskConfigs[task].stack_size;
-    ctx->uc_stack.ss_sp   = Os_TaskConfigs[task].stack;
+    ctx->uc_link           = NULL;
+    ctx->uc_stack.ss_size  = Os_TaskConfigs[task].stack_size;
+    ctx->uc_stack.ss_sp    = Os_TaskConfigs[task].stack;
+    ctx->uc_stack.ss_flags = 0;
     makecontext(ctx, Os_TaskConfigs[task].entry, 0);
 }
 
