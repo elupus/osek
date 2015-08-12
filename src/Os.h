@@ -119,7 +119,7 @@ typedef struct Os_AlarmConfigType {
  */
 typedef struct Os_AlarmControlType {
     Os_AlarmType    next;         /**< @brief next task scheduled */
-    Os_TickType     ticks;        /**< @brief number of ticks until trigger */
+    Os_TickType     ticks;        /**< @brief at what ticks to trigger */
     Os_TickType     cycle;        /**< @brief number of ticks in each cycle */
 } Os_AlarmControlType;
 

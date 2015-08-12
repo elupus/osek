@@ -129,6 +129,17 @@ static void Os_ReadyListInit(Os_ReadyListType* list)
     list->tail = OS_INVALID_TASK;
 }
 
+Std_ReturnType Os_TickExpired(Os_TickType check, Os_TickType base)
+{
+    Std_ReturnType res;
+    if ( (check - base - 1u) > ((((Os_TickType)~(Os_TickType)0) >> 1) + 1u)) {
+        res = E_OK;
+    } else {
+        res = E_NOT_OK;
+    }
+    return res;
+}
+
 /**
  * @brief Ticks the given alarm chain
  * @param[in,out] head start of chain to tick, will be updated to current head
@@ -136,7 +147,7 @@ static void Os_ReadyListInit(Os_ReadyListType* list)
 void Os_AlarmTick(Os_AlarmType *head)
 {
     /* trigger and consume any expired */
-    while (*head != OS_INVALID_ALARM && Os_AlarmControls[*head].ticks == 0u) {
+    while (*head != OS_INVALID_ALARM && Os_TickExpired(Os_AlarmControls[*head].ticks, Os_CounterControls[Os_AlarmConfigs[*head].counter].ticks) == E_OK) {
         Os_AlarmType alarm = *head;
         *head = Os_AlarmControls[*head].next;
         Os_AlarmControls[alarm].next = OS_INVALID_ALARM;
@@ -153,10 +164,6 @@ void Os_AlarmTick(Os_AlarmType *head)
             Os_AlarmAdd(head, alarm, Os_AlarmControls[alarm].cycle);
         }
     }
-    /* decrement last active */
-    if (*head != OS_INVALID_ALARM) {
-        Os_AlarmControls[*head].ticks--;
-    }
 }
 
 void Os_AlarmAdd(Os_AlarmType *head, Os_AlarmType alarm, Os_TickType delay)
@@ -164,19 +171,15 @@ void Os_AlarmAdd(Os_AlarmType *head, Os_AlarmType alarm, Os_TickType delay)
     Os_AlarmType index = *head
                , prev  = OS_INVALID_ALARM;
 
-    while (index != OS_INVALID_ALARM && Os_AlarmControls[index].ticks <= delay) {
+    delay += Os_CounterControls[Os_AlarmConfigs[alarm].counter].ticks;
+
+    while (index != OS_INVALID_ALARM && Os_TickExpired(Os_AlarmControls[index].ticks, delay) == E_OK) {
         prev   = index;
-        delay -= Os_AlarmControls[index].ticks;
         index  = Os_AlarmControls[index].next;
     }
 
     Os_AlarmControls[alarm].ticks = delay;
     Os_AlarmControls[alarm].next  = index;
-
-    /* reduce next delay */
-    if (index != OS_INVALID_ALARM) {
-        Os_AlarmControls[index].ticks -= delay;
-    }
 
     if (prev == OS_INVALID_ALARM) {
         /* empty list or first in list */
@@ -932,11 +935,7 @@ Os_StatusType Os_SetAbsAlarm_Internal(Os_AlarmType alarm, Os_TickType start, Os_
     head  = &Os_CounterControls[Os_AlarmConfigs[alarm].counter].next;
 
     Os_AlarmControls[alarm].cycle = cycle;
-    if (start >= ticks) {
-        Os_AlarmAdd(head, alarm, start - ticks);
-    } else {
-        Os_AlarmAdd(head, alarm, OS_MAXALLOWEDVALUE - ticks + start + 1u);
-    }
+    Os_AlarmAdd(head, alarm, start - ticks);
     return E_OK;
 
 OS_ERRORCHECK_EXIT_POINT:
@@ -990,10 +989,6 @@ Os_StatusType Os_CancelAlarm_Internal(Os_AlarmType alarm)
         Os_AlarmControls[prev].next = next ;
     }
 
-    if (next != OS_INVALID_ALARM) {
-        Os_AlarmControls[next].ticks += Os_AlarmControls[alarm].ticks;
-    }
-
     Os_AlarmControls[alarm].ticks = 0u;
     Os_AlarmControls[alarm].cycle = 0u;
     Os_AlarmControls[alarm].next  = OS_INVALID_ALARM;
@@ -1038,16 +1033,14 @@ Os_StatusType Os_GetAlarm_Internal(Os_AlarmType alarm, Os_TickType* tick)
 
     OS_CHECK_EXT_R(alarm < OS_ALARM_COUNT, E_OS_ID);
 
-    *tick = 0u;
     index = Os_CounterControls[Os_AlarmConfigs[alarm].counter].next;
     while (index != OS_INVALID_ALARM && index != alarm) {
-        *tick += Os_AlarmControls[index].ticks;
         index  = Os_AlarmControls[index].next;
     }
 
     OS_CHECK_R(index != OS_INVALID_ALARM, E_OS_NOFUNC);
 
-    *tick += Os_AlarmControls[index].ticks;
+    *tick = Os_AlarmControls[index].ticks - Os_CounterControls[Os_AlarmConfigs[alarm].counter].ticks;
     return E_OK;
 
 OS_ERRORCHECK_EXIT_POINT:
