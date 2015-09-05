@@ -175,7 +175,12 @@ OS_ALARMHEAPIFY_SWAP:
     }
 }
 
-void Os_AlarmPop(Os_AlarmType queue[], Os_AlarmType* alarm)
+/**
+ * @brief Pop the first alarm out of the queue
+ * @param queue the queue to look through
+ * @param alarm the resulting alarm
+ */
+static void Os_AlarmPop(Os_AlarmType queue[], Os_AlarmType* alarm)
 {
     *alarm      = queue[1u];
     queue[0u]--;
