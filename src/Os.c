@@ -129,7 +129,10 @@ static void Os_ReadyListInit(Os_ReadyListType* list)
     list->tail = OS_INVALID_TASK;
 }
 
-Std_ReturnType Os_TickExpired(Os_TickType check, Os_TickType base)
+/**
+ * @brief Check if a tick has currently expired
+ */
+static __inline Std_ReturnType Os_TickExpired(Os_TickType check, Os_TickType base)
 {
     Std_ReturnType res;
     if ( (check - base - 1u) > ((((Os_TickType)~(Os_TickType)0) >> 1) + 1u)) {
