@@ -66,8 +66,8 @@ static Os_StatusType Os_GetResource_Internal(Os_ResourceType res);
 static Os_StatusType Os_ReleaseResource_Internal(Os_ResourceType res);
 static Os_StatusType Os_IncrementCounter_Internal(Os_CounterType counter);
 
-static void Os_AlarmTick   (Os_AlarmType* head);
-static void Os_AlarmAdd    (Os_AlarmType* head, Os_AlarmType alarm, Os_TickType delay);
+static void Os_AlarmTick   (Os_AlarmType queue[]);
+static void Os_AlarmAdd    (Os_AlarmType queue[], Os_AlarmType alarm);
 
 /**
  * @brief Add task to the given ready list at the head of the list
@@ -140,17 +140,55 @@ Std_ReturnType Os_TickExpired(Os_TickType check, Os_TickType base)
     return res;
 }
 
+void Os_AlarmHeapify(Os_AlarmType queue[]
+                   , Os_AlarmQueueIndexType index)
+{
+    Os_AlarmQueueIndexType child;
+    Os_AlarmType           swap;
+
+    while (1u) {
+        child = index * 2u;
+        if ((child <= queue[0u]) && Os_TickExpired(Os_AlarmControls[child].ticks, Os_AlarmControls[index].ticks) == E_OK  ) {
+            goto OS_ALARMHEAPIFY_SWAP;
+        }
+
+        child++;
+        if ((child <= queue[0u]) && Os_TickExpired(Os_AlarmControls[child].ticks, Os_AlarmControls[index].ticks) == E_OK ) {
+            goto OS_ALARMHEAPIFY_SWAP;
+        }
+        break;
+
+OS_ALARMHEAPIFY_SWAP:
+        swap = queue[index];
+        queue[index] = queue[child];
+        queue[child] = swap;
+        index        = child;
+    }
+}
+
+void Os_AlarmPop(Os_AlarmType queue[], Os_AlarmType* alarm)
+{
+    *alarm      = queue[1u];
+    queue[0u]--;
+
+    if (queue[0u] > 1u) {
+        queue[1u] = queue[queue[0u]];
+        Os_AlarmHeapify(queue, 1u);
+    }
+    Os_AlarmControls[*alarm].queued = FALSE;
+}
+
 /**
  * @brief Ticks the given alarm chain
  * @param[in,out] head start of chain to tick, will be updated to current head
  */
-void Os_AlarmTick(Os_AlarmType *head)
+void Os_AlarmTick(Os_AlarmType queue[])
 {
     /* trigger and consume any expired */
-    while (*head != OS_INVALID_ALARM && Os_TickExpired(Os_AlarmControls[*head].ticks, Os_CounterControls[Os_AlarmConfigs[*head].counter].ticks) == E_OK) {
-        Os_AlarmType alarm = *head;
-        *head = Os_AlarmControls[*head].next;
-        Os_AlarmControls[alarm].next = OS_INVALID_ALARM;
+    while (queue[1] != OS_INVALID_ALARM && Os_TickExpired(Os_AlarmControls[queue[1]].ticks, Os_CounterControls[Os_AlarmConfigs[queue[1]].counter].ticks) == E_OK) {
+        Os_AlarmType alarm;
+        Os_AlarmPop(Os_CounterControls[Os_AlarmConfigs[alarm].counter].queue
+                  , &alarm);
 
         /* activate linked task */
         if (Os_AlarmConfigs[alarm].task != OS_INVALID_TASK) {
@@ -161,34 +199,30 @@ void Os_AlarmTick(Os_AlarmType *head)
 
         /* readd cyclic */
         if (Os_AlarmControls[alarm].cycle) {
-            Os_AlarmAdd(head, alarm, Os_AlarmControls[alarm].cycle);
+            Os_AlarmControls[alarm].ticks += Os_AlarmControls[alarm].cycle;
+            Os_AlarmAdd(Os_CounterControls[Os_AlarmConfigs[alarm].counter].queue
+                      , alarm);
         }
     }
 }
 
-void Os_AlarmAdd(Os_AlarmType *head, Os_AlarmType alarm, Os_TickType delay)
+void Os_AlarmAdd(Os_AlarmType queue[], Os_AlarmType alarm)
 {
-    Os_AlarmType index = *head
-               , prev  = OS_INVALID_ALARM;
+    Os_AlarmType index
+               , parent;
 
-    delay += Os_CounterControls[Os_AlarmConfigs[alarm].counter].ticks;
+    queue[0]++;
 
-    while (index != OS_INVALID_ALARM && Os_TickExpired(Os_AlarmControls[index].ticks, delay) == E_OK) {
-        prev   = index;
-        index  = Os_AlarmControls[index].next;
+    index  = queue[0u];
+    parent = queue[0u] / 2u;
+    while (index > 1u && Os_TickExpired(Os_AlarmControls[alarm].ticks
+                                      , Os_AlarmControls[queue[parent]].ticks) == E_OK ) {
+        queue[index] = queue[parent];
+        index   = parent;
+        parent /= 2u;
     }
-
-    Os_AlarmControls[alarm].ticks = delay;
-    Os_AlarmControls[alarm].next  = index;
-
-    if (prev == OS_INVALID_ALARM) {
-        /* empty list or first in list */
-        Os_AlarmControls[alarm].next = *head;
-        *head = alarm;
-    } else {
-        /* insert in list */
-        Os_AlarmControls[prev ].next = alarm;
-    }
+    queue[index] = alarm;
+    Os_AlarmControls[alarm].queued = TRUE;
 }
 
 /**
@@ -815,9 +849,9 @@ Os_StatusType Os_ReleaseResource(Os_ResourceType res)
  */
 void Os_AlarmInit(Os_AlarmType alarm)
 {
-    Os_AlarmControls[alarm].cycle = 0u;
-    Os_AlarmControls[alarm].next  = OS_INVALID_ALARM;
-    Os_AlarmControls[alarm].ticks = 0u;
+    Os_AlarmControls[alarm].cycle  = 0u;
+    Os_AlarmControls[alarm].ticks  = 0u;
+    Os_AlarmControls[alarm].queued = FALSE;
 }
 
 /**
@@ -860,10 +894,10 @@ Os_StatusType Os_SetRelAlarm_Internal(Os_AlarmType alarm, Os_TickType increment,
     OS_CHECK_R    (increment != 0u                    , E_OS_VALUE); /**< @req SWS_Os_00304 */
     OS_CHECK_R    (Os_AlarmControls[alarm].ticks == 0u, E_OS_STATE); /* TODO can fail this check */
 
-    head = &Os_CounterControls[Os_AlarmConfigs[alarm].counter].next;
-
     Os_AlarmControls[alarm].cycle = cycle;
-    Os_AlarmAdd(head, alarm, increment);
+    Os_AlarmControls[alarm].ticks = Os_CounterControls[Os_AlarmConfigs[alarm].counter].ticks + increment;
+    Os_AlarmAdd( Os_CounterControls[Os_AlarmConfigs[alarm].counter].queue
+              ,  alarm);
     return E_OK;
 
 OS_ERRORCHECK_EXIT_POINT:
@@ -925,18 +959,14 @@ Os_StatusType Os_SetRelAlarm(Os_AlarmType alarm, Os_TickType increment, Os_TickT
  */
 Os_StatusType Os_SetAbsAlarm_Internal(Os_AlarmType alarm, Os_TickType start, Os_TickType cycle)
 {
-    Os_TickType   ticks;
-    Os_AlarmType* head;
-
     OS_CHECK_EXT_R(alarm < OS_ALARM_COUNT, E_OS_ID);
     OS_CHECK_R    (Os_AlarmControls[alarm].ticks == 0u, E_OS_STATE); /* TODO can fail this check */
 
-    ticks =  Os_CounterControls[Os_AlarmConfigs[alarm].counter].ticks;
-    head  = &Os_CounterControls[Os_AlarmConfigs[alarm].counter].next;
-
     Os_AlarmControls[alarm].cycle = cycle;
-    Os_AlarmAdd(head, alarm, start - ticks);
-    return E_OK;
+    Os_AlarmControls[alarm].ticks = start;
+    Os_AlarmAdd( Os_CounterControls[Os_AlarmConfigs[alarm].counter].queue
+              ,  alarm);
+   return E_OK;
 
 OS_ERRORCHECK_EXIT_POINT:
     Os_Error.service   = OSServiceId_SetAbsAlarm;
@@ -966,32 +996,39 @@ Os_StatusType Os_SetAbsAlarm(Os_AlarmType alarm, Os_TickType start, Os_TickType 
  *  - E_OS_ID     Alarm <AlarmID> is invalid
  *
  * Call contexts: TASK, ISR2
+ *
+ * O(n)+O(log n)
  */
 Os_StatusType Os_CancelAlarm_Internal(Os_AlarmType alarm)
 {
-    Os_AlarmType* head = &Os_CounterControls[Os_AlarmConfigs[alarm].counter].next;
-    Os_AlarmType  next = *head
-               ,  prev = OS_INVALID_ALARM;
+    Os_AlarmQueueIndexType index;
+    Os_AlarmType*          queue;
 
-    OS_CHECK_EXT_R(alarm < OS_ALARM_COUNT   , E_OS_ID);
+    OS_CHECK_EXT_R(alarm < OS_ALARM_COUNT            , E_OS_ID);
+    OS_CHECK_R(Os_AlarmControls[alarm].queued == TRUE, E_OS_NOFUNC);
 
-    while (next != OS_INVALID_ALARM && next != alarm) {
-        prev = next;
-        next = Os_AlarmControls[next].next;
+    queue   = &Os_CounterControls[Os_AlarmConfigs[alarm].counter].queue[0];
+
+    /* find the index of this node, must iterate all queue nodes */
+    for (index = 1u; index <= queue[0]; ++index) {
+        if (queue[index] == alarm) {
+            break;
+        }
     }
 
-    OS_CHECK_R(next == alarm, E_OS_NOFUNC);
+    /* just a defensive check here */
+    OS_CHECK_R(index <= queue[0], E_OS_NOFUNC);
 
-    next = Os_AlarmControls[alarm].next;
-    if (prev == OS_INVALID_ALARM) {
-        *head = next;
+    /* if this is not the last item, we must swap and heapify */
+    if (queue[0] != index) {
+        queue[index] = queue[queue[0]];
+        queue[0]--;
+        Os_AlarmHeapify(queue, index);
     } else {
-        Os_AlarmControls[prev].next = next ;
+        queue[0]--;
     }
+    Os_AlarmControls[alarm].queued = FALSE;
 
-    Os_AlarmControls[alarm].ticks = 0u;
-    Os_AlarmControls[alarm].cycle = 0u;
-    Os_AlarmControls[alarm].next  = OS_INVALID_ALARM;
     return E_OK;
 
 OS_ERRORCHECK_EXIT_POINT:
@@ -1029,18 +1066,10 @@ Os_StatusType Os_CancelAlarm(Os_AlarmType alarm)
  */
 Os_StatusType Os_GetAlarm_Internal(Os_AlarmType alarm, Os_TickType* tick)
 {
-    Os_AlarmType  index;
-
     OS_CHECK_EXT_R(alarm < OS_ALARM_COUNT, E_OS_ID);
+    OS_CHECK_R(Os_AlarmControls[alarm].queued == TRUE, E_OS_NOFUNC);
 
-    index = Os_CounterControls[Os_AlarmConfigs[alarm].counter].next;
-    while (index != OS_INVALID_ALARM && index != alarm) {
-        index  = Os_AlarmControls[index].next;
-    }
-
-    OS_CHECK_R(index != OS_INVALID_ALARM, E_OS_NOFUNC);
-
-    *tick = Os_AlarmControls[index].ticks - Os_CounterControls[Os_AlarmConfigs[alarm].counter].ticks;
+    *tick = Os_AlarmControls[alarm].ticks - Os_CounterControls[Os_AlarmConfigs[alarm].counter].ticks;
     return E_OK;
 
 OS_ERRORCHECK_EXIT_POINT:
@@ -1071,8 +1100,13 @@ Os_StatusType Os_GetAlarm(Os_AlarmType alarm, Os_TickType* tick)
  */
 void Os_CounterInit(Os_CounterType counter)
 {
-    Os_CounterControls[counter].next  = OS_INVALID_ALARM;
+    Os_AlarmQueueIndexType  index;
     Os_CounterControls[counter].ticks = 0u;
+
+    for (index = 1u; index < OS_ALARM_COUNT+1u; ++index) {
+        Os_CounterControls[counter].queue[index] = OS_INVALID_ALARM;
+    }
+    Os_CounterControls[counter].queue[0] = 0u;
 }
 
 /**
@@ -1083,7 +1117,7 @@ Os_StatusType Os_IncrementCounter_Internal(Os_CounterType counter)
 {
     OS_CHECK_EXT_R(counter < OS_COUNTER_COUNT, E_OS_VALUE);
     Os_CounterControls[counter].ticks++;
-    Os_AlarmTick(&Os_CounterControls[counter].next);
+    Os_AlarmTick(Os_CounterControls[counter].queue);
     return E_OK;
 
 OS_ERRORCHECK_EXIT_POINT:
