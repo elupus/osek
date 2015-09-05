@@ -114,15 +114,6 @@ typedef struct Os_AlarmConfigType {
     Os_CounterType  counter;      /**< @brief counter driving this alarm */
 } Os_AlarmConfigType;
 
-/**
- * @brief Structure holding configuration setup for each alarm
- */
-typedef struct Os_AlarmControlType {
-    Os_TickType     ticks;        /**< @brief at what ticks to trigger */
-    Os_TickType     cycle;        /**< @brief number of ticks in each cycle */
-    boolean         queued;       /**< @brief is this alarm active */
-} Os_AlarmControlType;
-
 typedef uint8 Os_AlarmQueueIndexType;
 
 typedef struct Os_CounterControlType {
