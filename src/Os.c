@@ -196,7 +196,7 @@ static void Os_AlarmPop(Os_AlarmType queue[], Os_AlarmType* alarm)
 void Os_AlarmTick(Os_AlarmType queue[])
 {
     /* trigger and consume any expired */
-    while (queue[1] != OS_INVALID_ALARM && Os_TickLessThan(Os_AlarmTicks[queue[1]], Os_CounterControls[Os_AlarmConfigs[queue[1]].counter].ticks) ) {
+    while (queue[0] > 0u && Os_TickLessThan(Os_AlarmTicks[queue[1]], Os_CounterControls[Os_AlarmConfigs[queue[1]].counter].ticks) ) {
         Os_AlarmType alarm;
         Os_AlarmPop(Os_CounterControls[Os_AlarmConfigs[alarm].counter].queue
                   , &alarm);
