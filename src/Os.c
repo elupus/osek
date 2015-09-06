@@ -178,11 +178,13 @@ OS_ALARMHEAPIFY_SWAP:
 static void Os_AlarmPop(Os_AlarmType queue[], Os_AlarmType* alarm)
 {
     *alarm      = queue[1u];
-    queue[0u]--;
 
     if (queue[0u] > 1u) {
         queue[1u] = queue[queue[0u]];
+        queue[0u]--;
         Os_AlarmHeapify(queue, 1u);
+    } else {
+        queue[0u] = 0u;
     }
     Os_AlarmQueued[*alarm] = FALSE;
 }
