@@ -152,12 +152,12 @@ void Os_AlarmHeapify(Os_AlarmType queue[]
 
     while (1u) {
         child = index * 2u;
-        if ((child <= queue[0u]) && Os_TickLessThan(Os_AlarmTicks[child], Os_AlarmTicks[index]) ) {
+        if ((child <= queue[0u]) && Os_TickLessThan(Os_AlarmTicks[queue[child]], Os_AlarmTicks[queue[index]]) ) {
             goto OS_ALARMHEAPIFY_SWAP;
         }
 
         child++;
-        if ((child <= queue[0u]) && Os_TickLessThan(Os_AlarmTicks[child], Os_AlarmTicks[index]) ) {
+        if ((child <= queue[0u]) && Os_TickLessThan(Os_AlarmTicks[queue[child]], Os_AlarmTicks[queue[index]]) ) {
             goto OS_ALARMHEAPIFY_SWAP;
         }
         break;
