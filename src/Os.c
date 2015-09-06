@@ -132,18 +132,13 @@ static void Os_ReadyListInit(Os_ReadyListType* list)
     list->tail = OS_INVALID_TASK;
 }
 
+#pragma INLINE
 /**
- * @brief Check if a tick has currently expired
+ * @brief Check if lh < rh is true with allowed wraps on both values
  */
-static __inline Std_ReturnType Os_TickExpired(Os_TickType check, Os_TickType base)
+static __inline boolean Os_TickLessThan(Os_TickType lh, Os_TickType rh)
 {
-    Std_ReturnType res;
-    if ( (check - base - 1u) > ((((Os_TickType)~(Os_TickType)0) >> 1) + 1u)) {
-        res = E_OK;
-    } else {
-        res = E_NOT_OK;
-    }
-    return res;
+    return !((rh - lh) > ((Os_TickType)1u << (sizeof(Os_TickType)*8u - 1u)));
 }
 
 /**
@@ -157,12 +152,12 @@ void Os_AlarmHeapify(Os_AlarmType queue[]
 
     while (1u) {
         child = index * 2u;
-        if ((child <= queue[0u]) && Os_TickExpired(Os_AlarmTicks[child], Os_AlarmTicks[index]) == E_OK  ) {
+        if ((child <= queue[0u]) && Os_TickLessThan(Os_AlarmTicks[child], Os_AlarmTicks[index]) ) {
             goto OS_ALARMHEAPIFY_SWAP;
         }
 
         child++;
-        if ((child <= queue[0u]) && Os_TickExpired(Os_AlarmTicks[child], Os_AlarmTicks[index]) == E_OK ) {
+        if ((child <= queue[0u]) && Os_TickLessThan(Os_AlarmTicks[child], Os_AlarmTicks[index]) ) {
             goto OS_ALARMHEAPIFY_SWAP;
         }
         break;
@@ -199,7 +194,7 @@ static void Os_AlarmPop(Os_AlarmType queue[], Os_AlarmType* alarm)
 void Os_AlarmTick(Os_AlarmType queue[])
 {
     /* trigger and consume any expired */
-    while (queue[1] != OS_INVALID_ALARM && Os_TickExpired(Os_AlarmTicks[queue[1]], Os_CounterControls[Os_AlarmConfigs[queue[1]].counter].ticks) == E_OK) {
+    while (queue[1] != OS_INVALID_ALARM && Os_TickLessThan(Os_AlarmTicks[queue[1]], Os_CounterControls[Os_AlarmConfigs[queue[1]].counter].ticks) ) {
         Os_AlarmType alarm;
         Os_AlarmPop(Os_CounterControls[Os_AlarmConfigs[alarm].counter].queue
                   , &alarm);
@@ -229,8 +224,8 @@ void Os_AlarmAdd(Os_AlarmType queue[], Os_AlarmType alarm)
 
     index  = queue[0u];
     parent = queue[0u] / 2u;
-    while (index > 1u && Os_TickExpired(Os_AlarmTicks[alarm]
-                                      , Os_AlarmTicks[queue[parent]]) == E_OK ) {
+    while (index > 1u && Os_TickLessThan(Os_AlarmTicks[alarm]
+                                       , Os_AlarmTicks[queue[parent]]) ) {
         queue[index] = queue[parent];
         index   = parent;
         parent /= 2u;
