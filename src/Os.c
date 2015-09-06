@@ -138,7 +138,7 @@ static void Os_ReadyListInit(Os_ReadyListType* list)
  */
 static __inline boolean Os_TickLessThan(Os_TickType lh, Os_TickType rh)
 {
-    return !((rh - lh) > ((Os_TickType)1u << (sizeof(Os_TickType)*8u - 1u)));
+    return !((Os_TickType)(rh - lh) > ((Os_TickType)1u << (sizeof(Os_TickType)*8u - 1u)));
 }
 
 /**
