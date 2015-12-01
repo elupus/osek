@@ -12,11 +12,15 @@ MESSAGE ("Loaded: Toolchain-Generic-chc12 .cmake")
 # Look for modules in this path
 SET (CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR})
 
-# Path to compiler, must not contain spaces
-IF (WIN32)
-SET (HC12_PATH "P:")
-ELSE()
-SET (HC12_PATH "/Users/joakim/.wine/drive_c/P")
+# Path to compiler
+IF (NOT DEFINED HC12_PATH)
+    find_path(HC12_PATH NAMES Prog/chc12.exe
+                        PATHS "/Users/joakim/.wine/drive_c/P"
+                              "/c/Program Files/Freescale/CWS12v5.1/"
+                              "/cygdrive/c/Program Files/Freescale/CWS12v5.1/"
+                              "P:"
+                              "C:/Program Files/Freescale/CWS12v5.1/"
+                        NO_DEFAULT_PATH)
 ENDIF()
 
 LIST(APPEND CMAKE_PROGRAM_PATH "${HC12_PATH}/Prog")
