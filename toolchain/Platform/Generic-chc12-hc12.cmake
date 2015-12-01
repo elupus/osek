@@ -12,12 +12,6 @@ MESSAGE ("Loaded: Generic-chc12-hc12.cmake")
 # HC12_CORE                   : Processor core type, one of 'HC12', 'HCS12' or 'HCS12X' (case sensitive!)
 # HC12_MEMORY_MODEL           : Memory model, one of 'Small', 'Large' or 'Banked' (case sensitive!)
 #
-# By default the various output files are placed in subdirectories of CMAKE_BINARY_DIR,
-# currently: image, lst, err, lib
-#
-# HC12_LST_OUTPUT_DIR         : Output directory for '.lst' assembler list files.
-# HC12_ERR_OUTPUT_DIR         : Output directory for '.err' error files.
-#
 # Internally set variables (based on user specified values above):
 #
 # HC12_CORE_LETTER            : Automatically set based on HC12_CORE.
@@ -93,18 +87,6 @@ SET (CMAKE_C_FLAGS_INIT              "${CMAKE_C_FLAGS_INIT}          -EnvLIBPATH
 SET (CMAKE_EXE_LINKER_FLAGS_INIT     "${CMAKE_EXE_LINKER_FLAGS_INIT} -EnvOBJPATH={Compiler}/lib/hc12c/lib")
 
 #
-# Input control files.
-#
-
-IF (NOT DEFINED HC12_LST_OUTPUT_DIR)
-    SET (HC12_LST_OUTPUT_DIR "${CMAKE_BINARY_DIR}/lst" CACHE STRING "HC12 list output file directory")
-ENDIF (NOT DEFINED HC12_LST_OUTPUT_DIR)
-
-IF (NOT DEFINED HC12_ERR_OUTPUT_DIR)
-    SET (HC12_ERR_OUTPUT_DIR "${CMAKE_BINARY_DIR}/err" CACHE STRING "HC12 list output file directory")
-ENDIF (NOT DEFINED HC12_ERR_OUTPUT_DIR)
-
-#
 # Give the user some feedback, especially as they may not be aware these exist and have taken on defaults.
 #
 MESSAGE ("")
@@ -112,7 +94,5 @@ MESSAGE ("HC12 core .................: ${HC12_CORE}")
 MESSAGE ("HC12 memory model .........: ${HC12_MEMORY_MODEL}")
 MESSAGE ("HC12 start12*.o ...........: ${HC12_START12}")
 MESSAGE ("HC12 RTL ..................: ${HC12_RTL_LIBS}")
-MESSAGE ("HC12 list file directory ..: ${HC12_LST_OUTPUT_DIR}")
-MESSAGE ("HC12 error file directory .: ${HC12_ERR_OUTPUT_DIR}")
 MESSAGE ("")
 
