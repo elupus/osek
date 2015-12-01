@@ -55,7 +55,7 @@ SET (CMAKE_FIND_LIBRARY_SUFFIXES                     ".lib")
 SET (CMAKE_STATIC_LIBRARY_PREFIX                     "")
 SET (CMAKE_STATIC_LIBRARY_SUFFIX                     ".lib")
 SET (CMAKE_LINK_LIBRARY_SUFFIX                        ".lib")
-SET (CMAKE_EXECUTABLE_SUFFIX                         ".elf")
+SET (CMAKE_EXECUTABLE_SUFFIX                         ".abs")
 
 #
 # Default options applied to all tool invocations
