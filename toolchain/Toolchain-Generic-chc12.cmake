@@ -32,10 +32,7 @@ SET (HC12_MEMORY_MODEL Banked)
 # Toolchain - Compilers, librarian (archiver) and linker.
 #              Piper is a Freescale command line tool that is used to redirect their GUI tools output to stdout.
 #
-CMAKE_FORCE_C_COMPILER  (${HC12_PATH}/Prog/chc12.exe     chc12)
-CMAKE_FORCE_CXX_COMPILER(${HC12_PATH}/Prog/chc12.exe     chc12)
-set(CMAKE_AR             ${HC12_PATH}/Prog/libmaker.exe)
-set(CMAKE_LINKER         ${HC12_PATH}/Prog/linker.exe)
-
-include_directories(${HC12_PATH}/lib/hc12c/include)
-link_directories(${HC12_PATH}/lib/hc12c/lib)
+CMAKE_FORCE_C_COMPILER  ("${HC12_PATH}/Prog/chc12.exe"     chc12)
+CMAKE_FORCE_CXX_COMPILER("${HC12_PATH}/Prog/chc12.exe"     chc12)
+set(CMAKE_AR             "${HC12_PATH}/Prog/libmaker.exe")
+set(CMAKE_LINKER         "${HC12_PATH}/Prog/linker.exe")
