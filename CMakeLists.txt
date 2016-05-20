@@ -17,21 +17,41 @@ set (Os_SRCS
 add_definitions(-D__STDC_LIMIT_MACROS -D__STDC_CONSTANT_MACROS)
 
 if (WIN32 OR CYGWIN)
-    enable_language(ASM)
+    set (Os_Arch "Fibers")
+elseif (UNIX)
+    set (Os_Arch "Posix")
+elseif (HC12_CORE)
+    set (Os_Arch "HCS12")
+endif()
+
+if (Os_Arch MATCHES "WinApi")
+    set (Os_SRCS ${Os_SRCS}
+        src/Os_Arch_WinApi.c
+    )
+    add_definitions(-DOS_CFG_ARCH_WINAPI)
+    set (Os_Run 1)
+elseif (Os_Arch MATCHES "Fibers")
+	enable_language(ASM)
     set (Os_SRCS ${Os_SRCS}
         src/Os_Arch_Fibers.c
         src/Os_Arch_Fibers.S
     )
     add_definitions(-DOS_CFG_ARCH_FIBERS)
     set (Os_Run 1)
-elseif (UNIX)
+elseif (Os_Arch MATCHES "Posix")
     set (Os_SRCS ${Os_SRCS}
         src/Os_Arch_Posix.c
     )
     add_definitions(-D_XOPEN_SOURCE=600 -DOS_CFG_ARCH_POSIX)
+
+    set_property(
+        SOURCE src/Os_Arch_Posix.c
+        PROPERTY COMPILE_FLAGS -Wno-deprecated-declarations
+    )
+
     set (Os_Run 1)
     set (Os_Metric 1)
-elseif (HC12_CORE)
+elseif (Os_Arch MATCHES "HCS12")
     set (Os_SRCS ${Os_SRCS}
         src/Os_Arch_HCS12.c
     )
@@ -46,11 +66,6 @@ if (CMAKE_C_COMPILER_ID MATCHES chc12)
 else()
     include_directories(include/gcc)
 endif()
-
-set_property(
-    SOURCE src/Os_Arch_Posix.c
-    PROPERTY COMPILE_FLAGS -Wno-deprecated-declarations
-)
 
 option(BUILD_TESTS "Enable Testing" ON)
 
