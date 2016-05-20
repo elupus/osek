@@ -31,11 +31,12 @@ if (Os_Arch MATCHES "WinApi")
     add_definitions(-DOS_CFG_ARCH_WINAPI)
     set (Os_Run 1)
 elseif (Os_Arch MATCHES "Fibers")
-	enable_language(ASM)
+	enable_language(ASM_MASM)
     set (Os_SRCS ${Os_SRCS}
         src/Os_Arch_Fibers.c
-        src/Os_Arch_Fibers.S
+        src/Os_Arch_Fibers_Asm.asm
     )
+    set_source_files_properties(src/Os_Arch_Fibers_Asm.asm PROPERTIES COMPILE_FLAGS "/safeseh")
     add_definitions(-DOS_CFG_ARCH_FIBERS)
     set (Os_Run 1)
 elseif (Os_Arch MATCHES "Posix")
