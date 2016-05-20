@@ -24,11 +24,6 @@
 #include "Os.h"
 #include "Os_Arch_Fibers.h"
 
-#ifdef __MINGW32__
-/* avoid strange linker error */
-#define GetCurrentFiber() ((PVOID)__readfsdword(0x10))
-#endif
-
 typedef struct Os_Arch_StateType {
     LPVOID fiber_old;
     LPVOID fiber;
