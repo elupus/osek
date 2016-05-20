@@ -63,6 +63,8 @@ include_directories(include src)
 
 if (CMAKE_C_COMPILER_ID MATCHES chc12)
     include_directories(include/chc)
+elseif (MSVC)
+    include_directories(include/msvc)
 else()
     include_directories(include/gcc)
 endif()
