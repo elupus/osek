@@ -17,7 +17,7 @@ set (Os_SRCS
 add_definitions(-D__STDC_LIMIT_MACROS -D__STDC_CONSTANT_MACROS)
 
 if (WIN32 OR CYGWIN)
-	enable_language(ASM)
+    enable_language(ASM)
     set (Os_SRCS ${Os_SRCS}
         src/Os_Arch_Fibers.c
         src/Os_Arch_Fibers.S
@@ -55,56 +55,56 @@ set_property(
 option(BUILD_TESTS "Enable Testing" ON)
 
 if(BUILD_TESTS)
-	include(ExternalProject)
-	ExternalProject_Add(googletest
-	  URL https://github.com/google/googletest/archive/release-1.7.0.zip
-	  # Comment above line, and uncomment line below to use subversion.
-	  # SVN_REPOSITORY http://googletest.googlecode.com/svn/trunk/
-	  # Uncomment line below to freeze a revision (here the one for 1.7.0)
-	  # SVN_REVISION -r700
+    include(ExternalProject)
+    ExternalProject_Add(googletest
+      URL https://github.com/google/googletest/archive/release-1.7.0.zip
+      # Comment above line, and uncomment line below to use subversion.
+      # SVN_REPOSITORY http://googletest.googlecode.com/svn/trunk/
+      # Uncomment line below to freeze a revision (here the one for 1.7.0)
+      # SVN_REVISION -r700
 
-	  PREFIX ${CMAKE_CURRENT_BINARY_DIR}/googletest
-	  INSTALL_COMMAND ""
+      PREFIX ${CMAKE_CURRENT_BINARY_DIR}/googletest
+      INSTALL_COMMAND ""
       CMAKE_ARGS -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
                  -DCMAKE_ARCHIVE_OUTPUT_DIRECTORY_DEBUG:PATH=Debug
                  -DCMAKE_ARCHIVE_OUTPUT_DIRECTORY_RELEASE:PATH=Release
                  -Dgtest_force_shared_crt=ON
-	)
-	# Specify include dir
-	ExternalProject_Get_Property(googletest source_dir)
-	set(GTEST_INCLUDE_DIR ${source_dir}/include)
+    )
+    # Specify include dir
+    ExternalProject_Get_Property(googletest source_dir)
+    set(GTEST_INCLUDE_DIR ${source_dir}/include)
 
-	# Library
-	ExternalProject_Get_Property(googletest binary_dir)
+    # Library
+    ExternalProject_Get_Property(googletest binary_dir)
 
-	add_library(gtest UNKNOWN IMPORTED)
+    add_library(gtest UNKNOWN IMPORTED)
     set_property(TARGET gtest PROPERTY IMPORTED_LOCATION_DEBUG   "${binary_dir}/Debug/${CMAKE_STATIC_LIBRARY_PREFIX}gtest${CMAKE_STATIC_LIBRARY_SUFFIX}")
     set_property(TARGET gtest PROPERTY IMPORTED_LOCATION_RELEASE "${binary_dir}/Release/${CMAKE_STATIC_LIBRARY_PREFIX}gtest${CMAKE_STATIC_LIBRARY_SUFFIX}")
-	add_dependencies(gtest googletest)
+    add_dependencies(gtest googletest)
 
     add_library(gtest_main UNKNOWN IMPORTED)
     set_property(TARGET gtest_main PROPERTY IMPORTED_LOCATION_DEBUG   "${binary_dir}/Debug/${CMAKE_STATIC_LIBRARY_PREFIX}gtest_main${CMAKE_STATIC_LIBRARY_SUFFIX}")
     set_property(TARGET gtest_main PROPERTY IMPORTED_LOCATION_RELEASE "${binary_dir}/Release/${CMAKE_STATIC_LIBRARY_PREFIX}gtest_main${CMAKE_STATIC_LIBRARY_SUFFIX}")
-	add_dependencies(gtest_main googletest)
+    add_dependencies(gtest_main googletest)
 
-	# GTest type test
-	add_executable(Os_Test ${Os_SRCS} test/Os_Test/Os_Test.cpp)
-	target_include_directories(Os_Test PRIVATE test/Os_Test ${GTEST_INCLUDE_DIR})
-	target_link_libraries(Os_Test gtest gtest_main pthread)
+    # GTest type test
+    add_executable(Os_Test ${Os_SRCS} test/Os_Test/Os_Test.cpp)
+    target_include_directories(Os_Test PRIVATE test/Os_Test ${GTEST_INCLUDE_DIR})
+    target_link_libraries(Os_Test gtest gtest_main pthread)
 
     set_target_properties(Os_Test PROPERTIES LINKER_LANGUAGE "CXX")
-	set_target_properties(Os_Test PROPERTIES COMPILE_FLAGS "--coverage -O0")
-	set_target_properties(Os_Test PROPERTIES LINK_FLAGS    "--coverage -O0")
+    set_target_properties(Os_Test PROPERTIES COMPILE_FLAGS "--coverage -O0")
+    set_target_properties(Os_Test PROPERTIES LINK_FLAGS    "--coverage -O0")
     set_target_properties(Os_Test PROPERTIES XCODE_ATTRIBUTE_PRODUCT_NAME "OsekOs")
 
-	# GTest type test
-	add_executable(Os_TestInternal test/Os_TestInternal/Os_TestInternal.cpp)
-	target_include_directories(Os_TestInternal PRIVATE test/Os_TestInternal ${GTEST_INCLUDE_DIR})
-	target_link_libraries(Os_TestInternal gtest gtest_main pthread)
+    # GTest type test
+    add_executable(Os_TestInternal test/Os_TestInternal/Os_TestInternal.cpp)
+    target_include_directories(Os_TestInternal PRIVATE test/Os_TestInternal ${GTEST_INCLUDE_DIR})
+    target_link_libraries(Os_TestInternal gtest gtest_main pthread)
 
     set_target_properties(Os_TestInternal PROPERTIES LINKER_LANGUAGE "CXX")
-	set_target_properties(Os_TestInternal PROPERTIES COMPILE_FLAGS "--coverage -O0")
-	set_target_properties(Os_TestInternal PROPERTIES LINK_FLAGS    "--coverage -O0")
+    set_target_properties(Os_TestInternal PROPERTIES COMPILE_FLAGS "--coverage -O0")
+    set_target_properties(Os_TestInternal PROPERTIES LINK_FLAGS    "--coverage -O0")
     set_target_properties(Os_TestInternal PROPERTIES XCODE_ATTRIBUTE_PRODUCT_NAME "OsekOs")
 endif()
 
