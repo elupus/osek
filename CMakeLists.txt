@@ -56,7 +56,7 @@ option(BUILD_TESTS "Enable Testing" ON)
 if(BUILD_TESTS)
 	include(ExternalProject)
 	ExternalProject_Add(googletest
-	  URL https://googletest.googlecode.com/files/gtest-1.7.0.zip
+	  URL https://github.com/google/googletest/archive/release-1.7.0.zip
 	  # Comment above line, and uncomment line below to use subversion.
 	  # SVN_REPOSITORY http://googletest.googlecode.com/svn/trunk/
 	  # Uncomment line below to freeze a revision (here the one for 1.7.0)
