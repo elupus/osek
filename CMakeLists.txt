@@ -95,7 +95,6 @@ if(BUILD_TESTS)
     set_target_properties(Os_Test PROPERTIES LINKER_LANGUAGE "CXX")
     set_target_properties(Os_Test PROPERTIES COMPILE_FLAGS "--coverage -O0")
     set_target_properties(Os_Test PROPERTIES LINK_FLAGS    "--coverage -O0")
-    set_target_properties(Os_Test PROPERTIES XCODE_ATTRIBUTE_PRODUCT_NAME "OsekOs")
 
     # GTest type test
     add_executable(Os_TestInternal test/Os_TestInternal/Os_TestInternal.cpp)
@@ -105,7 +104,6 @@ if(BUILD_TESTS)
     set_target_properties(Os_TestInternal PROPERTIES LINKER_LANGUAGE "CXX")
     set_target_properties(Os_TestInternal PROPERTIES COMPILE_FLAGS "--coverage -O0")
     set_target_properties(Os_TestInternal PROPERTIES LINK_FLAGS    "--coverage -O0")
-    set_target_properties(Os_TestInternal PROPERTIES XCODE_ATTRIBUTE_PRODUCT_NAME "OsekOs")
 endif()
 
 if(${Os_Metric})
