@@ -219,8 +219,7 @@ void Os_AlarmTick(Os_AlarmType queue[])
     /* trigger and consume any expired */
     while (queue[0] > 0u && Os_TickLessThan(Os_AlarmTicks[queue[1]], Os_CounterControls[Os_AlarmConfigs[queue[1]].counter].ticks) ) {
         Os_AlarmType alarm;
-        Os_AlarmPop(Os_CounterControls[Os_AlarmConfigs[alarm].counter].queue
-                  , &alarm);
+        Os_AlarmPop(queue, &alarm);
 
         /* activate linked task */
         if (Os_AlarmConfigs[alarm].task != OS_INVALID_TASK) {
@@ -232,8 +231,7 @@ void Os_AlarmTick(Os_AlarmType queue[])
         /* readd cyclic */
         if (Os_AlarmCycles[alarm]) {
             Os_AlarmTicks[alarm] += Os_AlarmCycles[alarm];
-            Os_AlarmAdd(Os_CounterControls[Os_AlarmConfigs[alarm].counter].queue
-                      , alarm);
+            Os_AlarmAdd(queue, alarm);
         }
     }
 }
