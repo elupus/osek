@@ -189,27 +189,6 @@ static void Os_AlarmPop(Os_AlarmType queue[], Os_AlarmType* alarm)
     Os_AlarmQueued[*alarm] = FALSE;
 }
 
-void Os_SyscallEnter(Os_SyscallStateType *state)
-{
-    Os_Arch_SuspendInterrupts(&state->irq);
-    state->task_before = Os_ActiveTask;
-}
-
-void Os_SyscallLeave(Os_SyscallStateType *state)
-{
-    while(Os_ActiveTask == OS_INVALID_TASK) {
-        Os_Arch_ResumeInterrupts(&state->irq);
-        Os_Arch_Wait();
-        Os_Arch_SuspendInterrupts(&state->irq);
-    }
-
-    if (state->task_before != Os_ActiveTask) {
-        Os_Arch_SwapState(Os_ActiveTask, state->task_before);
-    }
-
-    Os_Arch_ResumeInterrupts(&state->irq);
-}
-
 /**
  * @brief Ticks the given alarm chain
  * @param[in,out] head start of chain to tick, will be updated to current head
@@ -446,8 +425,8 @@ void Os_Start(void)
 void Os_Shutdown(void)
 {
     Os_TaskType prev;
-
-    Os_Arch_DisableAllInterrupts();
+    Os_SyscallStateType state;
+    Os_Arch_Syscall_Enter(&state);
 
     Os_Continue = FALSE;
     /* store previous to be able to swap state later */
@@ -460,7 +439,7 @@ void Os_Shutdown(void)
 
     /* swap back if os support it */
     Os_ActiveTask = OS_INVALID_TASK;
-    Os_Arch_SwapState(Os_ActiveTask, prev);
+    Os_Arch_Syscall_Leave(&state);
 }
 
 /**
@@ -505,13 +484,14 @@ Os_StatusType Os_Schedule(void)
 {
     Os_StatusType result;
     Os_SyscallStateType state;
-    Os_SyscallEnter(&state);
+    Os_Arch_Syscall_Enter(&state);
+
     Os_TaskInternalResource_Release();
 
     result = Os_Schedule_Internal();
 
     Os_TaskInternalResource_Get();
-    Os_SyscallLeave(&state);
+    Os_Arch_Syscall_Leave(&state);
 
     return result;
 }
@@ -566,7 +546,8 @@ Os_StatusType Os_TerminateTask(void)
 {
     Os_StatusType result;
     Os_SyscallStateType state;
-    Os_SyscallEnter(&state);
+    Os_Arch_Syscall_Enter(&state);
+
     Os_TaskInternalResource_Release();
 
     result = Os_TerminateTask_Internal();
@@ -576,7 +557,7 @@ Os_StatusType Os_TerminateTask(void)
     }
 
     Os_TaskInternalResource_Get();
-    Os_SyscallLeave(&state);
+    Os_Arch_Syscall_Leave(&state);
 
     return result;
 }
@@ -665,7 +646,8 @@ Os_StatusType Os_ChainTask(Os_TaskType task)
 {
     Os_StatusType result;
     Os_SyscallStateType state;
-    Os_SyscallEnter(&state);
+    Os_Arch_Syscall_Enter(&state);
+
     Os_TaskInternalResource_Release();
 
     result = Os_ChainTask_Internal(task);
@@ -675,7 +657,7 @@ Os_StatusType Os_ChainTask(Os_TaskType task)
     }
 
     Os_TaskInternalResource_Get();
-    Os_SyscallLeave(&state);
+    Os_Arch_Syscall_Leave(&state);
 
     return result;
 }
@@ -721,14 +703,14 @@ Os_StatusType Os_ActivateTask(Os_TaskType task)
 {
     Os_StatusType result;
     Os_SyscallStateType state;
-    Os_SyscallEnter(&state);
+    Os_Arch_Syscall_Enter(&state);
 
     result = Os_ActivateTask_Internal(task);
     if (result == E_OK) {
         result = Os_Schedule_Internal();
     }
 
-    Os_SyscallLeave(&state);
+    Os_Arch_Syscall_Leave(&state);
     return result;
 }
 
@@ -772,11 +754,11 @@ Os_StatusType Os_GetResource(Os_ResourceType res)
 {
     Os_StatusType result;
     Os_SyscallStateType state;
-    Os_SyscallEnter(&state);
+    Os_Arch_Syscall_Enter(&state);
 
     result = Os_GetResource_Internal(res);
 
-    Os_SyscallLeave(&state);
+    Os_Arch_Syscall_Leave(&state);
     return result;
 }
 
@@ -827,14 +809,14 @@ Os_StatusType Os_ReleaseResource(Os_ResourceType res)
 {
     Os_StatusType result;
     Os_SyscallStateType state;
-    Os_SyscallEnter(&state);
+    Os_Arch_Syscall_Enter(&state);
 
     result = Os_ReleaseResource_Internal(res);
     if (result == E_OK) {
         result = Os_Schedule_Internal();
     }
 
-    Os_SyscallLeave(&state);
+    Os_Arch_Syscall_Leave(&state);
     return result;
 }
 
@@ -911,9 +893,9 @@ Os_StatusType Os_SetRelAlarm(Os_AlarmType alarm, Os_TickType increment, Os_TickT
 {
     Os_StatusType       result;
     Os_SyscallStateType state;
-    Os_SyscallEnter(&state);
+    Os_Arch_Syscall_Enter(&state);
     result = Os_SetRelAlarm_Internal(alarm, increment, cycle);
-    Os_SyscallLeave(&state);
+    Os_Arch_Syscall_Leave(&state);
     return result;
 }
 
@@ -979,9 +961,9 @@ Os_StatusType Os_SetAbsAlarm(Os_AlarmType alarm, Os_TickType start, Os_TickType 
 {
     Os_StatusType       result;
     Os_SyscallStateType state;
-    Os_SyscallEnter(&state);
+    Os_Arch_Syscall_Enter(&state);
     result = Os_SetAbsAlarm_Internal(alarm, start, cycle);
-    Os_SyscallLeave(&state);
+    Os_Arch_Syscall_Leave(&state);
     return result;
 }
 
@@ -1040,9 +1022,9 @@ Os_StatusType Os_CancelAlarm(Os_AlarmType alarm)
 {
     Os_StatusType       result;
     Os_SyscallStateType state;
-    Os_SyscallEnter(&state);
+    Os_Arch_Syscall_Enter(&state);
     result = Os_CancelAlarm_Internal(alarm);
-    Os_SyscallLeave(&state);
+    Os_Arch_Syscall_Leave(&state);
     return result;
 }
 
@@ -1081,9 +1063,9 @@ Os_StatusType Os_GetAlarm(Os_AlarmType alarm, Os_TickType* tick)
 {
     Os_StatusType       result;
     Os_SyscallStateType state;
-    Os_SyscallEnter(&state);
+    Os_Arch_Syscall_Enter(&state);
     result = Os_GetAlarm_Internal(alarm, tick);
-    Os_SyscallLeave(&state);
+    Os_Arch_Syscall_Leave(&state);
     return result;
 }
 
@@ -1129,14 +1111,14 @@ Os_StatusType Os_IncrementCounter(Os_CounterType counter)
 {
     Os_StatusType       result;
     Os_SyscallStateType state;
-    Os_SyscallEnter(&state);
+    Os_Arch_Syscall_Enter(&state);
 
     result = Os_IncrementCounter_Internal(counter);
     if (result == E_OK) {
         result = Os_Schedule();
     }
 
-    Os_SyscallLeave(&state);
+    Os_Arch_Syscall_Leave(&state);
     return E_OK;
 }
 

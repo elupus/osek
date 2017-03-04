@@ -26,6 +26,11 @@ void       Os_Arch_Init(void);
 
 typedef    uint8_t Os_IrqState;
 
+typedef struct Os_SyscallStateType {
+    Os_IrqState irq;
+    Os_TaskType task;
+} Os_SyscallStateType;
+
 #pragma CODE_SEG __NEAR_SEG NON_BANKED
 __interrupt __near void Os_Arch_Swi(void);
 #pragma CODE_SEG DEFAULT
@@ -97,5 +102,8 @@ static __inline void Os_Arch_Wait(void)
 {
     /* NOP */
 }
+
+void       Os_Arch_Syscall_Enter(Os_SyscallStateType* state);
+void       Os_Arch_Syscall_Leave(const Os_SyscallStateType* state);
 
 #endif /* OS_ARCH_HCS12_H_ */

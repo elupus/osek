@@ -23,6 +23,11 @@
 
 typedef    uint32 Os_IrqState;
 
+typedef struct Os_SyscallStateType {
+    Os_IrqState irq;
+    Os_TaskType task;
+} Os_SyscallStateType;
+
 void       Os_Arch_Init(void);
 
 void       Os_Arch_DisableAllInterrupts(void);
@@ -33,6 +38,9 @@ void       Os_Arch_ResumeInterrupts(const Os_IrqState* mask);
 
 void       Os_Arch_SwapState   (Os_TaskType task, Os_TaskType prev);
 void       Os_Arch_PrepareState(Os_TaskType task);
+
+void       Os_Arch_Syscall_Enter(Os_SyscallStateType* state);
+void       Os_Arch_Syscall_Leave(const Os_SyscallStateType* state);
 
 static __inline void Os_Arch_Wait(void)
 {

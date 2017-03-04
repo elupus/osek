@@ -62,14 +62,6 @@
 #endif
 
 /**
- * @brief internal structure to keep track of state on syscalls
- */
-typedef struct Os_SyscallState {
-    Os_IrqState   irq;
-    Os_TaskType   task_before;
-} Os_SyscallStateType;
-
-/**
  * @brief Structure describing a tasks static configuration
  */
 typedef struct Os_TaskConfigType {

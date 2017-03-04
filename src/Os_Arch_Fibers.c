@@ -56,23 +56,12 @@ VOID CALLBACK Os_Arch_FiberStart(LPVOID lpParameter)
 
 void Os_Arch_Isr(void (*isr)())
 {
-    Os_TaskType task_before, task_after;
-    Os_Arch_DisableAllInterrupts();
+    Os_SyscallStateType state;
+    Os_Arch_Syscall_Enter(&state);
 
-    (void)Os_GetTaskId(&task_before);
     isr();
-    (void)Os_GetTaskId(&task_after);
 
-    if (task_before != task_after) {
-        assert(Os_Arch_Section_Count != 0);
-        if (task_after == OS_INVALID_TASK) {
-            SwitchToFiber(Os_Arch_System);
-        } else {
-            SwitchToFiber(Os_Arch_State[task_after].fiber);
-        }
-    }
-
-    Os_Arch_EnableAllInterrupts();
+    Os_Arch_Syscall_Leave(&state);
 }
 
 void Os_Arch_InjectFunction(void* fun, void (*isr)())
@@ -220,19 +209,26 @@ void Os_Arch_EnableAllInterrupts(void)
     Os_Arch_ResumeInterrupts(&state);
 }
 
-void Os_Arch_SwapState(Os_TaskType task, Os_TaskType prev)
+void Os_Arch_Syscall_Enter(Os_SyscallStateType* state)
 {
-    assert(Os_Arch_Section_Count != 0);
-    if (Os_CallContext == OS_CONTEXT_TASK) {
+    Os_Arch_SuspendInterrupts(&state->irq);
+    Os_GetTaskId(&state->task);
+}
+
+void Os_Arch_Syscall_Leave(const Os_SyscallStateType* state)
+{
+    Os_TaskType task;
+    Os_GetTaskId(&task);
+    if (state->task != task) {
         if (task == OS_INVALID_TASK) {
             SwitchToFiber(Os_Arch_System);
         } else {
             SwitchToFiber(Os_Arch_State[task].fiber);
         }
-    } else {
-        /* NOP - switch will occur at end of ISR */
     }
+    Os_Arch_ResumeInterrupts(&state->irq);
 }
+
 
 void Os_Arch_PrepareState(Os_TaskType task)
 {

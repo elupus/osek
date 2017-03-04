@@ -142,3 +142,17 @@ void Os_Arch_SwapState(Os_TaskType task, Os_TaskType prev)
         }
     }
 }
+
+void Os_Arch_Syscall_Enter(Os_SyscallStateType* state)
+{
+    Os_Arch_SuspendInterrupts(&state->irq);
+    Os_GetTaskId(&state->task);
+}
+
+void Os_Arch_Syscall_Leave(const Os_SyscallStateType* state)
+{
+    Os_TaskType task;
+    Os_GetTaskId(&task);
+    Os_Arch_SwapState(task, state->task);
+    Os_Arch_ResumeInterrupts(&state->irq);
+}
