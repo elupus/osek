@@ -403,19 +403,16 @@ static __inline void Os_State_Ready_To_Running(Os_TaskType task)
 void Os_Start(void)
 {
     Os_StatusType   res;
+    Os_SyscallStateType state;
 
-    Os_Arch_DisableAllInterrupts();
-    Os_ActiveTask  = (Os_TaskType)0u;
+    Os_ActiveTask = (Os_TaskType)0u;
     Os_CallContext = OS_CONTEXT_TASK;
 
+    Os_Arch_EnableAllInterrupts();
+    Os_Arch_Syscall_Enter(&state);
     res = Os_Schedule_Internal();
-
     if (res == E_OK) {
-        if(Os_ActiveTask != OS_INVALID_TASK) {
-            Os_Arch_SwapState(Os_ActiveTask, OS_INVALID_TASK);
-        }
-
-        Os_Arch_EnableAllInterrupts();
+        Os_Arch_Syscall_Leave(&state);
         while(Os_Continue) {
             Os_Arch_Wait();
         }
@@ -556,7 +553,6 @@ Os_StatusType Os_TerminateTask(void)
         result = Os_Schedule_Internal();
     }
 
-    Os_TaskInternalResource_Get();
     Os_Arch_Syscall_Leave(&state);
 
     return result;
@@ -656,7 +652,6 @@ Os_StatusType Os_ChainTask(Os_TaskType task)
         result = Os_Schedule_Internal();
     }
 
-    Os_TaskInternalResource_Get();
     Os_Arch_Syscall_Leave(&state);
 
     return result;
