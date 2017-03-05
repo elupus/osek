@@ -29,6 +29,7 @@ typedef struct Os_Arch_StateType {
     LPVOID fiber;
 } Os_Arch_StateType;
 
+typedef void(*Os_Arch_IsrType)(void);
 LPVOID            Os_Arch_System;
 HANDLE            Os_Arch_Timer;
 CRITICAL_SECTION  Os_Arch_Section;
@@ -54,7 +55,7 @@ VOID CALLBACK Os_Arch_FiberStart(LPVOID lpParameter)
     Os_TaskConfigs[task].entry();
 }
 
-void Os_Arch_Isr(void (*isr)())
+void Os_Arch_Isr(Os_Arch_IsrType isr)
 {
     Os_SyscallStateType state;
     Os_Arch_Syscall_Enter(&state);
