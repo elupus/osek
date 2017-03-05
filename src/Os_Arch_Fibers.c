@@ -178,8 +178,6 @@ void Os_Arch_Init(void)
         exit(GetLastError());
     }
 
-    Os_Arch_Interrupt_Mask = 0xffffffffu;
-
     Os_Arch_DisableAllInterrupts();
 
     CreateTimerQueueTimer( &Os_Arch_Timer
