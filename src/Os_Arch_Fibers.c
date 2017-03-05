@@ -30,14 +30,13 @@ typedef struct Os_Arch_StateType {
 } Os_Arch_StateType;
 
 typedef void(*Os_Arch_IsrType)(void);
-LPVOID            Os_Arch_System;
-HANDLE            Os_Arch_Timer;
-CRITICAL_SECTION  Os_Arch_Section;
-uint32            Os_Arch_Section_Count;
-Os_Arch_StateType Os_Arch_State[OS_TASK_COUNT];
-HANDLE            Os_Arch_Thread;
 
-extern void Os_Arch_Trap(void);
+LPVOID             Os_Arch_System;
+HANDLE             Os_Arch_Timer;
+LONG               Os_Arch_Interrupt_Mask;
+Os_Arch_IsrType    Os_Arch_Interrupt_Pending;
+Os_Arch_StateType  Os_Arch_State[OS_TASK_COUNT];
+HANDLE             Os_Arch_Thread;
 
 static void Os_Arch_DeleteFiber(PVOID* fiber)
 {
@@ -51,6 +50,7 @@ VOID CALLBACK Os_Arch_FiberStart(LPVOID lpParameter)
 {
     Os_TaskType task = (Os_TaskType)(intptr_t)lpParameter;
     Os_Arch_DeleteFiber(&Os_Arch_State[task].fiber_old);
+
     Os_Arch_EnableAllInterrupts();
     Os_TaskConfigs[task].entry();
 }
@@ -65,57 +65,72 @@ void Os_Arch_Isr(Os_Arch_IsrType isr)
     Os_Arch_Syscall_Leave(&state);
 }
 
-void Os_Arch_InjectFunction(void* fun, void (*isr)())
+extern void Os_Arch_Trampoline(void);
+
+void Os_Arch_InjectFunction(CONTEXT* ctx, void* fun, void *param)
 {
-    EnterCriticalSection(&Os_Arch_Section);
-    SuspendThread(Os_Arch_Thread);
-
-    CONTEXT ctx;
-    memset(&ctx, 0, sizeof(ctx));
-    ctx.ContextFlags = CONTEXT_ALL;
-
-    if (GetThreadContext(Os_Arch_Thread, &ctx)) {
-#if defined(__x86_64)
-    	DWORD64* stack_ptr;
-        stack_ptr    = (DWORD64*)ctx.Rsp;
-        stack_ptr   -= 8;
-        stack_ptr[0] = ctx.Rax;
-        stack_ptr[1] = ctx.Rcx;
-        stack_ptr[2] = ctx.Rdx;
-        stack_ptr[3] = ctx.R8;
-        stack_ptr[4] = ctx.R9;
-        stack_ptr[5] = ctx.R10;
-        stack_ptr[6] = ctx.R11;
-        stack_ptr[7] = ctx.Rip;
-        ctx.Rsp = (DWORD64)stack_ptr;
-        ctx.Rip = (DWORD64)Os_Arch_Trap;
-        ctx.Rcx = (DWORD64)isr;
+#if defined(__x86_64) || defined(_AMD64_)
+    DWORD64* stack_ptr;
+    stack_ptr    = (DWORD64*)ctx->Rsp;
+    stack_ptr   -= 8;
+    stack_ptr[0] = ctx->Rax;
+    stack_ptr[1] = ctx->Rcx;
+    stack_ptr[2] = ctx->Rdx;
+    stack_ptr[3] = ctx->R8;
+    stack_ptr[4] = ctx->R9;
+    stack_ptr[5] = ctx->R10;
+    stack_ptr[6] = ctx->R11;
+    stack_ptr[7] = ctx->Rip;
+    ctx->Rsp = (DWORD64)stack_ptr;
+    ctx->Rip = (DWORD64)Os_Arch_Trampoline;
+    ctx->Rcx = (DWORD64)param;
+    ctx->Rdx = (DWORD64)fun;
 
 #elif defined(__x86) || defined(_X86_)
-        DWORD* stack_ptr;
-        stack_ptr    = (DWORD*)ctx.Esp;
-        stack_ptr   -= 3;
-        stack_ptr[0] = (DWORD)isr;
-        stack_ptr[1] = ctx.Ebp;
-        stack_ptr[2] = ctx.Eip;
-        ctx.Ebp = ctx.Esp;
-        ctx.Esp = (DWORD)stack_ptr;
-        ctx.Eip = (DWORD)Os_Arch_Trap;
+    DWORD* stack_ptr;
+    stack_ptr    = (DWORD*)ctx->Esp;
+    stack_ptr   -= 6;
+    stack_ptr[0] = (DWORD)param;
+    stack_ptr[1] = ctx->Eax;
+    stack_ptr[2] = ctx->Ecx;
+    stack_ptr[3] = ctx->Edx;
+    stack_ptr[4] = ctx->Ebp;
+    stack_ptr[5] = ctx->Eip;
+    ctx->Ebp = (DWORD)&stack_ptr[4]; /* point to ebp pushed value */
+    ctx->Esp = (DWORD)stack_ptr;
+    ctx->Ecx = (DWORD)fun;
+    ctx->Eip = (DWORD)Os_Arch_Trampoline;
 #else
 #error Not supported
 #endif
-        SetThreadContext(Os_Arch_Thread, &ctx);
-
-    } else {
-        exit(-1);
-    }
-    ResumeThread(Os_Arch_Thread);
-    LeaveCriticalSection(&Os_Arch_Section);
 }
 
 VOID CALLBACK Os_Arch_TimerCallback(PVOID lpParameter, BOOLEAN TimerOrWaitFired)
 {
-    Os_Arch_InjectFunction(Os_Arch_Isr, Os_Isr);
+    /* add to interrupt queue */
+    InterlockedExchangePointer((volatile PVOID*)&Os_Arch_Interrupt_Pending, Os_Isr);
+
+    /* see if we need to inject */
+    SuspendThread(Os_Arch_Thread);
+    if (Os_Arch_Interrupt_Mask == 0u) {
+
+        /* pop queued interrupts */
+        Os_Arch_IsrType isr = InterlockedExchangePointer((volatile PVOID*)&Os_Arch_Interrupt_Pending, NULL);
+        if (isr) {
+            CONTEXT ctx;
+            memset(&ctx, 0, sizeof(ctx));
+            ctx.ContextFlags = CONTEXT_ALL;
+
+            if (GetThreadContext(Os_Arch_Thread, &ctx)) {
+                Os_Arch_InjectFunction(&ctx, Os_Arch_Isr, isr);
+                SetThreadContext(Os_Arch_Thread, &ctx);
+            }
+            else {
+                exit(-1);
+            }
+        }
+    }
+    ResumeThread(Os_Arch_Thread);
 }
 
 void Os_Arch_Deinit(void)
@@ -141,9 +156,7 @@ void Os_Arch_Deinit(void)
     if (Os_Arch_System) {
         ConvertFiberToThread();
         Os_Arch_System = NULL;
-        DeleteCriticalSection(&Os_Arch_Section);
     }
-    Os_Arch_Section_Count = 0;
 }
 
 void Os_Arch_Init(void)
@@ -165,8 +178,7 @@ void Os_Arch_Init(void)
         exit(GetLastError());
     }
 
-    Os_Arch_Section_Count = 0;
-    InitializeCriticalSection(&Os_Arch_Section);
+    Os_Arch_Interrupt_Mask = 0xffffffffu;
 
     Os_Arch_DisableAllInterrupts();
 
@@ -181,20 +193,18 @@ void Os_Arch_Init(void)
 
 void Os_Arch_SuspendInterrupts(Os_IrqState* mask)
 {
-    EnterCriticalSection(&Os_Arch_Section);
-    *mask = Os_Arch_Section_Count;
-    Os_Arch_Section_Count++;
-    if(Os_Arch_Section_Count != 1) {
-        Os_Arch_Section_Count = 1;
-        LeaveCriticalSection(&Os_Arch_Section);
-    }
+    *mask = InterlockedExchange(&Os_Arch_Interrupt_Mask, 0x1);
 }
 
 void Os_Arch_ResumeInterrupts(const Os_IrqState* mask)
 {
-    Os_Arch_Section_Count = *mask;
-    if(*mask == 0u) {
-        LeaveCriticalSection(&Os_Arch_Section);
+    InterlockedExchange(&Os_Arch_Interrupt_Mask, *mask);
+    if (*mask == 0u) {
+        /* interrupts now enabled, so serve any queued up interrupts first */
+        Os_Arch_IsrType isr = InterlockedExchangePointer((volatile PVOID*)&Os_Arch_Interrupt_Pending, NULL);
+        if (isr) {
+            Os_Arch_Isr(isr);
+        }
     }
 }
 
