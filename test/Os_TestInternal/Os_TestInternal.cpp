@@ -57,6 +57,14 @@ extern "C" void Os_Arch_SwapState(Os_TaskType task, Os_TaskType prev)
     throw std::exception();
 }
 
+void Os_Arch_Syscall_Enter(Os_SyscallStateType* state)
+{
+}
+
+void Os_Arch_Syscall_Leave(const Os_SyscallStateType* state)
+{
+}
+
 
 struct Os_TestInternal : public testing::Test {
     static Os_TestInternal* active;
