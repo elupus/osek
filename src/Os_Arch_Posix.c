@@ -21,23 +21,50 @@
 #include <sys/time.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdarg.h>
 #include "Os.h"
 
-ucontext_t  Os_Arch_State_None;
-boolean     Os_Arch_State_Started;
-ucontext_t  Os_Arch_State[OS_TASK_COUNT];
+typedef struct Os_Arch_CtxType {
+    ucontext_t ctx;
+    boolean    run;
+} Os_Arch_CtxType;
+
+Os_Arch_CtxType  Os_Arch_State_None;
+Os_Arch_CtxType  Os_Arch_State[OS_TASK_COUNT];
+Os_StatusType Os_Arch_Syscall(Os_SyscallParamType *param);
+
+static __inline Os_Arch_CtxType * Os_Arch_GetContext(void)
+{
+    Os_Arch_CtxType * ctx;
+    Os_TaskType  task;
+
+    (void)Os_GetTaskId(&task);
+    if (task == OS_INVALID_TASK) {
+        ctx = &Os_Arch_State_None;
+    } else {
+        ctx = &Os_Arch_State[task];
+    }
+    return ctx;
+}
 
 void Os_Arch_Alarm(int signal)
 {
-    Os_TaskType task_before, task_after;
+    Os_Arch_CtxType* ctx_before;
+    Os_Arch_CtxType* ctx_after;
 
-    (void)Os_GetTaskId(&task_before);
+    ctx_before = Os_Arch_GetContext();
     Os_Isr();
-    (void)Os_GetTaskId(&task_after);
+    ctx_after  = Os_Arch_GetContext();
 
-    if (task_before != task_after) {
-        Os_Arch_SwapState(task_after, task_before);
-    }
+    if (ctx_before->run == FALSE) {
+         ctx_after->run = TRUE;
+         setcontext(&ctx_after->ctx);
+     } else if (ctx_before != ctx_after) {
+         ctx_after->run = TRUE;
+         swapcontext(&ctx_before->ctx, &ctx_after->ctx);
+     } else {
+         /* nop */
+     }
 }
 
 void Os_Arch_Init(void)
@@ -46,16 +73,16 @@ void Os_Arch_Init(void)
     Os_TaskType task;
     Os_Arch_DisableAllInterrupts();
 
-    Os_Arch_State_Started = FALSE;
     memset(&Os_Arch_State_None, 0, sizeof(Os_Arch_State_None));
     memset(&Os_Arch_State, 0, sizeof(Os_Arch_State));
-
+    Os_Arch_State_None.run = TRUE;
     for (task = 0u; task < OS_TASK_COUNT; ++task) {
-        ucontext_t* ctx = &Os_Arch_State[task];
+        ucontext_t* ctx = &Os_Arch_State[task].ctx;
         getcontext(ctx);
     }
 
     struct sigaction sact;
+    memset(&sact, 0, sizeof(sact));
     sigemptyset( &sact.sa_mask );
     sact.sa_flags   = SA_RESTART;
     sact.sa_handler = Os_Arch_Alarm;
@@ -105,54 +132,38 @@ void Os_Arch_EnableAllInterrupts(void)
 
 void Os_Arch_PrepareState(Os_TaskType task)
 {
-    ucontext_t* ctx = &Os_Arch_State[task];
-    sigdelset(&ctx->uc_sigmask, SIGALRM); /* we start with interrupts enabled */
-    ctx->uc_link           = NULL;
-    ctx->uc_stack.ss_size  = Os_TaskConfigs[task].stack_size;
-    ctx->uc_stack.ss_sp    = Os_TaskConfigs[task].stack;
-    ctx->uc_stack.ss_flags = 0;
-    makecontext(ctx, Os_TaskConfigs[task].entry, 0);
+    Os_Arch_CtxType* ctx = &Os_Arch_State[task];
+    sigdelset(&ctx->ctx.uc_sigmask, SIGALRM); /* we start with interrupts enabled */
+    ctx->ctx.uc_link           = NULL;
+    ctx->ctx.uc_stack.ss_size  = Os_TaskConfigs[task].stack_size;
+    ctx->ctx.uc_stack.ss_sp    = Os_TaskConfigs[task].stack;
+    ctx->ctx.uc_stack.ss_flags = 0;
+    ctx->run = FALSE;
+    makecontext(&ctx->ctx, Os_TaskConfigs[task].entry, 0);
 }
 
-void Os_Arch_SwapState(Os_TaskType task, Os_TaskType prev)
+Os_StatusType Os_Arch_Syscall(Os_SyscallParamType* param)
 {
-    if (Os_CallContext == OS_CONTEXT_TASK) {
-        ucontext_t *ctx_after, *ctx_before;
-        if (task == OS_INVALID_TASK) {
-            ctx_after = &Os_Arch_State_None;
-        } else {
-            ctx_after = &Os_Arch_State[task];
-        }
+    Os_StatusType    res;
+    Os_IrqState      state;
+    Os_Arch_CtxType* ctx_before;
+    Os_Arch_CtxType* ctx_after;
+    Os_Arch_SuspendInterrupts(&state);
 
-        if (prev == OS_INVALID_TASK) {
-            if (Os_Arch_State_Started == FALSE) {
-                Os_Arch_State_Started = TRUE;
-                ctx_before = &Os_Arch_State_None;
-            } else {
-                ctx_before = NULL;
-            }
-        } else {
-            ctx_before = &Os_Arch_State[prev];
-        }
+    ctx_before = Os_Arch_GetContext();
+    res = Os_Syscall_Internal(param);
+    ctx_after  = Os_Arch_GetContext();
 
-        if (ctx_before) {
-            swapcontext(ctx_before, ctx_after);
-        } else {
-            setcontext(ctx_after);
-        }
+    if (ctx_before->run == FALSE) {
+        ctx_after->run = TRUE;
+        setcontext(&ctx_after->ctx);
+    } else if (ctx_before != ctx_after) {
+        ctx_after->run = TRUE;
+        swapcontext(&ctx_before->ctx, &ctx_after->ctx);
+    } else {
+        /* nop */
     }
-}
 
-void Os_Arch_Syscall_Enter(Os_SyscallStateType* state)
-{
-    Os_Arch_SuspendInterrupts(&state->irq);
-    Os_GetTaskId(&state->task);
-}
-
-void Os_Arch_Syscall_Leave(const Os_SyscallStateType* state)
-{
-    Os_TaskType task;
-    Os_GetTaskId(&task);
-    Os_Arch_SwapState(task, state->task);
-    Os_Arch_ResumeInterrupts(&state->irq);
+    Os_Arch_ResumeInterrupts(&state);
+    return res;
 }

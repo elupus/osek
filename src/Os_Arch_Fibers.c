@@ -55,14 +55,40 @@ VOID CALLBACK Os_Arch_FiberStart(LPVOID lpParameter)
     Os_TaskConfigs[task].entry();
 }
 
+static LPVOID Os_Arch_GetCtx(void)
+{
+    Os_TaskType   task;
+    LPVOID        res;
+
+    Os_GetTaskId(&task);
+
+    if (task == OS_INVALID_TASK) {
+        res = Os_Arch_System;
+    } else {
+        res = Os_Arch_State[task].fiber;
+    }
+    return res;
+}
+
 void Os_Arch_Isr(Os_Arch_IsrType isr)
 {
-    Os_SyscallStateType state;
-    Os_Arch_Syscall_Enter(&state);
+    Os_IrqState   state;
+    LPVOID        ctx_before;
+    LPVOID        ctx_after;
+
+    Os_Arch_SuspendInterrupts(&state);
+
+    ctx_before = Os_Arch_GetCtx();
 
     isr();
 
-    Os_Arch_Syscall_Leave(&state);
+    ctx_after  = Os_Arch_GetCtx();
+
+    if (ctx_before != ctx_after) {
+        SwitchToFiber(ctx_after);
+    }
+
+    Os_Arch_ResumeInterrupts(&state);
 }
 
 extern void Os_Arch_Trampoline(void);
@@ -218,26 +244,29 @@ void Os_Arch_EnableAllInterrupts(void)
     Os_Arch_ResumeInterrupts(&state);
 }
 
-void Os_Arch_Syscall_Enter(Os_SyscallStateType* state)
+Os_StatusType Os_Arch_Syscall(Os_SyscallParamType* param)
 {
-    Os_Arch_SuspendInterrupts(&state->irq);
-    Os_GetTaskId(&state->task);
-}
+    Os_IrqState   state;
+    LPVOID        ctx_before;
+    LPVOID        ctx_after;
+    Os_StatusType res;
 
-void Os_Arch_Syscall_Leave(const Os_SyscallStateType* state)
-{
-    Os_TaskType task;
-    Os_GetTaskId(&task);
-    if (state->task != task) {
-        if (task == OS_INVALID_TASK) {
-            SwitchToFiber(Os_Arch_System);
-        } else {
-            SwitchToFiber(Os_Arch_State[task].fiber);
-        }
+    Os_Arch_SuspendInterrupts(&state);
+
+    ctx_before = Os_Arch_GetCtx();
+
+    res = Os_Syscall_Internal(param);
+
+    ctx_after = Os_Arch_GetCtx();
+
+    if (ctx_before != ctx_after) {
+        SwitchToFiber(ctx_after);
     }
-    Os_Arch_ResumeInterrupts(&state->irq);
-}
 
+    Os_Arch_ResumeInterrupts(&state);
+
+    return res;
+}
 
 void Os_Arch_PrepareState(Os_TaskType task)
 {

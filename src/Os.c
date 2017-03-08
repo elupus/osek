@@ -31,6 +31,7 @@
  */
 
 #include <string.h>
+#include <stdarg.h>
 
 #include "Std_Types.h"
 #include "Os_Types.h"
@@ -409,21 +410,17 @@ void Os_Start(void)
     Os_CallContext = OS_CONTEXT_TASK;
 
     Os_Arch_EnableAllInterrupts();
-    Os_Arch_Syscall_Enter(&state);
-    res = Os_Schedule_Internal();
-    if (res == E_OK) {
-        Os_Arch_Syscall_Leave(&state);
-        while(Os_Continue) {
-            Os_Arch_Wait();
-        }
+    Os_SyscallParamType param;
+    param.service = OSServiceId_Schedule;
+    Os_Arch_Syscall(&param);
+    while(Os_Continue) {
+        Os_Arch_Wait();
     }
 }
 
-void Os_Shutdown(void)
+Os_StatusType Os_Shutdown_Internal(void)
 {
     Os_TaskType prev;
-    Os_SyscallStateType state;
-    Os_Arch_Syscall_Enter(&state);
 
     Os_Continue = FALSE;
     /* store previous to be able to swap state later */
@@ -436,7 +433,7 @@ void Os_Shutdown(void)
 
     /* swap back if os support it */
     Os_ActiveTask = OS_INVALID_TASK;
-    Os_Arch_Syscall_Leave(&state);
+    return E_OK;
 }
 
 /**
@@ -474,23 +471,6 @@ Os_StatusType Os_Schedule_Internal(void)
         Os_ActiveTask = task;
     }
     return E_OK;
-}
-
-/** @copydoc Os_Schedule_Internal */
-Os_StatusType Os_Schedule(void)
-{
-    Os_StatusType result;
-    Os_SyscallStateType state;
-    Os_Arch_Syscall_Enter(&state);
-
-    Os_TaskInternalResource_Release();
-
-    result = Os_Schedule_Internal();
-
-    Os_TaskInternalResource_Get();
-    Os_Arch_Syscall_Leave(&state);
-
-    return result;
 }
 
 void Os_Isr(void)
@@ -537,27 +517,6 @@ OS_ERRORCHECK_EXIT_POINT:
     OS_ERRORHOOK(Os_Error.status);
     return Os_Error.status;
 }
-
-/** @copydoc Os_TerminateTask_Internal */
-Os_StatusType Os_TerminateTask(void)
-{
-    Os_StatusType result;
-    Os_SyscallStateType state;
-    Os_Arch_Syscall_Enter(&state);
-
-    Os_TaskInternalResource_Release();
-
-    result = Os_TerminateTask_Internal();
-
-    if (result == E_OK) {
-        result = Os_Schedule_Internal();
-    }
-
-    Os_Arch_Syscall_Leave(&state);
-
-    return result;
-}
-
 
 /**
  * @brief Terminate calling task and chain into given task
@@ -637,26 +596,6 @@ OS_ERRORCHECK_EXIT_POINT:
     return Os_Error.status;
 }
 
-/** @copydoc Os_ChainTask_Internal */
-Os_StatusType Os_ChainTask(Os_TaskType task)
-{
-    Os_StatusType result;
-    Os_SyscallStateType state;
-    Os_Arch_Syscall_Enter(&state);
-
-    Os_TaskInternalResource_Release();
-
-    result = Os_ChainTask_Internal(task);
-
-    if (result == E_OK) {
-        result = Os_Schedule_Internal();
-    }
-
-    Os_Arch_Syscall_Leave(&state);
-
-    return result;
-}
-
 /**
  * @brief Increase activation count for task by one
  * @param task Task to activate
@@ -693,22 +632,6 @@ OS_ERRORCHECK_EXIT_POINT:
     return Os_Error.status;
 }
 
-/** @copydoc Os_ActivateTask_Internal */
-Os_StatusType Os_ActivateTask(Os_TaskType task)
-{
-    Os_StatusType result;
-    Os_SyscallStateType state;
-    Os_Arch_Syscall_Enter(&state);
-
-    result = Os_ActivateTask_Internal(task);
-    if (result == E_OK) {
-        result = Os_Schedule_Internal();
-    }
-
-    Os_Arch_Syscall_Leave(&state);
-    return result;
-}
-
 /**
  * @brief Lock resource for active task
  * @param res
@@ -742,19 +665,6 @@ OS_ERRORCHECK_EXIT_POINT:
     Os_Error.params[0] = res;
     OS_ERRORHOOK(Os_Error.status);
     return Os_Error.status;
-}
-
-/** @copydoc Os_GetResource_Task */
-Os_StatusType Os_GetResource(Os_ResourceType res)
-{
-    Os_StatusType result;
-    Os_SyscallStateType state;
-    Os_Arch_Syscall_Enter(&state);
-
-    result = Os_GetResource_Internal(res);
-
-    Os_Arch_Syscall_Leave(&state);
-    return result;
 }
 
 /**
@@ -797,22 +707,6 @@ OS_ERRORCHECK_EXIT_POINT:
     Os_Error.params[0] = res;
     OS_ERRORHOOK(Os_Error.status);
     return Os_Error.status;
-}
-
-/** @copydoc Os_ReleaseResource_Task */
-Os_StatusType Os_ReleaseResource(Os_ResourceType res)
-{
-    Os_StatusType result;
-    Os_SyscallStateType state;
-    Os_Arch_Syscall_Enter(&state);
-
-    result = Os_ReleaseResource_Internal(res);
-    if (result == E_OK) {
-        result = Os_Schedule_Internal();
-    }
-
-    Os_Arch_Syscall_Leave(&state);
-    return result;
 }
 
 #ifdef OS_ALARM_COUNT
@@ -883,17 +777,6 @@ OS_ERRORCHECK_EXIT_POINT:
     return Os_Error.status;
 }
 
-/** @copydoc Os_SetRelAlarm_Internal */
-Os_StatusType Os_SetRelAlarm(Os_AlarmType alarm, Os_TickType increment, Os_TickType cycle)
-{
-    Os_StatusType       result;
-    Os_SyscallStateType state;
-    Os_Arch_Syscall_Enter(&state);
-    result = Os_SetRelAlarm_Internal(alarm, increment, cycle);
-    Os_Arch_Syscall_Leave(&state);
-    return result;
-}
-
 /**
  * @brief Starts an absolute alarm
  * @param[in] alarm Reference to the alarm element
@@ -951,17 +834,6 @@ OS_ERRORCHECK_EXIT_POINT:
     return Os_Error.status;
 }
 
-/** @copydoc Os_SetAbsAlarm */
-Os_StatusType Os_SetAbsAlarm(Os_AlarmType alarm, Os_TickType start, Os_TickType cycle)
-{
-    Os_StatusType       result;
-    Os_SyscallStateType state;
-    Os_Arch_Syscall_Enter(&state);
-    result = Os_SetAbsAlarm_Internal(alarm, start, cycle);
-    Os_Arch_Syscall_Leave(&state);
-    return result;
-}
-
 /**
  * @brief Cancels a running alarm
  * @param alarm Reference to an alarm
@@ -1012,17 +884,6 @@ OS_ERRORCHECK_EXIT_POINT:
     return Os_Error.status;
 }
 
-/** @copydoc Os_CancelAlarm_Internal */
-Os_StatusType Os_CancelAlarm(Os_AlarmType alarm)
-{
-    Os_StatusType       result;
-    Os_SyscallStateType state;
-    Os_Arch_Syscall_Enter(&state);
-    result = Os_CancelAlarm_Internal(alarm);
-    Os_Arch_Syscall_Leave(&state);
-    return result;
-}
-
 /**
  * @brief The system service GetAlarm returns the relative value in ticks before the alarm <AlarmID> expires.
  * @param[in]  alarm Reference to an alarm
@@ -1051,17 +912,6 @@ OS_ERRORCHECK_EXIT_POINT:
     Os_Error.params[0] = alarm;
     OS_ERRORHOOK(Os_Error.status);
     return Os_Error.status;
-}
-
-/** @copydoc Os_CancelAlarm_Internal */
-Os_StatusType Os_GetAlarm(Os_AlarmType alarm, Os_TickType* tick)
-{
-    Os_StatusType       result;
-    Os_SyscallStateType state;
-    Os_Arch_Syscall_Enter(&state);
-    result = Os_GetAlarm_Internal(alarm, tick);
-    Os_Arch_Syscall_Leave(&state);
-    return result;
 }
 
 #endif /* OS_ALARM_COUNT */
@@ -1101,23 +951,101 @@ OS_ERRORCHECK_EXIT_POINT:
     return Os_Error.status;
 }
 
-/** @copydoc Os_TerminateTask_Internal */
-Os_StatusType Os_IncrementCounter(Os_CounterType counter)
-{
-    Os_StatusType       result;
-    Os_SyscallStateType state;
-    Os_Arch_Syscall_Enter(&state);
+#endif /* OS_COUNTER_COUNT */
 
-    result = Os_IncrementCounter_Internal(counter);
-    if (result == E_OK) {
-        result = Os_Schedule();
+Os_StatusType Os_Syscall_Internal(Os_SyscallParamType* param)
+{
+    Os_StatusType res;
+    switch (param->service) {
+        case OSServiceId_Schedule: {
+            Os_TaskInternalResource_Release();
+            res = Os_Schedule_Internal();
+            Os_TaskInternalResource_Get();
+            break;
+        }
+
+        case OSServiceId_TerminateTask: {
+            Os_TaskInternalResource_Release();
+            res = Os_TerminateTask_Internal();
+            if (res == E_OK) {
+                res = Os_Schedule_Internal();
+            }
+            Os_TaskInternalResource_Get();
+            break;
+        }
+
+        case OSServiceId_ActivateTask: {
+            res = Os_ActivateTask_Internal(param->task);
+            if (res == E_OK) {
+                res = Os_Schedule_Internal();
+            }
+            break;
+        }
+
+        case OSServiceId_ChainTask: {
+            Os_TaskInternalResource_Release();
+            res = Os_ChainTask_Internal(param->task);
+            if (res == E_OK) {
+                res = Os_Schedule_Internal();
+            }
+            Os_TaskInternalResource_Get();
+            break;
+        }
+
+        case OSServiceId_GetResource: {
+            res = Os_GetResource_Internal(param->resource);
+            break;
+        }
+
+        case OSServiceId_ReleaseResource: {
+            res = Os_ReleaseResource_Internal(param->resource);
+            if (res == E_OK) {
+                res = Os_Schedule_Internal();
+            }
+            break;
+        }
+
+#ifdef OS_ALARM_COUNT
+        case OSServiceId_SetRelAlarm: {
+            res = Os_SetRelAlarm_Internal(param->alarm, param->tick[0], param->tick[1]);
+            break;
+        }
+
+        case OSServiceId_SetAbsAlarm: {
+            res = Os_SetAbsAlarm_Internal(param->alarm, param->tick[0], param->tick[1]);
+            break;
+        }
+
+        case OSServiceId_CancelAlarm: {
+            res = Os_CancelAlarm_Internal(param->alarm);
+            break;
+        }
+
+        case OSServiceId_GetAlarm: {
+            res = Os_GetAlarm_Internal(param->alarm, param->tick_ptr);
+            break;
+        }
+#endif
+
+#ifdef OS_COUNTER_COUNT
+        case OSServiceId_CounterIncrement: {
+            res = Os_IncrementCounter_Internal(param->counter);
+            break;
+        }
+#endif
+
+        case OSServiceId_Shutdown: {
+            res = Os_Shutdown_Internal();
+            break;
+        }
+
+        default:
+            res = E_NOT_OK;
+            break;
     }
 
-    Os_Arch_Syscall_Leave(&state);
-    return E_OK;
+    return res;
 }
-
-#endif /* OS_COUNTER_COUNT */
 
 /**
  * @brief Initializes OS internal structures with given config

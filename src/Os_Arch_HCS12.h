@@ -103,7 +103,4 @@ static __inline void Os_Arch_Wait(void)
     /* NOP */
 }
 
-void       Os_Arch_Syscall_Enter(Os_SyscallStateType* state);
-void       Os_Arch_Syscall_Leave(const Os_SyscallStateType* state);
-
 #endif /* OS_ARCH_HCS12_H_ */

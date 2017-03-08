@@ -21,20 +21,20 @@
 
 typedef struct Os_Arch_StateType {
     uint16_t sp;
+    Os_SyscallParamType* param;
+    Os_StatusType        res;
  } Os_Arch_StateType;
 
 Os_Arch_StateType  Os_Arch_State[OS_TASK_COUNT];
 Os_Arch_StateType  Os_Arch_State_None;
 
 Os_Arch_StateType* Os_Arch_Ctx_Prev = NULL;
-Os_Arch_StateType* Os_Arch_Ctx_Next = NULL;
 
 void Os_Arch_Init(void)
 {
     memset(&Os_Arch_State     , 0, sizeof(Os_Arch_State));
     memset(&Os_Arch_State_None, 0, sizeof(Os_Arch_State_None));
     Os_Arch_Ctx_Prev = &Os_Arch_State_None;
-    Os_Arch_Ctx_Next = &Os_Arch_State_None;
 }
 
 #define PPAGE_ADDRESS "0x15"
@@ -49,10 +49,9 @@ void Os_Arch_Init(void)
 
 #define OS_ARCH_RESTORE()                               \
     __asm (                                             \
-            "ldx Os_Arch_Ctx_Next\n"                    \
+            "ldx Os_Arch_Ctx_Prev\n"                    \
             "lds  0x0 , X\n"                            \
             "movb 0x1 , SP+, " PPAGE_ADDRESS "\n"       \
-            "movw Os_Arch_Ctx_Next, Os_Arch_Ctx_Prev\n" \
     )
 
 #else
@@ -67,12 +66,11 @@ void Os_Arch_Init(void)
 
 #define OS_ARCH_RESTORE()                               \
     __asm __volatile__ (                                \
-            "ldx Os_Arch_Ctx_Next\n"                    \
+            "ldx Os_Arch_Ctx_Prev\n"                    \
             "lds  0x0 , X\n"                            \
             "movb 0x1, SP+, " PPAGE_ADDRESS "\n"        \
             "movw 0x2, SP+, _.d1\n"                     \
             "movw 0x2, SP+, _.frame\n"                  \
-            "movw Os_Arch_Ctx_Next, Os_Arch_Ctx_Prev"   \
     )
 #endif
 
@@ -81,6 +79,16 @@ void Os_Arch_Init(void)
 __interrupt __near void Os_Arch_Swi(void)
 {
     OS_ARCH_STORE();
+    {
+        Os_TaskType   task;
+        Os_Arch_Ctx_Prev->res = Os_Arch_Syscall(Os_Arch_Ctx_Prev->param);
+        (void)Os_GetTaskId(&task);
+        if (task == OS_INVALID_TASK) {
+            Os_Arch_Ctx_Prev = &Os_Arch_State_None;
+        } else {
+            Os_Arch_Ctx_Prev = &Os_Arch_State[task];
+        }
+    }
     OS_ARCH_RESTORE();
 }
 
@@ -91,39 +99,25 @@ __interrupt __near void Os_Arch_Swi(void)
 __interrupt __near void Os_Arch_Isr(void)
 {
     OS_ARCH_STORE();
-    Os_Isr();
+    {
+        Os_TaskType   task;
+        Os_Isr();
+        if (task == OS_INVALID_TASK) {
+            Os_Arch_Ctx_Prev = &Os_Arch_State_None;
+        } else {
+            Os_Arch_Ctx_Prev = &Os_Arch_State[task];
+        }
+    }
     OS_ARCH_RESTORE();
 }
 
 #pragma CODE_SEG DEFAULT
 
-void Os_Arch_SwapState   (Os_TaskType task, Os_TaskType prev)
+Os_StatusType Os_Arch_Syscall(Os_SyscallParamType* param)
 {
-    if (task == OS_INVALID_TASK) {
-        Os_Arch_Ctx_Next = &Os_Arch_State_None;
-    } else {
-        Os_Arch_Ctx_Next = &Os_Arch_State[task];
-    }
-
-    if (Os_CallContext == OS_CONTEXT_TASK) {
-        if (Os_Arch_Ctx_Next != Os_Arch_Ctx_Prev) {
-            __asm ("swi\n");
-        }
-    }
-}
-
-void Os_Arch_Syscall_Enter(Os_SyscallStateType* state)
-{
-    Os_Arch_SuspendInterrupts(&state->irq);
-    Os_GetTaskId(&state->task);
-}
-
-void Os_Arch_Syscall_Leave(const Os_SyscallStateType* state)
-{
-    Os_TaskType task;
-    Os_GetTaskId(&task);
-    Os_Arch_SwapState(task, state->task);
-    Os_Arch_ResumeInterrupts(&state->irq);
+    Os_Arch_Ctx_Prev->param = param;
+    __asm ("swi\n");
+    return Os_Arch_Ctx_Prev->res;
 }
 
 void Os_Arch_PrepareState(Os_TaskType task)

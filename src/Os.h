@@ -163,22 +163,148 @@ void       Os_TaskInternalResource_Get(void);
 
 void       Os_Init(const Os_ConfigType* config);
 void       Os_Start(void);
-void       Os_Shutdown(void);
 void       Os_Isr(void);
 
-extern Os_StatusType Os_Schedule(void);
-extern Os_StatusType Os_TerminateTask(void);
-extern Os_StatusType Os_ActivateTask(Os_TaskType task);
-extern Os_StatusType Os_ChainTask(Os_TaskType task);
-extern Os_StatusType Os_GetResource(Os_ResourceType res);
-extern Os_StatusType Os_ReleaseResource(Os_ResourceType res);
 
-extern Os_StatusType Os_SetRelAlarm(Os_AlarmType alarm, Os_TickType increment, Os_TickType cycle);
-extern Os_StatusType Os_SetAbsAlarm(Os_AlarmType alarm, Os_TickType start    , Os_TickType cycle);
-extern Os_StatusType Os_CancelAlarm(Os_AlarmType alarm);
-extern Os_StatusType Os_GetAlarm   (Os_AlarmType alarm, Os_TickType* tick);
+typedef enum Os_ServiceIdType {
+    OSServiceId_None,
+    OSServiceId_Schedule,
+    OSServiceId_TerminateTask,
+    OSServiceId_ActivateTask,
+    OSServiceId_GetResource,
+    OSServiceId_ReleaseResource,
+    OSServiceId_SetRelAlarm,
+    OSServiceId_SetAbsAlarm,
+    OSServiceId_CancelAlarm,
+    OSServiceId_GetAlarm,
+    OSServiceId_ChainTask,
+    OSServiceId_CounterIncrement,
+    OSServiceId_Shutdown,
+} Os_ServiceIdType;
 
-extern Os_StatusType Os_IncrementCounter(Os_CounterType counter);
+typedef struct Os_SyscallParamType {
+    Os_ServiceIdType    service;
+    union {
+        Os_TaskType     task;
+        Os_AlarmType    alarm;
+        Os_CounterType  counter;
+        Os_ResourceType resource;
+    };
+    union {
+        Os_TickType  tick[2];
+        Os_TickType* tick_ptr;
+    };
+} Os_SyscallParamType;
+
+extern Os_StatusType Os_Arch_Syscall(Os_SyscallParamType* param);
+
+/** @copydoc Os_Schedule_Internal */
+static __inline Os_StatusType Os_Schedule(void)
+{
+    Os_SyscallParamType param;
+    param.service = OSServiceId_Schedule;
+    return Os_Arch_Syscall(&param);
+}
+
+/** @copydoc Os_TerminateTask_Internal */
+static __inline Os_StatusType Os_TerminateTask(void)
+{
+    Os_SyscallParamType param;
+    param.service = OSServiceId_TerminateTask;
+    return Os_Arch_Syscall(&param);
+}
+
+/** @copydoc Os_ActivateTask_Internal */
+static __inline Os_StatusType Os_ActivateTask(Os_TaskType task)
+{
+    Os_SyscallParamType param;
+    param.service = OSServiceId_ActivateTask;
+    param.task    = task;
+    return Os_Arch_Syscall(&param);
+}
+
+/** @copydoc Os_ChainTask_Internal */
+static __inline Os_StatusType Os_ChainTask(Os_TaskType task)
+{
+    Os_SyscallParamType param;
+    param.service = OSServiceId_ChainTask;
+    param.task    = task;
+    return Os_Arch_Syscall(&param);
+}
+
+/** @copydoc Os_GetResource_Internal */
+static __inline Os_StatusType Os_GetResource(Os_ResourceType res)
+{
+    Os_SyscallParamType param;
+    param.service  = OSServiceId_GetResource;
+    param.resource = res;
+    return Os_Arch_Syscall(&param);
+}
+
+/** @copydoc Os_ReleaseResource_Internal */
+static __inline Os_StatusType Os_ReleaseResource(Os_ResourceType res)
+{
+    Os_SyscallParamType param;
+    param.service  = OSServiceId_ReleaseResource;
+    param.resource = res;
+    return Os_Arch_Syscall(&param);
+}
+
+/** @copydoc Os_SetRelAlarm_Internal */
+static __inline Os_StatusType Os_SetRelAlarm(Os_AlarmType alarm, Os_TickType increment, Os_TickType cycle)
+{
+    Os_SyscallParamType param;
+    param.service = OSServiceId_SetRelAlarm;
+    param.alarm   = alarm;
+    param.tick[0] = increment;
+    param.tick[1] = cycle;
+    return Os_Arch_Syscall(&param);
+}
+
+/** @copydoc Os_SetAbsAlarm_Internal */
+static __inline Os_StatusType Os_SetAbsAlarm(Os_AlarmType alarm, Os_TickType start    , Os_TickType cycle)
+{
+    Os_SyscallParamType param;
+    param.service = OSServiceId_SetAbsAlarm;
+    param.alarm   = alarm;
+    param.tick[0] = start;
+    param.tick[1] = cycle;
+    return Os_Arch_Syscall(&param);
+}
+
+/** @copydoc Os_CancelAlarm_Internal */
+static __inline Os_StatusType Os_CancelAlarm(Os_AlarmType alarm)
+{
+    Os_SyscallParamType param;
+    param.service = OSServiceId_CancelAlarm;
+    param.alarm   = alarm;
+    return Os_Arch_Syscall(&param);
+}
+
+/** @copydoc Os_GetAlarm_Internal */
+static __inline Os_StatusType Os_GetAlarm   (Os_AlarmType alarm, Os_TickType* tick)
+{
+    Os_SyscallParamType param;
+    param.service  = OSServiceId_GetAlarm;
+    param.alarm    = alarm;
+    param.tick_ptr = tick;
+    return Os_Arch_Syscall(&param);
+}
+
+static __inline Os_StatusType Os_IncrementCounter(Os_CounterType counter)
+{
+    Os_SyscallParamType param;
+    param.service  = OSServiceId_CounterIncrement;
+    param.counter  = counter;
+    return Os_Arch_Syscall(&param);
+}
+
+static __inline Os_StatusType Os_Shutdown(void)
+{
+    Os_SyscallParamType param;
+    param.service  = OSServiceId_Shutdown;
+    return Os_Arch_Syscall(&param);
+}
 
 /**
  * @brief Get the identifier of the currently executing task
@@ -195,20 +321,7 @@ static __inline Os_StatusType Os_GetTaskId   (Os_TaskType* task)
     return E_OK;
 }
 
-enum {
-    OSServiceId_None,
-    OSServiceId_Schedule,
-    OSServiceId_TerminateTask,
-    OSServiceId_ActivateTask,
-    OSServiceId_GetResource,
-    OSServiceId_ReleaseResource,
-    OSServiceId_SetRelAlarm,
-    OSServiceId_SetAbsAlarm,
-    OSServiceId_CancelAlarm,
-    OSServiceId_GetAlarm,
-    OSServiceId_ChainTask,
-    OSServiceId_CounterIncrement,
-};
+Std_ReturnType Os_Syscall_Internal(Os_SyscallParamType *param);
 
 #if(OS_PRETASKHOOK_ENABLE)
 extern void Os_PreTaskHook(Os_TaskType task);
