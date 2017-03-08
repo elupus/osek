@@ -1,5 +1,7 @@
 cmake_minimum_required (VERSION 2.8.4)
 
+option(BUILD_TESTS "Enable Testing" ON)
+
 if(BUILD_TESTS)
     project (OsekOs C CXX)
 else()
@@ -70,7 +72,6 @@ else()
     include_directories(include/gcc)
 endif()
 
-option(BUILD_TESTS "Enable Testing" ON)
 
 if(BUILD_TESTS)
     include(ExternalProject)
