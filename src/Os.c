@@ -510,7 +510,7 @@ Os_StatusType Os_TerminateTask_Internal(void)
     }
 #endif
 
-    return E_OK;
+    return Os_Schedule_Internal();
 
 OS_ERRORCHECK_EXIT_POINT:
     Os_Error.service = OSServiceId_TerminateTask;
@@ -587,7 +587,7 @@ Os_StatusType Os_ChainTask_Internal(Os_TaskType task)
     Os_State_Suspended_To_Ready(task);
 #endif
 
-    return E_OK;
+    return Os_Schedule_Internal();
 
 OS_ERRORCHECK_EXIT_POINT:
     Os_Error.service   = OSServiceId_ChainTask;
@@ -623,7 +623,7 @@ static Os_StatusType Os_ActivateTask_Internal(Os_TaskType task)
     OS_CHECK_EXT_R(Os_TaskControls[task].state == OS_TASK_SUSPENDED, E_OS_LIMIT);
     Os_State_Suspended_To_Ready(task);
 #endif
-    return E_OK;
+    return Os_Schedule_Internal();
 
 OS_ERRORCHECK_EXIT_POINT:
     Os_Error.service   = OSServiceId_ActivateTask;
@@ -700,7 +700,7 @@ Os_StatusType Os_ReleaseResource_Internal(Os_ResourceType res)
         Os_TaskControls[Os_ActiveTask].priority = Os_ResourceConfigs[Os_TaskControls[Os_ActiveTask].resource].priority;
     }
 
-    return E_OK;
+    return Os_Schedule_Internal();
 
 OS_ERRORCHECK_EXIT_POINT:
     Os_Error.service   = OSServiceId_ReleaseResource;
@@ -967,27 +967,18 @@ Os_StatusType Os_Syscall_Internal(Os_SyscallParamType* param)
         case OSServiceId_TerminateTask: {
             Os_TaskInternalResource_Release();
             res = Os_TerminateTask_Internal();
-            if (res == E_OK) {
-                res = Os_Schedule_Internal();
-            }
             Os_TaskInternalResource_Get();
             break;
         }
 
         case OSServiceId_ActivateTask: {
             res = Os_ActivateTask_Internal(param->task);
-            if (res == E_OK) {
-                res = Os_Schedule_Internal();
-            }
             break;
         }
 
         case OSServiceId_ChainTask: {
             Os_TaskInternalResource_Release();
             res = Os_ChainTask_Internal(param->task);
-            if (res == E_OK) {
-                res = Os_Schedule_Internal();
-            }
             Os_TaskInternalResource_Get();
             break;
         }
@@ -999,9 +990,6 @@ Os_StatusType Os_Syscall_Internal(Os_SyscallParamType* param)
 
         case OSServiceId_ReleaseResource: {
             res = Os_ReleaseResource_Internal(param->resource);
-            if (res == E_OK) {
-                res = Os_Schedule_Internal();
-            }
             break;
         }
 
