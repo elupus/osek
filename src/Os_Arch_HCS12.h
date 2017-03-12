@@ -94,7 +94,6 @@ static void __inline Os_Arch_ResumeInterrupts(const Os_IrqState* mask)
 }
 #endif
 
-void       Os_Arch_SwapState   (Os_TaskType task, Os_TaskType prev);
 void       Os_Arch_PrepareState(Os_TaskType task);
 
 #pragma INLINE
