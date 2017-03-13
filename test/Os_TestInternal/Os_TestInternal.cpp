@@ -48,7 +48,11 @@ extern "C" void Os_Arch_EnableAllInterrupts(void)
 {
 }
 
-Os_StatusType Os_Arch_Syscall(Os_SyscallParamType* param)
+extern "C" void Os_Arch_PrepareState(Os_TaskType task)
+{
+}
+
+extern "C" Os_StatusType Os_Arch_Syscall(Os_SyscallParamType* param)
 {
     return E_NOT_OK;
 }
