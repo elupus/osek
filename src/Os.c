@@ -972,52 +972,52 @@ Os_StatusType Os_Syscall_Internal(Os_SyscallParamType* param)
         }
 
         case OSServiceId_ActivateTask: {
-            res = Os_ActivateTask_Internal(param->task);
+            res = Os_ActivateTask_Internal(param->p1.task);
             break;
         }
 
         case OSServiceId_ChainTask: {
             Os_TaskInternalResource_Release();
-            res = Os_ChainTask_Internal(param->task);
+            res = Os_ChainTask_Internal(param->p1.task);
             Os_TaskInternalResource_Get();
             break;
         }
 
         case OSServiceId_GetResource: {
-            res = Os_GetResource_Internal(param->resource);
+            res = Os_GetResource_Internal(param->p1.resource);
             break;
         }
 
         case OSServiceId_ReleaseResource: {
-            res = Os_ReleaseResource_Internal(param->resource);
+            res = Os_ReleaseResource_Internal(param->p1.resource);
             break;
         }
 
 #ifdef OS_ALARM_COUNT
         case OSServiceId_SetRelAlarm: {
-            res = Os_SetRelAlarm_Internal(param->alarm, param->tick[0], param->tick[1]);
+            res = Os_SetRelAlarm_Internal(param->p1.alarm, param->p2.tick[0], param->p2.tick[1]);
             break;
         }
 
         case OSServiceId_SetAbsAlarm: {
-            res = Os_SetAbsAlarm_Internal(param->alarm, param->tick[0], param->tick[1]);
+            res = Os_SetAbsAlarm_Internal(param->p1.alarm, param->p2.tick[0], param->p2.tick[1]);
             break;
         }
 
         case OSServiceId_CancelAlarm: {
-            res = Os_CancelAlarm_Internal(param->alarm);
+            res = Os_CancelAlarm_Internal(param->p1.alarm);
             break;
         }
 
         case OSServiceId_GetAlarm: {
-            res = Os_GetAlarm_Internal(param->alarm, param->tick_ptr);
+            res = Os_GetAlarm_Internal(param->p1.alarm, param->p2.tick_ptr);
             break;
         }
 #endif
 
 #ifdef OS_COUNTER_COUNT
         case OSServiceId_CounterIncrement: {
-            res = Os_IncrementCounter_Internal(param->counter);
+            res = Os_IncrementCounter_Internal(param->p1.counter);
             break;
         }
 #endif

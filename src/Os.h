@@ -189,11 +189,11 @@ typedef struct Os_SyscallParamType {
         Os_AlarmType    alarm;
         Os_CounterType  counter;
         Os_ResourceType resource;
-    };
+    } p1;
     union {
         Os_TickType  tick[2];
         Os_TickType* tick_ptr;
-    };
+    } p2;
 } Os_SyscallParamType;
 
 extern Os_StatusType Os_Arch_Syscall(Os_SyscallParamType* param);
@@ -219,7 +219,7 @@ static __inline Os_StatusType Os_ActivateTask(Os_TaskType task)
 {
     Os_SyscallParamType param;
     param.service = OSServiceId_ActivateTask;
-    param.task    = task;
+    param.p1.task = task;
     return Os_Arch_Syscall(&param);
 }
 
@@ -228,7 +228,7 @@ static __inline Os_StatusType Os_ChainTask(Os_TaskType task)
 {
     Os_SyscallParamType param;
     param.service = OSServiceId_ChainTask;
-    param.task    = task;
+    param.p1.task = task;
     return Os_Arch_Syscall(&param);
 }
 
@@ -236,8 +236,8 @@ static __inline Os_StatusType Os_ChainTask(Os_TaskType task)
 static __inline Os_StatusType Os_GetResource(Os_ResourceType res)
 {
     Os_SyscallParamType param;
-    param.service  = OSServiceId_GetResource;
-    param.resource = res;
+    param.service     = OSServiceId_GetResource;
+    param.p1.resource = res;
     return Os_Arch_Syscall(&param);
 }
 
@@ -245,8 +245,8 @@ static __inline Os_StatusType Os_GetResource(Os_ResourceType res)
 static __inline Os_StatusType Os_ReleaseResource(Os_ResourceType res)
 {
     Os_SyscallParamType param;
-    param.service  = OSServiceId_ReleaseResource;
-    param.resource = res;
+    param.service     = OSServiceId_ReleaseResource;
+    param.p1.resource = res;
     return Os_Arch_Syscall(&param);
 }
 
@@ -254,10 +254,10 @@ static __inline Os_StatusType Os_ReleaseResource(Os_ResourceType res)
 static __inline Os_StatusType Os_SetRelAlarm(Os_AlarmType alarm, Os_TickType increment, Os_TickType cycle)
 {
     Os_SyscallParamType param;
-    param.service = OSServiceId_SetRelAlarm;
-    param.alarm   = alarm;
-    param.tick[0] = increment;
-    param.tick[1] = cycle;
+    param.service    = OSServiceId_SetRelAlarm;
+    param.p1.alarm   = alarm;
+    param.p2.tick[0] = increment;
+    param.p2.tick[1] = cycle;
     return Os_Arch_Syscall(&param);
 }
 
@@ -265,10 +265,10 @@ static __inline Os_StatusType Os_SetRelAlarm(Os_AlarmType alarm, Os_TickType inc
 static __inline Os_StatusType Os_SetAbsAlarm(Os_AlarmType alarm, Os_TickType start    , Os_TickType cycle)
 {
     Os_SyscallParamType param;
-    param.service = OSServiceId_SetAbsAlarm;
-    param.alarm   = alarm;
-    param.tick[0] = start;
-    param.tick[1] = cycle;
+    param.service    = OSServiceId_SetAbsAlarm;
+    param.p1.alarm   = alarm;
+    param.p2.tick[0] = start;
+    param.p2.tick[1] = cycle;
     return Os_Arch_Syscall(&param);
 }
 
@@ -276,8 +276,8 @@ static __inline Os_StatusType Os_SetAbsAlarm(Os_AlarmType alarm, Os_TickType sta
 static __inline Os_StatusType Os_CancelAlarm(Os_AlarmType alarm)
 {
     Os_SyscallParamType param;
-    param.service = OSServiceId_CancelAlarm;
-    param.alarm   = alarm;
+    param.service    = OSServiceId_CancelAlarm;
+    param.p1.alarm   = alarm;
     return Os_Arch_Syscall(&param);
 }
 
@@ -285,17 +285,17 @@ static __inline Os_StatusType Os_CancelAlarm(Os_AlarmType alarm)
 static __inline Os_StatusType Os_GetAlarm   (Os_AlarmType alarm, Os_TickType* tick)
 {
     Os_SyscallParamType param;
-    param.service  = OSServiceId_GetAlarm;
-    param.alarm    = alarm;
-    param.tick_ptr = tick;
+    param.service     = OSServiceId_GetAlarm;
+    param.p1.alarm    = alarm;
+    param.p2.tick_ptr = tick;
     return Os_Arch_Syscall(&param);
 }
 
 static __inline Os_StatusType Os_IncrementCounter(Os_CounterType counter)
 {
     Os_SyscallParamType param;
-    param.service  = OSServiceId_CounterIncrement;
-    param.counter  = counter;
+    param.service    = OSServiceId_CounterIncrement;
+    param.p1.counter = counter;
     return Os_Arch_Syscall(&param);
 }
 
