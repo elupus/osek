@@ -185,7 +185,7 @@ int main(void)
                        + task2_count
                        + task3_count
                        + task4_count;
-    printf("Execution counts %d (%d, %d, %d, %d, %d)\n"
+    printf("Execution counts %u (%u, %u, %u, %u, %u)\n"
             , total / 5
             , task0_count
             , task1_count

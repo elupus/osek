@@ -114,7 +114,7 @@ int main(void)
 {
     Os_Init(&Os_DefaultConfig);
     Os_Start();
-    printf("Execution counts %d\n"
+    printf("Execution counts %u\n"
             , task0_count);
     return 0;
 }
