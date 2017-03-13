@@ -405,12 +405,12 @@ void Os_Start(void)
 {
     Os_StatusType   res;
     Os_SyscallStateType state;
+    Os_SyscallParamType param;
 
     Os_ActiveTask = (Os_TaskType)0u;
     Os_CallContext = OS_CONTEXT_TASK;
 
     Os_Arch_EnableAllInterrupts();
-    Os_SyscallParamType param;
     param.service = OSServiceId_Schedule;
     Os_Arch_Syscall(&param);
     while(Os_Continue) {
