@@ -404,7 +404,6 @@ static __inline void Os_State_Ready_To_Running(Os_TaskType task)
 void Os_Start(void)
 {
     Os_StatusType   res;
-    Os_SyscallStateType state;
     Os_SyscallParamType param;
 
     Os_ActiveTask = (Os_TaskType)0u;

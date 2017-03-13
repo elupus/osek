@@ -23,11 +23,6 @@
 
 typedef    sigset_t Os_IrqState;
 
-typedef struct Os_SyscallStateType {
-    Os_IrqState irq;
-    Os_TaskType task;
-} Os_SyscallStateType;
-
 void       Os_Arch_Init(void);
 
 void       Os_Arch_DisableAllInterrupts(void);

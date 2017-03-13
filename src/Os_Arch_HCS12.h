@@ -26,11 +26,6 @@ void       Os_Arch_Init(void);
 
 typedef    uint8_t Os_IrqState;
 
-typedef struct Os_SyscallStateType {
-    Os_IrqState irq;
-    Os_TaskType task;
-} Os_SyscallStateType;
-
 #pragma CODE_SEG __NEAR_SEG NON_BANKED
 __interrupt __near void Os_Arch_Swi(void);
 #pragma CODE_SEG DEFAULT
