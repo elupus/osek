@@ -403,7 +403,6 @@ static __inline void Os_State_Ready_To_Running(Os_TaskType task)
  */
 void Os_Start(void)
 {
-    Os_StatusType   res;
     Os_SyscallParamType param;
 
     Os_ActiveTask = (Os_TaskType)0u;
@@ -755,8 +754,6 @@ void Os_AlarmInit(Os_AlarmType alarm)
  */
 Os_StatusType Os_SetRelAlarm_Internal(Os_AlarmType alarm, Os_TickType increment, Os_TickType cycle)
 {
-    Os_AlarmType* head;
-
     OS_CHECK_EXT_R(alarm < OS_ALARM_COUNT             , E_OS_ID);
     OS_CHECK_R    (increment != 0u                    , E_OS_VALUE); /**< @req SWS_Os_00304 */
     OS_CHECK_R    (Os_AlarmTicks[alarm] == 0u, E_OS_STATE); /* TODO can fail this check */
