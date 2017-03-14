@@ -41,6 +41,7 @@ elseif (Os_Arch MATCHES "Fibers")
     set_source_files_properties(src/Os_Arch_Fibers_Asm.asm PROPERTIES COMPILE_FLAGS "-safeseh")
     add_definitions(-DOS_CFG_ARCH_FIBERS)
     set (Os_Run 1)
+    set (Os_Metric 1)
 elseif (Os_Arch MATCHES "Posix")
     set (Os_SRCS ${Os_SRCS}
         src/Os_Arch_Posix.c
