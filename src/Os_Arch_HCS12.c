@@ -30,6 +30,22 @@ Os_Arch_StateType  Os_Arch_State_None;
 
 Os_Arch_StateType* Os_Arch_Ctx_Prev = NULL;
 
+
+static Os_Arch_StateType * Os_Arch_GetContext(void)
+{
+    Os_Arch_StateType * ctx;
+    Os_TaskType         task;
+
+    (void)Os_GetTaskId(&task);
+    if (task == OS_INVALID_TASK) {
+        ctx = &Os_Arch_State_None;
+    }
+    else {
+        ctx = &Os_Arch_State[task];
+    }
+    return ctx;
+}
+
 void Os_Arch_Init(void)
 {
     memset(&Os_Arch_State     , 0, sizeof(Os_Arch_State));
@@ -80,14 +96,8 @@ __interrupt __near void Os_Arch_Swi(void)
 {
     OS_ARCH_STORE();
     {
-        Os_TaskType   task;
         Os_Arch_Ctx_Prev->res = Os_Arch_Syscall(Os_Arch_Ctx_Prev->param);
-        (void)Os_GetTaskId(&task);
-        if (task == OS_INVALID_TASK) {
-            Os_Arch_Ctx_Prev = &Os_Arch_State_None;
-        } else {
-            Os_Arch_Ctx_Prev = &Os_Arch_State[task];
-        }
+        Os_Arch_Ctx_Prev = Os_Arch_GetContext();
     }
     OS_ARCH_RESTORE();
 }
@@ -100,13 +110,8 @@ __interrupt __near void Os_Arch_Isr(void)
 {
     OS_ARCH_STORE();
     {
-        Os_TaskType   task;
         Os_Isr();
-        if (task == OS_INVALID_TASK) {
-            Os_Arch_Ctx_Prev = &Os_Arch_State_None;
-        } else {
-            Os_Arch_Ctx_Prev = &Os_Arch_State[task];
-        }
+        Os_Arch_Ctx_Prev = Os_Arch_GetContext();
     }
     OS_ARCH_RESTORE();
 }
