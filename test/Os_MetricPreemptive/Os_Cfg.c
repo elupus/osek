@@ -88,7 +88,7 @@ void task5(void)
 {
     task5_count++;
     if(task5_count == 1) {
-        Os_SetRelAlarm(0, 1000u*1000u/OS_TICK_US+1, 0u);
+        Os_SetRelAlarm(0, (1000ul*1000ul/OS_TICK_US)+1ul, 0u);
         Os_ActivateTask(0);
         Os_TerminateTask();
     } else {
