@@ -36,6 +36,10 @@
 #include "Os_Arch_Fibers.h"
 #endif
 
+#ifdef OS_CFG_ARCH_UMS
+#include "Os_Arch_Ums.h"
+#endif
+
 #ifdef OS_CFG_ARCH_HCS12
 #include "Os_Arch_HCS12.h"
 #endif

@@ -34,6 +34,15 @@ if (Os_Arch MATCHES "WinApi")
     )
     add_definitions(-DOS_CFG_ARCH_WINAPI)
     set (Os_Run 1)
+elseif (Os_Arch MATCHES "Ums")
+    set (Os_SRCS ${Os_SRCS}
+        src/Os_Arch_Ums.c
+    )
+
+    add_definitions(-DOS_CFG_ARCH_UMS)
+    add_definitions(-D_WIN32_WINNT=0x0601)
+    set (Os_Run 1)
+    set (Os_Metric 0)
 elseif (Os_Arch MATCHES "Fibers")
 	enable_language(ASM_MASM)
     set (Os_SRCS ${Os_SRCS}
