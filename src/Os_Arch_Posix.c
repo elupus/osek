@@ -167,3 +167,13 @@ Os_StatusType Os_Arch_Syscall(Os_SyscallParamType* param)
     Os_Arch_ResumeInterrupts(&state);
     return res;
 }
+
+void Os_Arch_Start(void)
+{
+    Os_Arch_CtxType* ctx = Os_Arch_GetContext();
+    if (ctx != &Os_Arch_State_None) {
+        ctx->run = TRUE;
+        swapcontext(&Os_Arch_State_None.ctx, &ctx->ctx);
+    }
+    Os_Arch_EnableAllInterrupts();
+}

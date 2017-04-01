@@ -152,3 +152,11 @@ void Os_Arch_PrepareState(Os_TaskType task)
 
     regs->sp  = (uint16_t)ptr;
 }
+
+void Os_Arch_Start(void)
+{
+    Os_SyscallParamType param = {};
+    Os_Arch_Ctx_Prev->param = &param;
+    __asm ("swi\n");
+    Os_Arch_EnableAllInterrupts();
+}

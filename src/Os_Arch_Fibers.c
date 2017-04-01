@@ -268,6 +268,15 @@ Os_StatusType Os_Arch_Syscall(Os_SyscallParamType* param)
     return res;
 }
 
+void Os_Arch_Start(void)
+{
+    LPVOID ctx = Os_Arch_GetCtx();
+    if (ctx != Os_Arch_System) {
+        SwitchToFiber(Os_Arch_GetCtx());
+    }
+    Os_Arch_EnableAllInterrupts();
+}
+
 void Os_Arch_PrepareState(Os_TaskType task)
 {
     /* clean any prepared fiber */

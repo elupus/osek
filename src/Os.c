@@ -407,10 +407,8 @@ void Os_Start(void)
 
     Os_ActiveTask = (Os_TaskType)0u;
     Os_CallContext = OS_CONTEXT_TASK;
-
-    Os_Arch_EnableAllInterrupts();
-    param.service = OSServiceId_Schedule;
-    Os_Arch_Syscall(&param);
+    Os_Schedule_Internal();
+    Os_Arch_Start();
     while(Os_Continue) {
         Os_Arch_Wait();
     }
