@@ -36,8 +36,8 @@
 #define NAMED_INIT(a) .a =
 #endif
 
-unsigned char task0_stack[8192*16];
-unsigned char task1_stack[8192*16];
+unsigned char task0_stack[512];
+unsigned char task1_stack[512];
 
 unsigned int  task0_count;
 unsigned int  task1_count;
@@ -71,21 +71,21 @@ void task1(void)
 }
 
 const Os_TaskConfigType Os_DefaultTasks[OS_TASK_COUNT] = {
-          { NAMED_INIT(entry)       task0,
+          { NAMED_INIT(priority)    0,
+            NAMED_INIT(entry)       task0,
             NAMED_INIT(stack)       task0_stack,
             NAMED_INIT(stack_size)  sizeof(task0_stack),
             NAMED_INIT(autostart)   0,
-            NAMED_INIT(priority)    0,
 #if( (OS_CONFORMANCE == OS_CONFORMANCE_ECC2) ||  (OS_CONFORMANCE == OS_CONFORMANCE_BCC2) )
             NAMED_INIT(activation)  255u,
 #endif
             NAMED_INIT(resource)    OS_INVALID_RESOURCE
           }
-        , { NAMED_INIT(entry)       task1,
+        , { NAMED_INIT(priority)    1,
+            NAMED_INIT(entry)       task1,
             NAMED_INIT(stack)       task1_stack,
             NAMED_INIT(stack_size)  sizeof(task1_stack),
             NAMED_INIT(autostart)   1,
-            NAMED_INIT(priority)    1,
 #if( (OS_CONFORMANCE == OS_CONFORMANCE_ECC2) ||  (OS_CONFORMANCE == OS_CONFORMANCE_BCC2) )
             NAMED_INIT(activation)  255u,
 #endif

@@ -36,12 +36,12 @@
 #define NAMED_INIT(a) .a =
 #endif
 
-unsigned char task0_stack[8192*16];
-unsigned char task1_stack[8192*16];
-unsigned char task2_stack[8192*16];
-unsigned char task3_stack[8192*16];
-unsigned char task4_stack[8192*16];
-unsigned char task5_stack[8192*16];
+unsigned char task0_stack[512];
+unsigned char task1_stack[512];
+unsigned char task2_stack[512];
+unsigned char task3_stack[512];
+unsigned char task4_stack[512];
+unsigned char task5_stack[512];
 
 unsigned int  task0_count;
 unsigned int  task1_count;
@@ -97,61 +97,61 @@ void task5(void)
 }
 
 const Os_TaskConfigType Os_DefaultTasks[OS_TASK_COUNT] = {
-          { NAMED_INIT(entry)       task0,
+          { NAMED_INIT(priority)    0,
+            NAMED_INIT(entry)       task0,
             NAMED_INIT(stack)       task0_stack,
             NAMED_INIT(stack_size)  sizeof(task0_stack),
             NAMED_INIT(autostart)   0,
-            NAMED_INIT(priority)    0,
 #if( (OS_CONFORMANCE == OS_CONFORMANCE_ECC2) ||  (OS_CONFORMANCE == OS_CONFORMANCE_BCC2) )
             NAMED_INIT(activation)  255u,
 #endif
             NAMED_INIT(resource)    OS_INVALID_RESOURCE
           }
-        , { NAMED_INIT(entry)       task1,
+        , { NAMED_INIT(priority)    0,
+            NAMED_INIT(entry)       task1,
             NAMED_INIT(stack)       task1_stack,
             NAMED_INIT(stack_size)  sizeof(task1_stack),
             NAMED_INIT(autostart)   0,
-            NAMED_INIT(priority)    0,
 #if( (OS_CONFORMANCE == OS_CONFORMANCE_ECC2) ||  (OS_CONFORMANCE == OS_CONFORMANCE_BCC2) )
             NAMED_INIT(activation)  255u,
 #endif
             NAMED_INIT(resource)    OS_INVALID_RESOURCE
           }
-       , { NAMED_INIT(entry)        task2,
+       , { NAMED_INIT(priority)     0,
+           NAMED_INIT(entry)        task2,
            NAMED_INIT(stack)        task2_stack,
            NAMED_INIT(stack_size)   sizeof(task2_stack),
            NAMED_INIT(autostart)    0,
-           NAMED_INIT(priority)     0,
 #if( (OS_CONFORMANCE == OS_CONFORMANCE_ECC2) ||  (OS_CONFORMANCE == OS_CONFORMANCE_BCC2) )
            NAMED_INIT(activation)   255u,
 #endif
            NAMED_INIT(resource)     OS_INVALID_RESOURCE
          }
-       , { NAMED_INIT(entry)        task3,
+       , { NAMED_INIT(priority)     0,
+           NAMED_INIT(entry)        task3,
            NAMED_INIT(stack)        task3_stack,
            NAMED_INIT(stack_size)   sizeof(task3_stack),
            NAMED_INIT(autostart)    0,
-           NAMED_INIT(priority)     0,
 #if( (OS_CONFORMANCE == OS_CONFORMANCE_ECC2) ||  (OS_CONFORMANCE == OS_CONFORMANCE_BCC2) )
            NAMED_INIT(activation)   255u,
 #endif
            NAMED_INIT(resource)     OS_INVALID_RESOURCE
          }
-       , { NAMED_INIT(entry)        task4,
+       , { NAMED_INIT(priority)     0,
+           NAMED_INIT(entry)        task4,
            NAMED_INIT(stack)        task4_stack,
            NAMED_INIT(stack_size)   sizeof(task4_stack),
            NAMED_INIT(autostart)    0,
-           NAMED_INIT(priority)     0,
 #if( (OS_CONFORMANCE == OS_CONFORMANCE_ECC2) ||  (OS_CONFORMANCE == OS_CONFORMANCE_BCC2) )
            NAMED_INIT(activation)   255u,
 #endif
            NAMED_INIT(resource)     OS_INVALID_RESOURCE
          }
-       , { NAMED_INIT(entry)        task5,
+       , { NAMED_INIT(priority)     1,
+           NAMED_INIT(entry)        task5,
            NAMED_INIT(stack)        task5_stack,
            NAMED_INIT(stack_size)   sizeof(task5_stack),
            NAMED_INIT(autostart)    1,
-           NAMED_INIT(priority)     1,
 #if( (OS_CONFORMANCE == OS_CONFORMANCE_ECC2) ||  (OS_CONFORMANCE == OS_CONFORMANCE_BCC2) )
            NAMED_INIT(activation)   255u,
 #endif
@@ -178,13 +178,14 @@ const Os_ConfigType Os_DefaultConfig = {
 
 int main(void)
 {
+    unsigned int total;
     Os_Init(&Os_DefaultConfig);
     Os_Start();
-    unsigned int total = task0_count
-                       + task1_count
-                       + task2_count
-                       + task3_count
-                       + task4_count;
+    total = task0_count
+          + task1_count
+          + task2_count
+          + task3_count
+          + task4_count;
     printf("Execution counts %u (%u, %u, %u, %u, %u)\n"
             , total / 5
             , task0_count

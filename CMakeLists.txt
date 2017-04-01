@@ -69,9 +69,12 @@ elseif (Os_Arch MATCHES "Posix")
 elseif (Os_Arch MATCHES "HCS12")
     set (Os_SRCS ${Os_SRCS}
         src/Os_Arch_HCS12.c
+        test/common/hcs12/trap.c
     )
     add_definitions(-DOS_CFG_ARCH_HCS12)
+    set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${CMAKE_CURRENT_SOURCE_DIR}/test/common/hcs12/link.prm")
     set (Os_HCS12 1)
+	set (Os_Metric 1)
 endif()
 
 include_directories(include src)
@@ -160,9 +163,6 @@ endif()
 if(${Os_HCS12})
     # Simple Os_Run test
     add_executable(Os_HCS12 ${Os_SRCS} test/Os_HCS12/Os_Cfg.c)
-    if (CMAKE_C_COMPILER_ID MATCHES chc12)
-        set_target_properties(Os_HCS12 PROPERTIES LINK_FLAGS ${CMAKE_CURRENT_SOURCE_DIR}/test/Os_HCS12/link.prm)
-    endif()
     target_include_directories(Os_HCS12 PRIVATE test/Os_HCS12)
     if(CMAKE_OBJCOPY AND CMAKE_OBJDUMP)
         add_custom_command(TARGET Os_HCS12 POST_BUILD
@@ -171,7 +171,7 @@ if(${Os_HCS12})
     endif()
     if(CHC12_BURNER)
         add_custom_command(TARGET Os_HCS12 POST_BUILD
-                           COMMAND ${CHC12_PIPER} ${CHC12_BURNER} -ViewHidden -EnvABS_FILE=$<TARGET_FILE:Os_HCS12> -F ${CMAKE_CURRENT_SOURCE_DIR}/test/Os_HCS12/burner.bbl)
+                           COMMAND ${CHC12_PIPER} ${CHC12_BURNER} -ViewHidden -EnvABS_FILE=$<TARGET_FILE:Os_HCS12> -F ${CMAKE_CURRENT_SOURCE_DIR}/test/common/hcs12/burner.bbl)
     endif()
 endif()
 
