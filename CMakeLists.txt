@@ -1,6 +1,7 @@
 cmake_minimum_required (VERSION 2.8.4)
 
-option(BUILD_TESTS "Enable Testing" ON)
+set(BUILD_TESTS ON CACHE BOOL   "Enable Testing")
+set(BUILD_ARCH  "" CACHE STRING "Target architecture")
 
 if(BUILD_TESTS)
     project (OsekOs C CXX)
@@ -17,8 +18,9 @@ set (Os_SRCS
 
 # we must add these to get all defines even in C++ programs
 add_definitions(-D__STDC_LIMIT_MACROS -D__STDC_CONSTANT_MACROS)
-
-if (WIN32 OR CYGWIN)
+if (BUILD_ARCH)
+    set (Os_Arch ${BUILD_ARCH})
+elseif (WIN32 OR CYGWIN)
     set (Os_Arch "Fibers")
 elseif (UNIX)
     set (Os_Arch "Posix")
