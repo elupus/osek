@@ -419,16 +419,12 @@ Os_StatusType Os_Shutdown_Internal(void)
     Os_TaskType prev;
 
     Os_Continue = FALSE;
-    /* store previous to be able to swap state later */
-    prev = Os_ActiveTask;
 
     if (Os_TaskControls[Os_ActiveTask].state == OS_TASK_RUNNING) {
         /* put preempted task as first ready */
         Os_State_Running_To_Ready(Os_ActiveTask);
     }
 
-    /* swap back if os support it */
-    Os_ActiveTask = OS_INVALID_TASK;
     return E_OK;
 }
 
