@@ -6,7 +6,7 @@
 #include <stddef.h>
 #include <limits.h>
 
-typedef _Bool          boolean;
+typedef bool           boolean;
 typedef int8_t         sint8;
 typedef uint8_t        uint8;
 
