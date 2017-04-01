@@ -49,7 +49,12 @@ elseif (Os_Arch MATCHES "Fibers")
         src/Os_Arch_Fibers.c
         src/Os_Arch_Fibers_Asm.asm
     )
-    set_source_files_properties(src/Os_Arch_Fibers_Asm.asm PROPERTIES COMPILE_FLAGS "-safeseh")
+
+    set_property(
+        SOURCE src/Os_Arch_Fibers_Asm.asm
+        PROPERTY COMPILE_FLAGS "-safeseh"
+    )
+
     add_definitions(-DOS_CFG_ARCH_FIBERS)
     set (Os_Run 1)
     set (Os_Metric 1)
