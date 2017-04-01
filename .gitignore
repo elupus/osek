@@ -10,3 +10,4 @@ Makefile
 *.swp
 Os_Run
 Os_Test
+/.vs
