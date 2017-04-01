@@ -34,6 +34,8 @@ void       Os_Arch_ResumeInterrupts(const Os_IrqState* mask);
 
 void       Os_Arch_PrepareState(Os_TaskType task);
 
+void       Os_Arch_Start(void);
+
 static __inline void Os_Arch_Wait(void)
 {
     /* NOP */

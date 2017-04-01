@@ -57,6 +57,11 @@ extern "C" Os_StatusType Os_Arch_Syscall(Os_SyscallParamType* param)
     return E_NOT_OK;
 }
 
+extern "C" void Os_Arch_Start(void)
+{
+
+}
+
 struct Os_TestInternal : public testing::Test {
     static Os_TestInternal* active;
 
