@@ -62,13 +62,13 @@ elseif (Os_Arch MATCHES "Posix")
     set (Os_SRCS ${Os_SRCS}
         src/Os_Arch_Posix.c
     )
-    add_definitions(-D_XOPEN_SOURCE=600 -DOS_CFG_ARCH_POSIX)
 
     set_property(
         SOURCE src/Os_Arch_Posix.c
         PROPERTY COMPILE_FLAGS -Wno-deprecated-declarations
     )
 
+    add_definitions(-D_XOPEN_SOURCE=600 -DOS_CFG_ARCH_POSIX)
     set (Os_Run 1)
     set (Os_Metric 1)
 elseif (Os_Arch MATCHES "HCS12")
@@ -76,6 +76,7 @@ elseif (Os_Arch MATCHES "HCS12")
         src/Os_Arch_HCS12.c
         test/common/hcs12/trap.c
     )
+
     add_definitions(-DOS_CFG_ARCH_HCS12)
     set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${CMAKE_CURRENT_SOURCE_DIR}/test/common/hcs12/link.prm")
     set (Os_HCS12 1)
