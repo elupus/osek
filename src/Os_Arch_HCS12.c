@@ -160,7 +160,7 @@ void Os_Arch_PrepareState(Os_TaskType task)
 
 void Os_Arch_Start(void)
 {
-    Os_SyscallParamType param = {};
+    Os_SyscallParamType param = {0};
     Os_Arch_Ctx_Prev->param = &param;
     __asm ("swi\n");
     Os_Arch_EnableAllInterrupts();
