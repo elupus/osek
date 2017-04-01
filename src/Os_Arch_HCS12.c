@@ -19,6 +19,13 @@
 #include "Os.h"
 #include <string.h>
 
+volatile uint8 Os_Arch_CRGFLG @ 0x37u;
+volatile uint8 Os_Arch_CRGINT @ 0x38u;
+volatile uint8 Os_Arch_RTICTL @ 0x3bu;
+
+#define OS_ARCH_CFGFLG_RTIF_MASK 0x80u
+#define OS_ARCH_CFGINT_RTIE_MASK 0x80u
+
 typedef struct Os_Arch_StateType {
     uint16_t sp;
     Os_SyscallParamType* param;
@@ -51,6 +58,9 @@ void Os_Arch_Init(void)
     memset(&Os_Arch_State     , 0, sizeof(Os_Arch_State));
     memset(&Os_Arch_State_None, 0, sizeof(Os_Arch_State_None));
     Os_Arch_Ctx_Prev = &Os_Arch_State_None;
+
+    Os_Arch_RTICTL   = OS_ARCH_RTICTL_VALUE;
+    Os_Arch_CRGINT   = OS_ARCH_CFGINT_RTIE_MASK;
 }
 
 #define XSTR(x) STR(x)
@@ -115,6 +125,7 @@ __interrupt __near void Os_Arch_Isr(void)
     {
         Os_Isr();
         Os_Arch_Ctx_Prev = Os_Arch_GetContext();
+        Os_Arch_CRGFLG = OS_ARCH_CFGFLG_RTIF_MASK;
     }
     OS_ARCH_RESTORE();
 }

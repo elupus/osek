@@ -31,7 +31,8 @@
 #define OS_RES_COUNT   (Os_ResourceType)1
 #define OS_ALARM_COUNT (Os_AlarmType)1
 
-#define OS_TICK_US    10000U
+#define OS_ARCH_RTICTL_VALUE 0x17u
+#define OS_TICK_US           1024U
 
 #define OS_PRETASKHOOK_ENABLE  0
 #define OS_POSTTASKHOOK_ENABLE 0
