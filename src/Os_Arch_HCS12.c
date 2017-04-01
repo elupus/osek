@@ -53,7 +53,10 @@ void Os_Arch_Init(void)
     Os_Arch_Ctx_Prev = &Os_Arch_State_None;
 }
 
-#define PPAGE_ADDRESS "0x15"
+#define XSTR(x) STR(x)
+#define STR(x) #x
+
+#define PPAGE_ADDRESS XSTR(__PPAGE_ADR__)
 
 #ifdef __HIWARE__
 #define OS_ARCH_STORE()                                 \
@@ -96,7 +99,7 @@ __interrupt __near void Os_Arch_Swi(void)
 {
     OS_ARCH_STORE();
     {
-        Os_Arch_Ctx_Prev->res = Os_Arch_Syscall(Os_Arch_Ctx_Prev->param);
+        Os_Arch_Ctx_Prev->res = Os_Syscall_Internal(Os_Arch_Ctx_Prev->param);
         Os_Arch_Ctx_Prev = Os_Arch_GetContext();
     }
     OS_ARCH_RESTORE();
