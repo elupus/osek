@@ -37,14 +37,22 @@ __interrupt __near void Os_Arch_Isr(void);
 #pragma INLINE
 static void __inline Os_Arch_DisableAllInterrupts(void)
 {
+#ifdef __GNUC__
+    __asm__ __volatile__ ("sei" ::: "memory");
+#else
     __asm("sei");
+#endif
 }
 
 
 #pragma INLINE
 static void __inline Os_Arch_EnableAllInterrupts(void)
 {
+#ifdef __GNUC__
+    __asm__ __volatile__ ("cli" ::: "memory");
+#else
     __asm("cli");
+#endif
 }
 
 #ifdef __HIWARE__
@@ -61,11 +69,11 @@ static void Os_Arch_SuspendInterrupts(Os_IrqState* mask)
 #else
 static void __inline Os_Arch_SuspendInterrupts(Os_IrqState* mask)
 {
-    __asm (
+    __asm__ __volatile__ (
         "tpa\n"                      /* (CCR) -> A */
         "sei\n"
         "staa 0, X\n"                /* (A)   -> (*X=mask) */
-        :: "x"(mask) : "a");
+        :: "x"(mask) : "a", "memory");
 }
 #endif
 
@@ -82,10 +90,10 @@ static void __inline Os_Arch_ResumeInterrupts(const Os_IrqState* mask)
 #else
 static void __inline Os_Arch_ResumeInterrupts(const Os_IrqState* mask)
 {
-    __asm(
+    __asm__ __volatile__ (
         "ldaa 0, X\n"                /* (*X=mask) -> (A) */
         "tap\n"                      /* (A)       -> CCR */
-        :: "x"(mask) : "a");
+        :: "x"(mask) : "a", "memory");
 }
 #endif
 
