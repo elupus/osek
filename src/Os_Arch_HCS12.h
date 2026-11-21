@@ -79,7 +79,7 @@ static void __inline Os_Arch_SuspendInterrupts(Os_IrqState* mask)
 
 #ifdef __HIWARE__
 #pragma NO_ENTRY
-static void __inline Os_Arch_ResumeInterrupts(const Os_IrqState* mask)
+static void Os_Arch_ResumeInterrupts(const Os_IrqState* mask)
 {
     __asm (
         "tfr D,X\n"
