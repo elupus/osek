@@ -31,6 +31,12 @@ typedef struct Os_Arch_StateType {
 
 typedef void(*Os_Arch_IsrType)(void);
 
+/* passed to the scheduler on yield, lives on the yielding thread's stack */
+typedef struct Os_Arch_SyscallType {
+    Os_SyscallParamType* param;
+    Os_StatusType        res;
+} Os_Arch_SyscallType;
+
 HANDLE               Os_Arch_Timer;
 LONG                 Os_Arch_Interrupt_Mask;
 Os_Arch_IsrType      Os_Arch_Interrupt_Pending;
@@ -222,7 +228,8 @@ VOID __stdcall Os_Arch_UmsSchedulerProc(
         }
 
         case UmsSchedulerThreadYield: {
-            Os_Syscall_Internal((Os_SyscallParamType*)SchedulerParam);
+            Os_Arch_SyscallType* call = (Os_Arch_SyscallType*)SchedulerParam;
+            call->res = Os_Syscall_Internal(call->param);
             break;
         }
 
@@ -369,16 +376,19 @@ void Os_Arch_EnableAllInterrupts(void)
 
 Os_StatusType Os_Arch_Syscall(Os_SyscallParamType* param)
 {
-    Os_IrqState   state;
-    Os_StatusType res;
+    Os_IrqState         state;
+    Os_Arch_SyscallType call;
+
+    call.param = param;
+    call.res   = E_OK;
 
     Os_Arch_SuspendInterrupts(&state);
 
-    UmsThreadYield(param);
+    UmsThreadYield(&call);
 
     Os_Arch_ResumeInterrupts(&state);
 
-    return res;
+    return call.res;
 }
 
 void Os_Arch_PrepareState(Os_TaskType task)
