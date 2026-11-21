@@ -29,7 +29,7 @@
 #define OS_TASK_COUNT  (Os_TaskType)4
 #define OS_PRIO_COUNT  (Os_PriorityType)OS_TASK_COUNT
 #define OS_RES_COUNT   (Os_ResourceType)5
-#define OS_ALARM_COUNT (Os_AlarmType)4
+#define OS_ALARM_COUNT (Os_AlarmType)8
 
 #define OS_TICK_US    500000U
 
