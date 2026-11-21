@@ -22,6 +22,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdarg.h>
+#include <stdio.h>
+#include <unistd.h>
 #include "Os.h"
 
 typedef struct Os_Arch_CtxType {
@@ -67,11 +69,41 @@ void Os_Arch_Alarm(int signal)
      }
 }
 
+/* smallest stack the kernel can deliver a signal on, so the smallest stack a
+ * task can survive a tick on even if it used nothing itself */
+static size_t Os_Arch_MinStack(void)
+{
+#ifdef _SC_MINSIGSTKSZ
+    long res = sysconf(_SC_MINSIGSTKSZ);
+    if (res > 0) {
+        return (size_t)res;
+    }
+#endif
+    return MINSIGSTKSZ;
+}
+
+static void Os_Arch_CheckStacks(void)
+{
+    Os_TaskType task;
+    size_t      min = Os_Arch_MinStack();
+
+    for (task = 0u; task < OS_TASK_COUNT; ++task) {
+        if (Os_TaskConfigs[task].stack_size < min) {
+            fprintf(stderr, "Os: stack of task %u is %zu bytes, the signal frame alone needs %zu,"
+                            " declare it with OS_STACK_SIZE()\n"
+                          , (unsigned)task, Os_TaskConfigs[task].stack_size, min);
+            exit(EXIT_FAILURE);
+        }
+    }
+}
+
 void Os_Arch_Init(void)
 {
     int res;
     Os_TaskType task;
     Os_Arch_DisableAllInterrupts();
+
+    Os_Arch_CheckStacks();
 
     memset(&Os_Arch_State_None, 0, sizeof(Os_Arch_State_None));
     memset(&Os_Arch_State, 0, sizeof(Os_Arch_State));
