@@ -28,14 +28,16 @@ elseif(UNIX)
     set(_osek_arch_default Posix)
 elseif(HC12_CORE)
     set(_osek_arch_default HCS12)
+elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "^riscv")
+    set(_osek_arch_default RiscV)
 else()
     set(_osek_arch_default "")
 endif()
 set(BUILD_ARCH "${_osek_arch_default}" CACHE STRING "OS architecture port")
-set_property(CACHE BUILD_ARCH PROPERTY STRINGS Posix Fibers Ums HCS12)
+set_property(CACHE BUILD_ARCH PROPERTY STRINGS Posix Fibers Ums HCS12 RiscV)
 
 if(NOT BUILD_ARCH)
-    message(FATAL_ERROR "Unable to determine BUILD_ARCH for this platform, set it with -DBUILD_ARCH=<Posix|Fibers|Ums|HCS12>")
+    message(FATAL_ERROR "Unable to determine BUILD_ARCH for this platform, set it with -DBUILD_ARCH=<Posix|Fibers|Ums|HCS12|RiscV>")
 endif()
 message(STATUS "OSEK architecture port: ${BUILD_ARCH}")
 
@@ -102,6 +104,13 @@ elseif(BUILD_ARCH STREQUAL "HCS12")
     )
     target_compile_definitions(OsekOs_Headers INTERFACE OS_CFG_ARCH_HCS12)
     target_link_options(OsekOs INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/test/common/hcs12/link.prm)
+elseif(BUILD_ARCH STREQUAL "RiscV")
+    enable_language(ASM)
+    target_sources(OsekOs INTERFACE
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/Os_Arch_RiscV.c
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/Os_Arch_RiscV_Asm.S
+    )
+    target_compile_definitions(OsekOs_Headers INTERFACE OS_CFG_ARCH_RISCV)
 else()
     message(FATAL_ERROR "Unknown BUILD_ARCH '${BUILD_ARCH}'")
 endif()
@@ -119,8 +128,17 @@ endif()
 # Applications and tests, one directory each
 # ---------------------------------------------------------------------------
 
-# Before the applications, so those that can run on the host register tests.
-if(BUILD_TESTS)
+# Applications run as tests on the host, or under an emulator given by the
+# toolchain file (CMAKE_CROSSCOMPILING_EMULATOR) when cross compiling.
+if(NOT CMAKE_CROSSCOMPILING OR CMAKE_CROSSCOMPILING_EMULATOR)
+    set(_osek_app_tests_default ON)
+else()
+    set(_osek_app_tests_default OFF)
+endif()
+option(BUILD_APP_TESTS "Run the applications as tests" ${_osek_app_tests_default})
+
+# Before the applications, so they can register tests.
+if(BUILD_TESTS OR BUILD_APP_TESTS)
     enable_testing()
 endif()
 
@@ -136,6 +154,11 @@ elseif(BUILD_ARCH STREQUAL "Fibers")
     add_subdirectory(test/Os_MetricPreemptive)
 elseif(BUILD_ARCH STREQUAL "Ums")
     add_subdirectory(test/Os_Run)
+elseif(BUILD_ARCH STREQUAL "RiscV")
+    add_subdirectory(test/Os_Run)
+    add_subdirectory(test/Os_MetricBasic)
+    add_subdirectory(test/Os_MetricCooperative)
+    add_subdirectory(test/Os_MetricPreemptive)
 elseif(BUILD_ARCH STREQUAL "HCS12")
     add_subdirectory(test/Os_HCS12)
     add_subdirectory(test/Os_MetricBasic)

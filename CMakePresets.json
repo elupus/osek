@@ -39,13 +39,21 @@
       "inherits": "base",
       "toolchainFile": "${sourceDir}/toolchain/Toolchain-Generic-chc12.cmake",
       "cacheVariables": { "CMAKE_BUILD_TYPE": "MinSizeRel" }
+    },
+    {
+      "name": "riscv32-qemu",
+      "displayName": "RISC-V RV32 bare metal, apps run under QEMU",
+      "inherits": "base",
+      "toolchainFile": "${sourceDir}/toolchain/Toolchain-riscv32-elf.cmake",
+      "cacheVariables": { "CMAKE_BUILD_TYPE": "MinSizeRel" }
     }
   ],
   "buildPresets": [
     { "name": "debug",       "configurePreset": "debug" },
     { "name": "release",     "configurePreset": "release" },
     { "name": "hcs12-gcc",   "configurePreset": "hcs12-gcc" },
-    { "name": "hcs12-chc12", "configurePreset": "hcs12-chc12" }
+    { "name": "hcs12-chc12", "configurePreset": "hcs12-chc12" },
+    { "name": "riscv32-qemu", "configurePreset": "riscv32-qemu" }
   ],
   "testPresets": [
     {
@@ -56,6 +64,11 @@
     {
       "name": "release",
       "configurePreset": "release",
+      "output": { "outputOnFailure": true }
+    },
+    {
+      "name": "riscv32-qemu",
+      "configurePreset": "riscv32-qemu",
       "output": { "outputOnFailure": true }
     }
   ]
