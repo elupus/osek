@@ -20,6 +20,7 @@
 #define OS_ARCH_POSIX_H_
 
 #include <signal.h>
+#include <unistd.h>
 
 typedef    sigset_t Os_IrqState;
 
@@ -37,7 +38,8 @@ void       Os_Arch_Start(void);
 
 static __inline void Os_Arch_Wait(void)
 {
-    /* NOP */
+    /* sleep until the next signal, normally the tick */
+    pause();
 }
 
 #endif /* OS_ARCH_POSIX_H_ */
