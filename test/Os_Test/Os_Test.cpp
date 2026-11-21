@@ -510,3 +510,99 @@ struct Os_Test_NonPreemptive : public Os_Test_Default
 TEST_F(Os_Test_NonPreemptive, Main) {
     test_main();
 }
+
+struct Os_Test_Events : public Os_Test_Default
+{
+    std::vector<int> order;
+
+    void test_main(void)
+    {
+        task_add(OS_TASK_PRIO0, &ParentType::task_prio0, 1u, 0u, OS_INVALID_RESOURCE);
+        task_add(OS_TASK_PRIO1, &ParentType::task_prio1, 0u, 1u, OS_INVALID_RESOURCE);
+        task_add(OS_TASK_PRIO2, &ParentType::task_prio2, 0u, 2u, OS_INVALID_RESOURCE);
+        task_add(OS_TASK_PRIO3, &ParentType::task_prio3, 0u, 3u, OS_INVALID_RESOURCE);
+        m_tasks[OS_TASK_PRIO2].extended   = TRUE;
+        m_tasks[OS_TASK_PRIO2].activation = 1u;
+        m_hooks.shutdown = false;
+        Os_Init(&m_config);
+        Os_Start(OS_DEFAULTAPPMODE);
+        ASSERT_EQ(5u, order.size());
+        EXPECT_EQ(20, order[0]) << "Extended task starts";
+        EXPECT_EQ(1 , order[1]) << "Runs while it waits";
+        EXPECT_EQ(21, order[2]) << "Woken by the event";
+        EXPECT_EQ(2 , order[3]);
+        EXPECT_EQ(0 , order[4]);
+        EXPECT_TRUE(m_hooks.errors.empty());
+    }
+
+    virtual void task_prio0(void)
+    {
+        EXPECT_EQ(E_OK, Os_ActivateTask(OS_TASK_PRIO2));
+        order.push_back(0);
+        Os_Shutdown(E_OK);
+    }
+
+    virtual void task_prio1(void)
+    {
+        order.push_back(1);
+        EXPECT_EQ(E_OK, Os_SetEvent(OS_TASK_PRIO2, 0x1u));
+        order.push_back(2);
+        Os_TerminateTask();
+    }
+
+    virtual void task_prio2(void)
+    {
+        Os_EventMaskType mask;
+        order.push_back(20);
+        EXPECT_EQ(E_OK, Os_ActivateTask(OS_TASK_PRIO1));
+        EXPECT_EQ(E_OK, Os_WaitEvent(0x1u));
+        order.push_back(21);
+        EXPECT_EQ(E_OK, Os_GetEvent(OS_TASK_PRIO2, &mask));
+        EXPECT_EQ(0x1u, mask);
+        EXPECT_EQ(E_OK, Os_ClearEvent(0x1u));
+        Os_TerminateTask();
+    }
+};
+
+TEST_F(Os_Test_Events, Main) {
+    test_main();
+}
+
+struct Os_Test_EventFromAlarm : public Os_Test_Default
+{
+    int woken = 0;
+
+    void test_main(void)
+    {
+        task_add(OS_TASK_PRIO0, &ParentType::task_prio0, 0u, 0u, OS_INVALID_RESOURCE);
+        task_add(OS_TASK_PRIO1, &ParentType::task_prio1, 1u, 1u, OS_INVALID_RESOURCE);
+        task_add(OS_TASK_PRIO2, &ParentType::task_prio2, 0u, 2u, OS_INVALID_RESOURCE);
+        task_add(OS_TASK_PRIO3, &ParentType::task_prio3, 0u, 3u, OS_INVALID_RESOURCE);
+        m_tasks[OS_TASK_PRIO1].extended   = TRUE;
+        m_tasks[OS_TASK_PRIO1].activation = 1u;
+        m_alarms[0].task  = OS_TASK_PRIO1;
+        m_alarms[0].event = 0x2u;
+        m_hooks.shutdown = false;
+        Os_Init(&m_config);
+        Os_Start(OS_DEFAULTAPPMODE);
+        EXPECT_EQ(2, woken);
+        EXPECT_TRUE(m_hooks.errors.empty());
+    }
+
+    virtual void task_prio1(void)
+    {
+        /* nothing else to run, the OS idles until the alarm sets the event */
+        EXPECT_EQ(E_OK, Os_SetRelAlarm(0, 1u, 1u));
+        for (int i = 0; i < 2; ++i) {
+            EXPECT_EQ(E_OK, Os_WaitEvent(0x2u));
+            EXPECT_EQ(E_OK, Os_ClearEvent(0x2u));
+            woken++;
+        }
+        EXPECT_EQ(E_OK, Os_CancelAlarm(0));
+        Os_Shutdown(E_OK);
+    }
+};
+
+TEST_F(Os_Test_EventFromAlarm, Main) {
+    test_main();
+}

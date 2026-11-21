@@ -71,6 +71,8 @@ typedef enum Os_TaskStateEnum {
 
 typedef Os_TaskStateEnum Os_TaskStateType; /**< task state as reported by Os_GetTaskState */
 
+typedef uint16 Os_EventMaskType;  /**< set of events, one bit per event */
+
 typedef uint8 Os_AppModeType;     /**< application mode */
 typedef uint8 Os_AppModeMaskType; /**< set of application modes, bit n for mode n */
 
