@@ -381,8 +381,9 @@ TEST_F(Os_TestTask, GetTaskIdBeforeStart) {
 
 TEST_F(Os_TestTask, ScheduleFromInit) {
     Os_TaskType task;
-    m_tasks[2].autostart = TRUE;
+    m_tasks[2].autostart = OS_APPMODE_MASK(OS_DEFAULTAPPMODE);
     Os_Init(&m_config);
+    Os_Autostart(OS_DEFAULTAPPMODE);
     Os_CallContext = OS_CONTEXT_TASK;
     EXPECT_EQ(E_OK           , Os_Schedule_Internal());
     EXPECT_EQ(E_OK           , Os_GetTaskId(&task));
@@ -406,7 +407,7 @@ TEST_F(Os_TestTask, InitInternalResourceCeiling) {
     EXPECT_EQ(E_OS_RESOURCE, Os_Errors.top()) << "Ceiling below the task's priority";
     EXPECT_FALSE(Os_Initialized);
     Os_ActiveTask = OS_INVALID_TASK; /* Os_Init left it untouched, clear what earlier tests left */
-    Os_Start();
+    Os_Start(OS_DEFAULTAPPMODE);
     EXPECT_EQ(OS_INVALID_TASK, Os_ActiveTask) << "Os_Start does not start on a bad configuration";
 }
 
@@ -749,6 +750,48 @@ TEST_F(Os_TestCounter, InvalidConfig) {
 TEST_F(Os_TestCounter, RandomAgainstModelSmallCounter) {
     Init(99u, 1u, 3u);
     Os_TestRandomAlarms(99u, 3u);
+}
+
+TEST_F(Os_TestTask, AutostartPerMode) {
+    Os_TaskStateType state;
+    Os_TickType      tick;
+    m_tasks[1].autostart  = OS_APPMODE_MASK(0u) | OS_APPMODE_MASK(2u);
+    m_tasks[2].autostart  = OS_APPMODE_MASK(1u);
+    m_alarms[0].autostart = OS_APPMODE_MASK(2u);
+    m_alarms[0].alarmtime = 5u;
+    m_alarms[0].cycletime = 3u;
+    m_alarms[1].autostart = OS_APPMODE_MASK(0u);
+    m_alarms[1].alarmtime = 7u;
+    Os_Init(&m_config);
+    ASSERT_TRUE(Os_Initialized);
+    Os_Autostart(2u);
+    EXPECT_EQ(E_OK              , Os_GetTaskState_Internal(1, &state));
+    EXPECT_EQ(OS_TASK_READY     , state) << "Task 1 starts in mode 2";
+    EXPECT_EQ(E_OK              , Os_GetTaskState_Internal(2, &state));
+    EXPECT_EQ(OS_TASK_SUSPENDED , state) << "Task 2 only starts in mode 1";
+    EXPECT_EQ(E_OK              , Os_GetAlarm_Internal(0, &tick)) << "Alarm 0 starts in mode 2";
+    EXPECT_EQ(5u                , tick);
+    EXPECT_EQ(E_OS_NOFUNC       , Os_GetAlarm_Internal(1, &tick)) << "Alarm 1 only starts in mode 0";
+    Os_TestTicks(5u);
+    EXPECT_EQ(E_OK              , Os_GetAlarm_Internal(0, &tick)) << "Autostarted cycle";
+    EXPECT_EQ(3u                , tick);
+}
+
+TEST_F(Os_TestTask, AutostartAlarmInvalid) {
+    m_alarms[0].autostart = OS_APPMODE_MASK(0u);
+    m_alarms[0].alarmtime = 0u;
+    Os_Init(&m_config);
+    EXPECT_FALSE(Os_Initialized) << "Autostarted alarm needs an alarm time";
+}
+
+TEST_F(Os_TestTask, StartInvalidMode) {
+    Os_Init(&m_config);
+    ASSERT_TRUE(Os_Initialized);
+    Os_ActiveTask = OS_INVALID_TASK;
+    Os_Start(OS_APPMODE_COUNT);
+    ASSERT_FALSE(Os_Errors.empty());
+    EXPECT_EQ(E_OS_VALUE        , Os_Errors.top());
+    EXPECT_EQ(OS_INVALID_TASK   , Os_ActiveTask) << "Does not start in an invalid mode";
 }
 
 TEST_F(Os_TestTask, InternalResourceKeptOnError) {

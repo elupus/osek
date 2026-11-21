@@ -180,7 +180,7 @@ int main(void)
 {
     unsigned int total;
     Os_Init(&Os_DefaultConfig);
-    Os_Start();
+    Os_Start(OS_DEFAULTAPPMODE);
     total = task0_count
           + task1_count
           + task2_count

@@ -176,7 +176,7 @@ struct Os_Test_Default : public Os_Test<Os_Test_Default>
 
         m_hooks.shutdown = false;
         Os_Init(&m_config);
-        Os_Start();
+        Os_Start(OS_DEFAULTAPPMODE);
         EXPECT_GT(m_task_activations[OS_TASK_PRIO0], 0);
     }
 
@@ -438,6 +438,32 @@ TEST_F(Os_Test_StartupShutdownHook, Main) {
     test_main();
 }
 
+struct Os_Test_AppMode : public Os_Test_Default
+{
+    void test_main(void)
+    {
+        task_add(OS_TASK_PRIO0, &ParentType::task_prio0, OS_APPMODE_MASK(1u), 0u, OS_INVALID_RESOURCE);
+        task_add(OS_TASK_PRIO1, &ParentType::task_prio1, OS_APPMODE_MASK(0u), 1u, OS_INVALID_RESOURCE);
+        task_add(OS_TASK_PRIO2, &ParentType::task_prio2, 0u                 , 2u, OS_INVALID_RESOURCE);
+        task_add(OS_TASK_PRIO3, &ParentType::task_prio3, 0u                 , 3u, OS_INVALID_RESOURCE);
+        m_hooks.shutdown = false;
+        Os_Init(&m_config);
+        Os_Start(1u);
+        EXPECT_EQ(1u, m_task_activations[OS_TASK_PRIO0]) << "Task for mode 1 started";
+        EXPECT_EQ(0u, m_task_activations[OS_TASK_PRIO1]) << "Task for mode 0 not started";
+    }
+
+    virtual void task_prio0(void)
+    {
+        EXPECT_EQ(1u, Os_GetActiveApplicationMode());
+        Os_Shutdown(E_OK);
+    }
+};
+
+TEST_F(Os_Test_AppMode, Main) {
+    test_main();
+}
+
 struct Os_Test_NonPreemptive : public Os_Test_Default
 {
     std::vector<int> order;
@@ -450,7 +476,7 @@ struct Os_Test_NonPreemptive : public Os_Test_Default
         task_add(OS_TASK_PRIO3, &ParentType::task_prio3, 0u, 3u, OS_INVALID_RESOURCE);
         m_hooks.shutdown = false;
         Os_Init(&m_config);
-        Os_Start();
+        Os_Start(OS_DEFAULTAPPMODE);
         ASSERT_EQ(4u, order.size());
         EXPECT_EQ(1 , order[0]);
         EXPECT_EQ(10, order[1]) << "Non-preemptive task runs to its end";
