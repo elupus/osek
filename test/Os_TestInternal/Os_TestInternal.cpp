@@ -642,6 +642,24 @@ TEST_F(Os_TestTask, ErrorHookNotRecursive) {
     EXPECT_FALSE(Os_ErrorHookActive);
 }
 
+static int Os_TestCallbackCount;
+static void Os_TestCallback(void)
+{
+    Os_TestCallbackCount++;
+}
+
+TEST_F(Os_TestAlarm, Callback) {
+    m_alarms[1].callback = Os_TestCallback;
+    Os_TestCallbackCount = 0;
+    EXPECT_EQ(E_OK       , Os_SetRelAlarm_Internal(1, 2u, 3u));
+    Os_TestTicks(1u);
+    EXPECT_EQ(0          , Os_TestCallbackCount);
+    Os_TestTicks(1u);
+    EXPECT_EQ(1          , Os_TestCallbackCount) << "Callback on expiry";
+    Os_TestTicks(3u);
+    EXPECT_EQ(2          , Os_TestCallbackCount) << "Callback on every cycle";
+}
+
 TEST_F(Os_TestTask, InternalResourceKeptOnError) {
     Os_SyscallParamType param;
     m_resources[1].priority = 3;

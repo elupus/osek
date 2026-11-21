@@ -251,6 +251,11 @@ void Os_AlarmTick(Os_AlarmType queue[], Os_TickType ticks)
             (void)Os_ActivateTask_Internal(Os_AlarmConfigs[alarm].task);
         }
 
+        /* call any callback */
+        if (Os_AlarmConfigs[alarm].callback) {
+            Os_AlarmConfigs[alarm].callback();
+        }
+
         /* trigger any event - TODO */
 
         /* readd cyclic */
