@@ -364,3 +364,29 @@ TEST_F(Os_TestTask, InternalResourceNonPreemptive) {
     EXPECT_EQ(1          , Os_TaskControls[1].resource) << "Internal resource taken again on resume";
     EXPECT_EQ(3          , Os_TaskControls[1].priority);
 }
+
+TEST_F(Os_TestTask, GetTaskIdBeforeStart) {
+    Os_TaskType task = 0;
+    Os_Init(&m_config);
+    EXPECT_EQ(OS_INVALID_TASK, Os_ActiveTask);
+    EXPECT_EQ(E_OK           , Os_GetTaskId(&task));
+    EXPECT_EQ(OS_INVALID_TASK, task) << "No task has run yet";
+}
+
+TEST_F(Os_TestTask, ScheduleFromInit) {
+    Os_TaskType task;
+    m_tasks[2].autostart = TRUE;
+    Os_Init(&m_config);
+    Os_CallContext = OS_CONTEXT_TASK;
+    EXPECT_EQ(E_OK           , Os_Schedule_Internal());
+    EXPECT_EQ(E_OK           , Os_GetTaskId(&task));
+    EXPECT_EQ(2              , task) << "Autostart task runs first";
+}
+
+TEST_F(Os_TestTask, GetTaskIdAfterTerminate) {
+    Os_TaskType task;
+    Start(1);
+    EXPECT_EQ(E_OK           , Os_TerminateTask_Internal());
+    EXPECT_EQ(E_OK           , Os_GetTaskId(&task));
+    EXPECT_EQ(OS_INVALID_TASK, task) << "Nothing running after the last task terminated";
+}

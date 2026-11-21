@@ -403,9 +403,6 @@ static __inline void Os_State_Ready_To_Running(Os_TaskType task)
  */
 void Os_Start(void)
 {
-    Os_SyscallParamType param;
-
-    Os_ActiveTask = (Os_TaskType)0u;
     Os_CallContext = OS_CONTEXT_TASK;
     Os_Schedule_Internal();
     Os_Arch_Start();
@@ -416,11 +413,9 @@ void Os_Start(void)
 
 Os_StatusType Os_Shutdown_Internal(void)
 {
-    Os_TaskType prev;
-
     Os_Continue = FALSE;
 
-    if (Os_TaskControls[Os_ActiveTask].state == OS_TASK_RUNNING) {
+    if (Os_TaskRunning()) {
         /* put preempted task as first ready */
         Os_State_Running_To_Ready(Os_ActiveTask);
     }
@@ -444,7 +439,7 @@ Os_StatusType Os_Schedule_Internal(void)
     Os_PriorityType prio;
     Os_TaskType     task;
 
-    if (Os_TaskControls[Os_ActiveTask].state == OS_TASK_RUNNING) {
+    if (Os_TaskRunning()) {
         prio = Os_TaskControls[Os_ActiveTask].priority;
     } else {
         prio = -1;
@@ -453,7 +448,7 @@ Os_StatusType Os_Schedule_Internal(void)
     Os_TaskPeek(prio, &task);
 
     if(task != OS_INVALID_TASK) {
-        if (Os_TaskControls[Os_ActiveTask].state == OS_TASK_RUNNING) {
+        if (Os_TaskRunning()) {
             /* put preempted task as first ready */
             Os_State_Running_To_Ready(Os_ActiveTask);
         }
@@ -464,7 +459,7 @@ Os_StatusType Os_Schedule_Internal(void)
     }
 
     /* the running task holds its internal resource, however it got to run */
-    if (Os_TaskControls[Os_ActiveTask].state == OS_TASK_RUNNING) {
+    if (Os_TaskRunning()) {
         Os_TaskInternalResource_Get();
     }
     return E_OK;
@@ -494,7 +489,7 @@ void Os_Isr(void)
  */
 Os_StatusType Os_TerminateTask_Internal(void)
 {
-    OS_CHECK_EXT_R(Os_TaskControls[Os_ActiveTask].state == OS_TASK_RUNNING        , E_OS_STATE);
+    OS_CHECK_EXT_R(Os_TaskRunning()                                               , E_OS_STATE);
     OS_CHECK_EXT_R(Os_CallContext == OS_CONTEXT_TASK                              , E_OS_CALLEVEL);
     OS_CHECK_EXT_R(Os_TaskControls[Os_ActiveTask].resource == OS_INVALID_RESOURCE , E_OS_RESOURCE);
 
@@ -557,7 +552,7 @@ OS_ERRORCHECK_EXIT_POINT:
  */
 Os_StatusType Os_ChainTask_Internal(Os_TaskType task)
 {
-    OS_CHECK_EXT_R(Os_TaskControls[Os_ActiveTask].state == OS_TASK_RUNNING        , E_OS_STATE);
+    OS_CHECK_EXT_R(Os_TaskRunning()                                               , E_OS_STATE);
     OS_CHECK_EXT_R(Os_CallContext == OS_CONTEXT_TASK                              , E_OS_CALLEVEL);
     OS_CHECK_EXT_R(Os_TaskControls[Os_ActiveTask].resource == OS_INVALID_RESOURCE , E_OS_RESOURCE);
     OS_CHECK_EXT_R(task < OS_TASK_COUNT                                           , E_OS_ID);
