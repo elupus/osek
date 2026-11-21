@@ -106,7 +106,8 @@ typedef struct Os_TaskConfigType {
     Os_TaskEntryType entry;       /**< @brief entry point of task */
     void*            stack;       /**< @brief bottom of stack pointer */
     size_t           stack_size;  /**< @brief how large is the stack pointed to by stack */
-    boolean          autostart;   /**< @brief should this task start automatically */
+    Os_AppModeMaskType autostart; /**< @brief application modes the task starts automatically in,
+                                   *          OS_APPMODE_MASK(mode) bits, so 1 is the default mode */
 #if( (OS_CONFORMANCE == OS_CONFORMANCE_ECC2) ||  (OS_CONFORMANCE == OS_CONFORMANCE_BCC2) )
     uint8            activation;  /**< @brief maximum number of activations allowed */
 #endif
@@ -155,6 +156,9 @@ typedef struct Os_AlarmConfigType {
     Os_AlarmCallbackType callback;/**< @brief called on expiry if not NULL, at interrupt level
                                    *          with interrupts disabled, so it may not call
                                    *          any service except the interrupt ones */
+    Os_AppModeMaskType autostart; /**< @brief application modes the alarm starts automatically in */
+    Os_TickType     alarmtime;    /**< @brief ticks from start until first expiry when autostarted */
+    Os_TickType     cycletime;    /**< @brief cycle when autostarted, 0 for a single expiry */
 } Os_AlarmConfigType;
 
 /**
@@ -218,7 +222,17 @@ void       Os_TaskInternalResource_Release(void);
 void       Os_TaskInternalResource_Get(void);
 
 void       Os_Init(const Os_ConfigType* config);
-void       Os_Start(void);
+void       Os_Start(Os_AppModeType mode);
+
+extern Os_AppModeType                  Os_AppMode;
+
+/**
+ * @brief Get the application mode the OS was started in
+ */
+static __inline Os_AppModeType Os_GetActiveApplicationMode(void)
+{
+    return Os_AppMode;
+}
 void       Os_Isr(void);
 
 
