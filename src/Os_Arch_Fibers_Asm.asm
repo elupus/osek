@@ -41,6 +41,7 @@ IFDEF RAX
     pop r9
     pop r10
     pop r11
+    popfq
     ret
 ELSE
     call ecx
@@ -49,6 +50,7 @@ ELSE
     pop ecx
     pop edx
     pop ebp
+    popfd
     ret
 ENDIF
 Os_Arch_Trampoline ENDP

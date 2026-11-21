@@ -98,7 +98,7 @@ void Os_Arch_InjectFunction(CONTEXT* ctx, void* fun, void *param)
 #if defined(__x86_64) || defined(_AMD64_)
     DWORD64* stack_ptr;
     stack_ptr    = (DWORD64*)ctx->Rsp;
-    stack_ptr   -= 8;
+    stack_ptr   -= 9;
     stack_ptr[0] = ctx->Rax;
     stack_ptr[1] = ctx->Rcx;
     stack_ptr[2] = ctx->Rdx;
@@ -106,7 +106,8 @@ void Os_Arch_InjectFunction(CONTEXT* ctx, void* fun, void *param)
     stack_ptr[4] = ctx->R9;
     stack_ptr[5] = ctx->R10;
     stack_ptr[6] = ctx->R11;
-    stack_ptr[7] = ctx->Rip;
+    stack_ptr[7] = ctx->EFlags;
+    stack_ptr[8] = ctx->Rip;
     ctx->Rsp = (DWORD64)stack_ptr;
     ctx->Rip = (DWORD64)Os_Arch_Trampoline;
     ctx->Rcx = (DWORD64)param;
@@ -115,13 +116,14 @@ void Os_Arch_InjectFunction(CONTEXT* ctx, void* fun, void *param)
 #elif defined(__x86) || defined(_X86_)
     DWORD* stack_ptr;
     stack_ptr    = (DWORD*)ctx->Esp;
-    stack_ptr   -= 6;
+    stack_ptr   -= 7;
     stack_ptr[0] = (DWORD)param;
     stack_ptr[1] = ctx->Eax;
     stack_ptr[2] = ctx->Ecx;
     stack_ptr[3] = ctx->Edx;
     stack_ptr[4] = ctx->Ebp;
-    stack_ptr[5] = ctx->Eip;
+    stack_ptr[5] = ctx->EFlags;
+    stack_ptr[6] = ctx->Eip;
     ctx->Ebp = (DWORD)&stack_ptr[4]; /* point to ebp pushed value */
     ctx->Esp = (DWORD)stack_ptr;
     ctx->Ecx = (DWORD)fun;
