@@ -52,6 +52,7 @@ boolean                         Os_Initialized;                         /**< Os_
 Os_AppModeType                  Os_AppMode;                             /**< application mode the OS was started in */
 #if(OS_ERRORHOOK_ENABLE)
 boolean                         Os_ErrorHookActive;                     /**< error hook is running */
+
 #endif
 
 
@@ -166,20 +167,31 @@ static __inline const Os_CounterConfigType* Os_CounterConfig(Os_CounterType coun
 
 /**
  * @brief Add two tick values modulo the counter's range, maxallowedvalue + 1
+ *
+ * Both values must be at most maxallowedvalue, which lets this wrap with a
+ * compare instead of a division, in the tick type's own width.
  */
 static Os_TickType Os_CounterAdd(Os_CounterType counter, Os_TickType lh, Os_TickType rh)
 {
-    uint32 range = (uint32)Os_CounterConfig(counter)->maxallowedvalue + 1u;
-    return (Os_TickType)(((uint32)lh + (uint32)rh) % range);
+    Os_TickType max = Os_CounterConfig(counter)->maxallowedvalue;
+    if (rh > (Os_TickType)(max - lh)) {
+        return (Os_TickType)(rh - (Os_TickType)(max - lh) - 1u);
+    }
+    return (Os_TickType)(lh + rh);
 }
 
 /**
  * @brief Subtract two tick values modulo the counter's range, maxallowedvalue + 1
+ *
+ * Both values must be at most maxallowedvalue.
  */
 static Os_TickType Os_CounterSub(Os_CounterType counter, Os_TickType lh, Os_TickType rh)
 {
-    uint32 range = (uint32)Os_CounterConfig(counter)->maxallowedvalue + 1u;
-    return (Os_TickType)(((uint32)lh + range - ((uint32)rh % range)) % range);
+    Os_TickType max = Os_CounterConfig(counter)->maxallowedvalue;
+    if (lh < rh) {
+        return (Os_TickType)(max - (Os_TickType)(rh - lh) + 1u);
+    }
+    return (Os_TickType)(lh - rh);
 }
 
 /**
