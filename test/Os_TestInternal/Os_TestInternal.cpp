@@ -510,3 +510,103 @@ TEST_F(Os_TestAlarm, OrderAcrossWrap) {
     EXPECT_EQ(E_OK       , Os_GetAlarm_Internal(0, &tick));
     EXPECT_EQ(7u         , tick);
 }
+
+TEST_F(Os_TestAlarm, OrderAfterPop) {
+    Os_TickType tick;
+    /* queue becomes [1, 5, 2, 6], popping 1 moves 6 to the top */
+    EXPECT_EQ(E_OK       , Os_SetRelAlarm_Internal(0, 1u, 0));
+    EXPECT_EQ(E_OK       , Os_SetRelAlarm_Internal(1, 5u, 0));
+    EXPECT_EQ(E_OK       , Os_SetRelAlarm_Internal(2, 2u, 0));
+    EXPECT_EQ(E_OK       , Os_SetRelAlarm_Internal(3, 6u, 0));
+    Os_TestTicks(2u);
+    EXPECT_EQ(E_OS_NOFUNC, Os_GetAlarm_Internal(2, &tick))    << "Alarm at 2 expired at 2";
+    EXPECT_EQ(E_OK       , Os_GetAlarm_Internal(1, &tick));
+    Os_TestTicks(3u);
+    EXPECT_EQ(E_OS_NOFUNC, Os_GetAlarm_Internal(1, &tick))    << "Alarm at 5 expired at 5";
+    EXPECT_EQ(E_OK       , Os_GetAlarm_Internal(3, &tick));
+    Os_TestTicks(1u);
+    EXPECT_EQ(E_OS_NOFUNC, Os_GetAlarm_Internal(3, &tick))    << "Alarm at 6 expired at 6";
+}
+
+TEST_F(Os_TestAlarm, OrderAfterCancel) {
+    Os_TickType tick;
+    /* queue becomes [1, 10, 2, 11, 12, 3], cancelling 11 moves 3 below 10 */
+    EXPECT_EQ(E_OK       , Os_SetRelAlarm_Internal(0,  1u, 0));
+    EXPECT_EQ(E_OK       , Os_SetRelAlarm_Internal(1, 10u, 0));
+    EXPECT_EQ(E_OK       , Os_SetRelAlarm_Internal(2,  2u, 0));
+    EXPECT_EQ(E_OK       , Os_SetRelAlarm_Internal(3, 11u, 0));
+    EXPECT_EQ(E_OK       , Os_SetRelAlarm_Internal(4, 12u, 0));
+    EXPECT_EQ(E_OK       , Os_SetRelAlarm_Internal(5,  3u, 0));
+    EXPECT_EQ(E_OK       , Os_CancelAlarm_Internal(3));
+    const Os_TickType expiry[] = { 1u, 10u, 2u, 0u, 12u, 3u };
+    for (Os_TickType now = 1u; now <= 12u; ++now) {
+        Os_TestTicks(1u);
+        for (Os_AlarmType a = 0u; a < 6u; ++a) {
+            if (a == 3u) {
+                continue;
+            }
+            EXPECT_EQ(expiry[a] <= now ? E_OS_NOFUNC : E_OK, Os_GetAlarm_Internal(a, &tick))
+                << "Alarm " << (int)a << " at tick " << (int)now;
+        }
+    }
+}
+
+TEST_F(Os_TestAlarm, RandomAgainstModel) {
+    /* every alarm must expire exactly at the tick a simple model predicts */
+    uint32_t    seed = 12345u;
+    auto        rnd  = [&seed](uint32_t n) { seed = seed * 1103515245u + 12345u; return (seed >> 8) % n; };
+    bool        armed [OS_ALARM_COUNT] = {};
+    Os_TickType expiry[OS_ALARM_COUNT] = {};
+    Os_TickType cycle [OS_ALARM_COUNT] = {};
+    Os_TickType now = 0u, tick;
+
+    for (int step = 0; step < 20000; ++step) {
+        Os_AlarmType a = (Os_AlarmType)rnd(OS_ALARM_COUNT);
+        switch (rnd(4)) {
+        case 0:
+            if (!armed[a]) {
+                Os_TickType inc = (Os_TickType)(1u + rnd(rnd(2) ? 20u : 65535u));
+                cycle[a]  = (Os_TickType)(rnd(3) ? 0u : 1u + rnd(15u));
+                ASSERT_EQ(E_OK, Os_SetRelAlarm_Internal(a, inc, cycle[a]));
+                expiry[a] = (Os_TickType)(now + inc);
+                armed[a]  = true;
+            }
+            break;
+        case 1:
+            if (!armed[a]) {
+                Os_TickType start = (Os_TickType)rnd(65536u);
+                cycle[a]  = 0u;
+                ASSERT_EQ(E_OK, Os_SetAbsAlarm_Internal(a, start, 0u));
+                expiry[a] = start;
+                armed[a]  = true;
+            }
+            break;
+        case 2:
+            if (armed[a] && rnd(4) == 0u) {
+                ASSERT_EQ(E_OK, Os_CancelAlarm_Internal(a));
+                armed[a] = false;
+            }
+            break;
+        default:
+            ASSERT_EQ(E_OK, Os_IncrementCounter_Internal(OS_COUNTER_SYSTEM));
+            now++;
+            for (Os_AlarmType i = 0u; i < OS_ALARM_COUNT; ++i) {
+                if (armed[i] && expiry[i] == now) {
+                    if (cycle[i]) {
+                        expiry[i] = (Os_TickType)(expiry[i] + cycle[i]);
+                    } else {
+                        armed[i] = false;
+                    }
+                }
+            }
+            break;
+        }
+        for (Os_AlarmType i = 0u; i < OS_ALARM_COUNT; ++i) {
+            ASSERT_EQ(armed[i] ? E_OK : E_OS_NOFUNC, Os_GetAlarm_Internal(i, &tick))
+                << "alarm " << (int)i << " step " << step;
+            if (armed[i]) {
+                ASSERT_EQ((Os_TickType)(expiry[i] - now), tick) << "alarm " << (int)i << " step " << step;
+            }
+        }
+    }
+}
