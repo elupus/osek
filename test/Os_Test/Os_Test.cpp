@@ -1,6 +1,7 @@
 #include "gtest/gtest.h"
 #include <stack>
 #include <map>
+#include <vector>
 
 extern "C" {
     #include "Std_Types.h"
@@ -360,4 +361,51 @@ TEST_F(Os_Test_AlarmTest2, Main) {
     test_main();
     EXPECT_EQ(m_task_activations[OS_TASK_PRIO1], 1);
     EXPECT_EQ(m_task_activations[OS_TASK_PRIO2], 1);
+}
+
+struct Os_Test_NonPreemptive : public Os_Test_Default
+{
+    std::vector<int> order;
+
+    void test_main(void)
+    {
+        task_add(OS_TASK_PRIO0, &ParentType::task_prio0, 1u, 0u, OS_INVALID_RESOURCE);
+        task_add(OS_TASK_PRIO1, &ParentType::task_prio1, 0u, 1u, OS_RES_SCHEDULER);
+        task_add(OS_TASK_PRIO2, &ParentType::task_prio2, 0u, 2u, OS_INVALID_RESOURCE);
+        task_add(OS_TASK_PRIO3, &ParentType::task_prio3, 0u, 3u, OS_INVALID_RESOURCE);
+        m_hooks.shutdown = false;
+        Os_Init(&m_config);
+        Os_Start();
+        ASSERT_EQ(4u, order.size());
+        EXPECT_EQ(1 , order[0]);
+        EXPECT_EQ(10, order[1]) << "Non-preemptive task runs to its end";
+        EXPECT_EQ(3 , order[2]);
+        EXPECT_EQ(0 , order[3]);
+        EXPECT_TRUE(m_hooks.errors.empty());
+    }
+
+    virtual void task_prio0(void)
+    {
+        EXPECT_EQ(E_OK, Os_ActivateTask(OS_TASK_PRIO1));
+        order.push_back(0);
+        Os_Shutdown();
+    }
+
+    virtual void task_prio1(void)
+    {
+        order.push_back(1);
+        EXPECT_EQ(E_OK, Os_ActivateTask(OS_TASK_PRIO3));
+        order.push_back(10);
+        EXPECT_EQ(E_OK, Os_TerminateTask()) << "Terminate with the internal resource";
+    }
+
+    virtual void task_prio3(void)
+    {
+        order.push_back(3);
+        Os_TerminateTask();
+    }
+};
+
+TEST_F(Os_Test_NonPreemptive, Main) {
+    test_main();
 }

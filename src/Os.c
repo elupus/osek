@@ -306,6 +306,22 @@ static void Os_ResourceInit(Os_ResourceType res)
 }
 
 /**
+ * @brief Remove the running task's most recently taken resource
+ * @param res the resource, must be the last one the running task took
+ *
+ * Restores the priority the task had before taking it, without rescheduling.
+ */
+static void Os_ResourceUnlink(Os_ResourceType res)
+{
+#if(OS_ERROR_EXT_ENABLE)
+    Os_ResourceControls[res].task  = OS_INVALID_TASK;
+#endif
+    Os_TaskControls[Os_ActiveTask].resource = Os_ResourceControls[res].next;
+    Os_TaskControls[Os_ActiveTask].priority = Os_ResourceControls[res].priority;
+    Os_ResourceControls[res].next  = OS_INVALID_RESOURCE;
+}
+
+/**
  * @brief Release the internal resource of running task
  *
  * If running task has an associated internal resource,
@@ -322,7 +338,9 @@ void Os_TaskInternalResource_Release(void)
 
     res = Os_TaskConfigs[Os_ActiveTask].resource;
     if (res != OS_INVALID_RESOURCE && Os_TaskControls[Os_ActiveTask].resource == res) {
-        (void)Os_ReleaseResource_Internal(res);
+        /* no rescheduling here, the scheduler would just take it back, the
+         * service releasing it schedules itself */
+        Os_ResourceUnlink(res);
     }
 }
 
@@ -337,7 +355,9 @@ void Os_TaskInternalResource_Get(void)
 {
     Os_ResourceType res;
 
-    OS_CHECK_EXT(Os_ActiveTask != OS_INVALID_TASK  , E_OS_STATE);
+    if (!Os_TaskRunning()) {
+        return;
+    }
 
     res = Os_TaskConfigs[Os_ActiveTask].resource;
     if (res != OS_INVALID_RESOURCE && Os_TaskControls[Os_ActiveTask].resource == OS_INVALID_RESOURCE) {
@@ -725,13 +745,9 @@ Os_StatusType Os_ReleaseResource_Internal(Os_ResourceType res)
 
 #if(OS_ERROR_EXT_ENABLE)
     OS_CHECK_EXT_R(Os_ResourceControls[res].task == Os_ActiveTask , E_OS_NOFUNC);
-    Os_ResourceControls[res].task  = OS_INVALID_TASK;
 #endif
 
-    Os_TaskControls[Os_ActiveTask].resource = Os_ResourceControls[res].next;
-    Os_TaskControls[Os_ActiveTask].priority = Os_ResourceControls[res].priority;
-    Os_ResourceControls[res].next  = OS_INVALID_RESOURCE;
-
+    Os_ResourceUnlink(res);
     return Os_Schedule_Internal();
 
 OS_ERRORCHECK_EXIT_POINT:
@@ -1002,6 +1018,7 @@ Os_StatusType Os_Syscall_Internal(Os_SyscallParamType* param)
         case OSServiceId_TerminateTask: {
             Os_TaskInternalResource_Release();
             res = Os_TerminateTask_Internal();
+            Os_TaskInternalResource_Get(); /* still running if it failed */
             break;
         }
 
@@ -1013,6 +1030,7 @@ Os_StatusType Os_Syscall_Internal(Os_SyscallParamType* param)
         case OSServiceId_ChainTask: {
             Os_TaskInternalResource_Release();
             res = Os_ChainTask_Internal(param->p1.task);
+            Os_TaskInternalResource_Get(); /* still running if it failed */
             break;
         }
 
