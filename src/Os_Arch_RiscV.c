@@ -16,7 +16,6 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#include <string.h>
 #include <stdlib.h>
 
 #include "Os.h"
@@ -25,6 +24,7 @@
 #define OS_ARCH_FRAME_MEPC     0u
 #define OS_ARCH_FRAME_RA       1u
 #define OS_ARCH_FRAME_MSTATUS  2u
+#define OS_ARCH_FRAME_FP       8u   /* s0 */
 #define OS_ARCH_FRAME_A0       10u
 
 #define OS_ARCH_MSTATUS_MPIE   0x80u
@@ -165,10 +165,12 @@ void Os_Arch_PrepareState(Os_TaskType task)
     uintptr_t  top   = ((uintptr_t)Os_TaskConfigs[task].stack + Os_TaskConfigs[task].stack_size) & ~(uintptr_t)15u;
     uintptr_t* frame = (uintptr_t*)top - OS_ARCH_FRAME_WORDS;
 
-    memset(frame, 0, OS_ARCH_FRAME_WORDS * sizeof(uintptr_t));
+    /* only these matter to a task starting in a C function without
+     * arguments, the others are scratch or restored only on its return */
     frame[OS_ARCH_FRAME_MEPC]    = (uintptr_t)Os_TaskConfigs[task].entry;
     frame[OS_ARCH_FRAME_RA]      = (uintptr_t)Os_Arch_TaskReturned;
     frame[OS_ARCH_FRAME_MSTATUS] = OS_ARCH_MSTATUS_MPP_M | OS_ARCH_MSTATUS_MPIE; /* starts with interrupts enabled */
+    frame[OS_ARCH_FRAME_FP]      = 0u; /* ends frame pointer backtraces at the task entry */
     Os_Arch_Context[task] = frame;
 }
 
