@@ -160,32 +160,52 @@ static __inline boolean Os_AlarmBefore(Os_AlarmType lh, Os_AlarmType rh)
 }
 
 /**
- * @brief Restore heap order by bubbling element down children until it's larger
+ * @brief Restore heap order by moving an element down below earlier children
  */
 void Os_AlarmHeapify(Os_AlarmType queue[]
                    , Os_AlarmQueueIndexType index)
 {
-    Os_AlarmQueueIndexType child;
-    Os_AlarmType           swap;
+    unsigned int  child;
+    unsigned int  first;
+    Os_AlarmType  swap;
 
     while (1u) {
-        child = index * 2u;
-        if ((child <= queue[0u]) && Os_AlarmBefore(queue[child], queue[index]) ) {
-            goto OS_ALARMHEAPIFY_SWAP;
+        /* swap with the earliest child, if it is earlier */
+        first = index;
+        child = (unsigned int)index * 2u;
+        if ((child <= queue[0u]) && Os_AlarmBefore(queue[child], queue[first]) ) {
+            first = child;
         }
 
         child++;
-        if ((child <= queue[0u]) && Os_AlarmBefore(queue[child], queue[index]) ) {
-            goto OS_ALARMHEAPIFY_SWAP;
+        if ((child <= queue[0u]) && Os_AlarmBefore(queue[child], queue[first]) ) {
+            first = child;
         }
-        break;
 
-OS_ALARMHEAPIFY_SWAP:
-        swap = queue[index];
-        queue[index] = queue[child];
-        queue[child] = swap;
-        index        = child;
+        if (first == index) {
+            break;
+        }
+
+        swap         = queue[index];
+        queue[index] = queue[first];
+        queue[first] = swap;
+        index        = (Os_AlarmQueueIndexType)first;
     }
+}
+
+/**
+ * @brief Restore heap order by moving an element up above later parents
+ */
+static void Os_AlarmSiftUp(Os_AlarmType queue[]
+                         , Os_AlarmQueueIndexType index)
+{
+    Os_AlarmType alarm = queue[index];
+
+    while (index > 1u && Os_AlarmBefore(alarm, queue[index / 2u]) ) {
+        queue[index] = queue[index / 2u];
+        index       /= 2u;
+    }
+    queue[index] = alarm;
 }
 
 /**
@@ -240,19 +260,9 @@ void Os_AlarmTick(Os_AlarmType queue[], Os_TickType ticks)
 
 void Os_AlarmAdd(Os_AlarmType queue[], Os_AlarmType alarm)
 {
-    Os_AlarmType index
-               , parent;
-
     queue[0]++;
-
-    index  = queue[0u];
-    parent = queue[0u] / 2u;
-    while (index > 1u && Os_AlarmBefore(alarm, queue[parent]) ) {
-        queue[index] = queue[parent];
-        index   = parent;
-        parent /= 2u;
-    }
-    queue[index] = alarm;
+    queue[queue[0u]] = alarm;
+    Os_AlarmSiftUp(queue, queue[0u]);
     Os_AlarmQueued[alarm] = TRUE;
 }
 
@@ -885,11 +895,16 @@ Os_StatusType Os_CancelAlarm_Internal(Os_AlarmType alarm)
     /* just a defensive check here */
     OS_CHECK_R(index <= queue[0], E_OS_NOFUNC);
 
-    /* if this is not the last item, we must swap and heapify */
+    /* if this is not the last item, move the last one in its place and
+     * restore order, it may belong either above or below */
     if (queue[0] != index) {
         queue[index] = queue[queue[0]];
         queue[0]--;
-        Os_AlarmHeapify(queue, index);
+        if ((index > 1u) && Os_AlarmBefore(queue[index], queue[index / 2u])) {
+            Os_AlarmSiftUp(queue, index);
+        } else {
+            Os_AlarmHeapify(queue, index);
+        }
     } else {
         queue[0]--;
     }
