@@ -87,6 +87,7 @@ if(BUILD_ARCH STREQUAL "Fibers")
         ${CMAKE_CURRENT_SOURCE_DIR}/src/Os_Arch_Fibers.c
         ${CMAKE_CURRENT_SOURCE_DIR}/src/Os_Arch_Fibers_Asm.asm
     )
+    target_link_libraries(OsekOs INTERFACE winmm)
     target_compile_definitions(OsekOs_Headers INTERFACE OS_CFG_ARCH_FIBERS)
 elseif(BUILD_ARCH STREQUAL "Ums")
     target_sources(OsekOs INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/src/Os_Arch_Ums.c)

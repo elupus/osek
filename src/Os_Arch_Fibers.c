@@ -18,6 +18,7 @@
 
 #include <Windows.h>
 #include <WinBase.h>
+#include <mmsystem.h>
 #include <signal.h>
 #include <assert.h>
 
@@ -43,6 +44,37 @@ LONG               Os_Arch_Interrupt_Mask;
 Os_Arch_IsrType    Os_Arch_Interrupt_Pending;
 Os_Arch_StateType  Os_Arch_State[OS_TASK_COUNT];
 HANDLE             Os_Arch_Thread;
+UINT               Os_Arch_TimerPeriod; /* ms passed to timeBeginPeriod, 0 if not raised */
+
+/* The timer queue fires at the system timer resolution, about 15.6 ms by
+ * default, so raise it to the tick period for the life of the OS. Failure
+ * is not fatal, the tick just stays coarse. */
+static void Os_Arch_BeginTimerPeriod(void)
+{
+    TIMECAPS caps;
+    UINT     period = OS_TICK_US / 1000u;
+
+    if (timeGetDevCaps(&caps, sizeof(caps)) != MMSYSERR_NOERROR) {
+        return;
+    }
+    if (period < caps.wPeriodMin) {
+        period = caps.wPeriodMin;
+    }
+    if (period > caps.wPeriodMax) {
+        period = caps.wPeriodMax;
+    }
+    if (timeBeginPeriod(period) == TIMERR_NOERROR) {
+        Os_Arch_TimerPeriod = period;
+    }
+}
+
+static void Os_Arch_EndTimerPeriod(void)
+{
+    if (Os_Arch_TimerPeriod) {
+        timeEndPeriod(Os_Arch_TimerPeriod);
+        Os_Arch_TimerPeriod = 0u;
+    }
+}
 
 static void Os_Arch_DeleteFiber(PVOID* fiber)
 {
@@ -181,6 +213,8 @@ void Os_Arch_Deinit(void)
         Os_Arch_Timer = NULL;
     }
 
+    Os_Arch_EndTimerPeriod();
+
     Os_TaskType task;
     for (task = 0; task < OS_TASK_COUNT; ++task) {
         Os_Arch_DeleteFiber(&Os_Arch_State[task].fiber_old);
@@ -215,6 +249,8 @@ void Os_Arch_Init(void)
     }
 
     Os_Arch_DisableAllInterrupts();
+
+    Os_Arch_BeginTimerPeriod();
 
     if (!CreateTimerQueueTimer( &Os_Arch_Timer
                               , NULL
