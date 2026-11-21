@@ -48,6 +48,7 @@ const Os_ResourceConfigType *   Os_ResourceConfigs;                     /**< con
 Os_ResourceControlType          Os_ResourceControls    [OS_RES_COUNT];  /**< control array for resources */
 
 volatile boolean                Os_Continue;                            /**< should starting task continue */
+boolean                         Os_Initialized;                         /**< Os_Init accepted the configuration */
 
 
 #ifdef OS_ALARM_COUNT
@@ -403,6 +404,10 @@ static __inline void Os_State_Ready_To_Running(Os_TaskType task)
  */
 void Os_Start(void)
 {
+    if (!Os_Initialized) {
+        return;
+    }
+
     Os_CallContext = OS_CONTEXT_TASK;
     Os_Schedule_Internal();
     Os_Arch_Start();
@@ -1031,6 +1036,38 @@ Os_StatusType Os_Syscall_Internal(Os_SyscallParamType* param)
  * @brief Initializes OS internal structures with given config
  * @param config Configuration to use
  */
+/**
+ * @brief Check the static configuration before using it
+ * @return
+ *  - E_OK on success
+ *  - E_OS_VALUE a task priority is outside the configured priority levels
+ *  - E_OS_ID a task refers to an internal resource that does not exist
+ *  - E_OS_RESOURCE a task's internal resource has a ceiling below the task's priority
+ */
+static Os_StatusType Os_CheckConfig(void)
+{
+    Os_TaskType     task;
+    Os_ResourceType res;
+
+    for (task = 0u; task < OS_TASK_COUNT; ++task) {
+        OS_CHECK_EXT_R(  (Os_TaskConfigs[task].priority >= 0)
+                      && (Os_TaskConfigs[task].priority <  OS_PRIO_COUNT)  , E_OS_VALUE);
+
+        res = Os_TaskConfigs[task].resource;
+        if (res != OS_INVALID_RESOURCE) {
+            OS_CHECK_EXT_R(res < OS_RES_COUNT                              , E_OS_ID);
+            OS_CHECK_EXT_R(Os_TaskConfigs[task].priority <= Os_ResourceConfigs[res].priority, E_OS_RESOURCE);
+        }
+    }
+    return E_OK;
+
+OS_ERRORCHECK_EXIT_POINT:
+    Os_Error.service   = OSServiceId_None;
+    Os_Error.params[0] = task;
+    OS_ERRORHOOK(Os_Error.status);
+    return Os_Error.status;
+}
+
 void Os_Init(const Os_ConfigType* config)
 {
     Os_TaskType     task;
@@ -1042,6 +1079,14 @@ void Os_Init(const Os_ConfigType* config)
     Os_TaskConfigs     = *config->tasks;
     Os_ResourceConfigs = *config->resources;
     Os_AlarmConfigs    = *config->alarms;
+    Os_Initialized     = FALSE;
+
+    /* refuse a bad configuration before touching any state, Os_Start
+     * will then not start */
+    if (Os_CheckConfig() != E_OK) {
+        return;
+    }
+
     Os_CallContext     = OS_CONTEXT_NONE;
     Os_ActiveTask      = OS_INVALID_TASK;
     Os_Continue        = TRUE;
@@ -1082,12 +1127,6 @@ void Os_Init(const Os_ConfigType* config)
     /* make sure any activated task is in ready list */
     for (task = 0u; task < OS_TASK_COUNT; ++task) {
 
-        /* check some task config */
-        Os_ResourceType res = Os_TaskConfigs[task].resource;
-        if (res != OS_INVALID_TASK) {
-            OS_CHECK_EXT(Os_TaskConfigs[task].priority <= Os_ResourceConfigs[res].priority, E_OS_RESOURCE);
-        }
-
         /* ready any activated task */
         if (Os_TaskConfigs[task].autostart) {
 #if( (OS_CONFORMANCE == OS_CONFORMANCE_ECC2) ||  (OS_CONFORMANCE == OS_CONFORMANCE_BCC2) )
@@ -1096,6 +1135,8 @@ void Os_Init(const Os_ConfigType* config)
             Os_State_Suspended_To_Ready(task);
         }
     }
+
+    Os_Initialized = TRUE;
 }
 
 
