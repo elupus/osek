@@ -375,9 +375,15 @@ TEST_F(Os_TestTask, InternalResourceNonPreemptive) {
 TEST_F(Os_TestTask, GetTaskIdBeforeStart) {
     Os_TaskType task = 0;
     Os_Init(&m_config);
-    EXPECT_EQ(OS_INVALID_TASK, Os_ActiveTask);
+    EXPECT_FALSE(Os_TaskControls[Os_ActiveTask].state == OS_TASK_RUNNING);
     EXPECT_EQ(E_OK           , Os_GetTaskId(&task));
     EXPECT_EQ(OS_INVALID_TASK, task) << "No task has run yet";
+
+    m_tasks[0].autostart = OS_APPMODE_MASK(OS_DEFAULTAPPMODE);
+    Os_Init(&m_config);
+    Os_Autostart(OS_DEFAULTAPPMODE);
+    EXPECT_EQ(E_OK           , Os_GetTaskId(&task));
+    EXPECT_EQ(OS_INVALID_TASK, task) << "Task 0 is ready, not running";
 }
 
 TEST_F(Os_TestTask, ScheduleFromInit) {
@@ -407,9 +413,9 @@ TEST_F(Os_TestTask, InitInternalResourceCeiling) {
     ASSERT_FALSE(Os_Errors.empty());
     EXPECT_EQ(E_OS_RESOURCE, Os_Errors.top()) << "Ceiling below the task's priority";
     EXPECT_FALSE(Os_Initialized);
-    Os_ActiveTask = OS_INVALID_TASK; /* Os_Init left it untouched, clear what earlier tests left */
+    Os_CallContext = OS_CONTEXT_NONE; /* Os_Init left it untouched, clear what earlier tests left */
     Os_Start(OS_DEFAULTAPPMODE);
-    EXPECT_EQ(OS_INVALID_TASK, Os_ActiveTask) << "Os_Start does not start on a bad configuration";
+    EXPECT_EQ(OS_CONTEXT_NONE, Os_CallContext) << "Os_Start does not start on a bad configuration";
 }
 
 TEST_F(Os_TestTask, InitInternalResourceId) {
@@ -788,11 +794,10 @@ TEST_F(Os_TestTask, AutostartAlarmInvalid) {
 TEST_F(Os_TestTask, StartInvalidMode) {
     Os_Init(&m_config);
     ASSERT_TRUE(Os_Initialized);
-    Os_ActiveTask = OS_INVALID_TASK;
     Os_Start(OS_APPMODE_COUNT);
     ASSERT_FALSE(Os_Errors.empty());
     EXPECT_EQ(E_OS_VALUE        , Os_Errors.top());
-    EXPECT_EQ(OS_INVALID_TASK   , Os_ActiveTask) << "Does not start in an invalid mode";
+    EXPECT_EQ(OS_CONTEXT_NONE   , Os_CallContext) << "Does not start in an invalid mode";
 }
 
 TEST_F(Os_TestTask, InternalResourceKeptOnError) {
@@ -893,10 +898,10 @@ TEST_F(Os_TestTask, WaitEventIdle) {
     m_tasks[2].extended = TRUE;
     Start(2);
     EXPECT_EQ(E_OK             , Os_TestSyscall(OSServiceId_WaitEvent, 0x1u));
-    EXPECT_FALSE(Os_TaskRunning())                           << "Nothing runs";
+    EXPECT_FALSE(Os_TaskControls[Os_ActiveTask].state == OS_TASK_RUNNING)                           << "Nothing runs";
     EXPECT_EQ(E_OK             , Os_SetEvent_Internal(2, 0x1u));
     EXPECT_EQ(2                , Os_ActiveTask);
-    EXPECT_TRUE(Os_TaskRunning());
+    EXPECT_TRUE(Os_TaskControls[Os_ActiveTask].state == OS_TASK_RUNNING);
 }
 
 TEST_F(Os_TestTask, WaitEventErrors) {
@@ -944,10 +949,10 @@ TEST_F(Os_TestTask, AlarmSetsEvent) {
     Start(2);
     EXPECT_EQ(E_OK             , Os_SetRelAlarm_Internal(0, 1u, 0u));
     EXPECT_EQ(E_OK             , Os_TestSyscall(OSServiceId_WaitEvent, 0x4u));
-    EXPECT_FALSE(Os_TaskRunning());
+    EXPECT_FALSE(Os_TaskControls[Os_ActiveTask].state == OS_TASK_RUNNING);
     Os_Isr();
     EXPECT_EQ(2                , Os_ActiveTask)              << "Alarm event wakes the task";
-    EXPECT_TRUE(Os_TaskRunning());
+    EXPECT_TRUE(Os_TaskControls[Os_ActiveTask].state == OS_TASK_RUNNING);
     EXPECT_EQ(1u               , Os_TaskControls[2].activation) << "Not activated again";
 }
 

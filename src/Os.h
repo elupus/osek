@@ -517,25 +517,13 @@ static __inline Os_StatusType Os_GetTaskState(Os_TaskType task, Os_TaskStateType
 }
 
 /**
- * @brief Check if a task is currently running
- *
- * Os_ActiveTask is OS_INVALID_TASK until the first task has run, and keeps
- * the last task after it stopped running, so both must be checked.
- */
-static __inline boolean Os_TaskRunning(void)
-{
-    return (Os_ActiveTask != OS_INVALID_TASK)
-        && (Os_TaskControls[Os_ActiveTask].state == OS_TASK_RUNNING);
-}
-
-/**
  * @brief Get the identifier of the currently executing task
  * @param[out] task Currently running task or Os_TaskIdNone if no task is running
  * @return E_OK on success
  */
 static __inline Os_StatusType Os_GetTaskId   (Os_TaskType* task)
 {
-    if (Os_TaskRunning()) {
+    if (Os_TaskControls[Os_ActiveTask].state == OS_TASK_RUNNING) {
         *task = Os_ActiveTask;
     } else {
         *task = OS_INVALID_TASK;
