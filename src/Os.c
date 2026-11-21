@@ -466,8 +466,17 @@ void Os_Start(void)
     }
 }
 
-Os_StatusType Os_Shutdown_Internal(void)
+/**
+ * @brief Shut down the operating system
+ * @param error reason for the shutdown
+ * @return E_OK
+ *
+ * Call contexts: TASK, ISR2, ERRORHOOK, STARTUPHOOK
+ */
+Os_StatusType Os_Shutdown_Internal(Os_StatusType error)
 {
+    (void)error;
+
     Os_Continue = FALSE;
 
     if (Os_TaskRunning()) {
@@ -526,6 +535,36 @@ void Os_Isr(void)
     Os_IncrementCounter_Internal(0u);
     Os_Schedule_Internal();
     Os_CallContext = OS_CONTEXT_TASK;
+}
+
+/**
+ * @brief Get the state of a task
+ * @param[in]  task  task to query
+ * @param[out] state state of the task
+ * @return
+ *  - E_OK on success
+ *  - E_OS_ID if the task is invalid
+ *
+ * A task that has been activated but not started yet is reported as ready.
+ *
+ * Call contexts: TASK, ISR2, ERRORHOOK, PRETASKHOOK, POSTTASKHOOK
+ */
+Os_StatusType Os_GetTaskState_Internal(Os_TaskType task, Os_TaskStateType* state)
+{
+    OS_CHECK_EXT_R(task < OS_TASK_COUNT, E_OS_ID);
+
+    if (Os_TaskControls[task].state == OS_TASK_READY_FIRST) {
+        *state = OS_TASK_READY;
+    } else {
+        *state = Os_TaskControls[task].state;
+    }
+    return E_OK;
+
+OS_ERRORCHECK_EXIT_POINT:
+    Os_Error.service   = OSServiceId_GetTaskState;
+    Os_Error.params[0] = task;
+    OS_ERRORHOOK(Os_Error.status);
+    return Os_Error.status;
 }
 
 /**
@@ -1074,7 +1113,12 @@ Os_StatusType Os_Syscall_Internal(Os_SyscallParamType* param)
 #endif
 
         case OSServiceId_Shutdown: {
-            res = Os_Shutdown_Internal();
+            res = Os_Shutdown_Internal(param->p2.status);
+            break;
+        }
+
+        case OSServiceId_GetTaskState: {
+            res = Os_GetTaskState_Internal(param->p1.task, param->p2.state_ptr);
             break;
         }
 

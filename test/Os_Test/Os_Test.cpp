@@ -99,7 +99,7 @@ template<typename T> struct Os_Test : public testing::Test {
                     break;
                 }
                 FAIL();
-                Os_Shutdown();
+                Os_Shutdown(E_OK);
             }
         }
     } m_hooks;
@@ -176,7 +176,7 @@ struct Os_Test_Default : public Os_Test<Os_Test_Default>
 
     virtual void task_prio0(void)
     {
-        Os_Shutdown();
+        Os_Shutdown(E_OK);
     }
 
     virtual void task_prio1(void) { Os_TerminateTask(); }
@@ -189,7 +189,7 @@ struct Os_Test_ResourceOrder : public Os_Test_Default
     virtual void task_prio0(void)
     {
         EXPECT_EQ(E_OK       , Os_ActivateTask(OS_TASK_PRIO1));
-        Os_Shutdown();
+        Os_Shutdown(E_OK);
     }
 
     virtual void task_prio1(void)
@@ -221,7 +221,7 @@ struct Os_Test_ResourceTaskPriority : public Os_Test_Default
     virtual void task_prio0(void)
     {
         EXPECT_EQ(E_OK       , Os_ActivateTask(OS_TASK_PRIO2));
-        Os_Shutdown();
+        Os_Shutdown(E_OK);
     }
 
     virtual void task_prio2(void)
@@ -257,7 +257,7 @@ struct Os_Test_ResourceLockTest : public Os_Test_Default
         EXPECT_EQ(1          , task_prio1_count) << "Higher prio task run while resource was held";
         EXPECT_EQ(E_OK       , Os_ReleaseResource(OS_RES_PRIO1));
         EXPECT_EQ(2          , task_prio1_count) << "Higher prio task didn't run after resource was released";
-        Os_Shutdown();
+        Os_Shutdown(E_OK);
     }
 
     virtual void task_prio1(void)
@@ -310,7 +310,7 @@ struct Os_Test_AlarmTest : public Os_Test_Default
 
     virtual void task_prio3(void)
     {
-        Os_Shutdown();
+        Os_Shutdown(E_OK);
     }
 };
 
@@ -350,7 +350,7 @@ struct Os_Test_AlarmTest2 : public Os_Test_Default
 
     virtual void task_prio2(void)
     {
-        Os_Shutdown();
+        Os_Shutdown(E_OK);
     }
 };
 
@@ -361,6 +361,34 @@ TEST_F(Os_Test_AlarmTest2, Main) {
     test_main();
     EXPECT_EQ(m_task_activations[OS_TASK_PRIO1], 1);
     EXPECT_EQ(m_task_activations[OS_TASK_PRIO2], 1);
+}
+
+struct Os_Test_TaskState : public Os_Test_Default
+{
+    virtual void task_prio0(void)
+    {
+        Os_TaskStateType state;
+        EXPECT_EQ(E_OK             , Os_GetTaskState(OS_TASK_PRIO0, &state));
+        EXPECT_EQ(OS_TASK_RUNNING  , state);
+        EXPECT_EQ(E_OK             , Os_GetTaskState(OS_TASK_PRIO1, &state));
+        EXPECT_EQ(OS_TASK_SUSPENDED, state);
+        EXPECT_EQ(E_OK             , Os_ActivateTask(OS_TASK_PRIO1));
+        Os_Shutdown(E_OK);
+    }
+
+    virtual void task_prio1(void)
+    {
+        Os_TaskStateType state;
+        EXPECT_EQ(E_OK             , Os_GetTaskState(OS_TASK_PRIO0, &state));
+        EXPECT_EQ(OS_TASK_READY    , state) << "Preempted task is ready";
+        EXPECT_EQ(E_OK             , Os_GetTaskState(OS_TASK_PRIO1, &state));
+        EXPECT_EQ(OS_TASK_RUNNING  , state);
+        Os_TerminateTask();
+    }
+};
+
+TEST_F(Os_Test_TaskState, Main) {
+    test_main();
 }
 
 struct Os_Test_NonPreemptive : public Os_Test_Default
@@ -388,7 +416,7 @@ struct Os_Test_NonPreemptive : public Os_Test_Default
     {
         EXPECT_EQ(E_OK, Os_ActivateTask(OS_TASK_PRIO1));
         order.push_back(0);
-        Os_Shutdown();
+        Os_Shutdown(E_OK);
     }
 
     virtual void task_prio1(void)
