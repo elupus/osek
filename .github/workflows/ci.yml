@@ -44,7 +44,10 @@ jobs:
       - name: Install toolchain and QEMU
         run: |
           sudo apt-get update
-          sudo apt-get install -y ninja-build gcc-riscv64-unknown-elf picolibc-riscv64-unknown-elf qemu-system-misc
+          sudo apt-get install -y ninja-build gcc-riscv64-unknown-elf picolibc-riscv64-unknown-elf
+          # newer releases split RISC-V out of qemu-system-misc
+          sudo apt-get install -y qemu-system-riscv || sudo apt-get install -y qemu-system-misc
+          qemu-system-riscv32 --version
 
       - name: Configure
         run: cmake --preset riscv32-qemu
