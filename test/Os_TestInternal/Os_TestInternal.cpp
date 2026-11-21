@@ -198,6 +198,28 @@ TEST_F(Os_TestAlarm, CancelAlarm3) {
     EXPECT_EQ(E_OS_NOFUNC, Os_GetAlarm_Internal(2, &tick)) << "Alarm should have been cancelled";
 }
 
+TEST_F(Os_TestAlarm, RearmAfterCancel) {
+    EXPECT_EQ(E_OK       , Os_SetRelAlarm_Internal(0, 1, 0));
+    EXPECT_EQ(E_OK       , Os_CancelAlarm_Internal(0));
+    EXPECT_EQ(E_OK       , Os_SetRelAlarm_Internal(0, 1, 0)) << "Cancelled alarm can be armed again";
+    EXPECT_EQ(E_OK       , Os_CancelAlarm_Internal(0));
+    EXPECT_EQ(E_OK       , Os_SetAbsAlarm_Internal(0, 1, 0)) << "Cancelled alarm can be armed again";
+}
+
+TEST_F(Os_TestAlarm, RearmAfterExpiry) {
+    Os_TickType tick;
+    EXPECT_EQ(E_OK       , Os_SetRelAlarm_Internal(0, 1, 0));
+    EXPECT_EQ(E_OK       , Os_IncrementCounter_Internal(OS_COUNTER_SYSTEM));
+    EXPECT_EQ(E_OS_NOFUNC, Os_GetAlarm_Internal(0, &tick))   << "Alarm should have expired";
+    EXPECT_EQ(E_OK       , Os_SetRelAlarm_Internal(0, 1, 0)) << "Expired alarm can be armed again";
+}
+
+TEST_F(Os_TestAlarm, AbsAlarmAtZeroInUse) {
+    EXPECT_EQ(E_OK       , Os_SetAbsAlarm_Internal(0, 0, 0));
+    EXPECT_EQ(E_OS_STATE , Os_SetAbsAlarm_Internal(0, 0, 0)) << "Alarm expiring at tick 0 is in use";
+    EXPECT_EQ(E_OS_STATE , Os_SetRelAlarm_Internal(0, 1, 0)) << "Alarm expiring at tick 0 is in use";
+}
+
 TEST_F(Os_TestAlarm, GetAlarm1) {
     Os_TickType tick;
     EXPECT_EQ(E_OS_ID    , Os_GetAlarm_Internal(OS_ALARM_COUNT, &tick)) << "Alarm of invalid ID";
