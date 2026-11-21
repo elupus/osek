@@ -1,13 +1,41 @@
-/latex/
-/html/
-cmake_install.cmake
+# Build output (CMake presets build into build/<preset>)
+/build/
+/out/
+
+# In-source CMake builds
 CMakeCache.txt
-CMakeFiles
+CMakeFiles/
+CMakeUserPresets.json
+cmake_install.cmake
+CTestTestfile.cmake
 Makefile
+build.ninja
+.ninja_*
+compile_commands.json
+Testing/
+_deps/
+/googletest/
+/Os_Run
+/Os_Test
+/Os_TestInternal
+/Os_Metric*
+
+# Coverage
+*.gcda
+*.gcno
+*.gcov
+
+# Doxygen
+/html/
+/latex/
+
+# Editors / IDEs
 .cproject
 .project
-/googletest/
+.vscode/
+.idea/
+.cache/
 *.swp
-Os_Run
-Os_Test
-/.vs
+*~
+.DS_Store
+/.vs/

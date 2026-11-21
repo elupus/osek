@@ -1,0 +1,62 @@
+{
+  "version": 3,
+  "cmakeMinimumRequired": { "major": 3, "minor": 21, "patch": 0 },
+  "configurePresets": [
+    {
+      "name": "base",
+      "hidden": true,
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/${presetName}",
+      "cacheVariables": {
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+      }
+    },
+    {
+      "name": "debug",
+      "displayName": "Host Debug (Ninja)",
+      "inherits": "base",
+      "cacheVariables": { "CMAKE_BUILD_TYPE": "Debug" }
+    },
+    {
+      "name": "release",
+      "displayName": "Host Release (Ninja)",
+      "inherits": "base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "OSEK_COVERAGE": "OFF"
+      }
+    },
+    {
+      "name": "hcs12-gcc",
+      "displayName": "HCS12 cross build (m68hc11-elf-gcc)",
+      "inherits": "base",
+      "toolchainFile": "${sourceDir}/toolchain/Toolchain-Generic-m68hc11-elf.cmake",
+      "cacheVariables": { "CMAKE_BUILD_TYPE": "MinSizeRel" }
+    },
+    {
+      "name": "hcs12-chc12",
+      "displayName": "HCS12 cross build (Freescale CodeWarrior chc12)",
+      "inherits": "base",
+      "toolchainFile": "${sourceDir}/toolchain/Toolchain-Generic-chc12.cmake",
+      "cacheVariables": { "CMAKE_BUILD_TYPE": "MinSizeRel" }
+    }
+  ],
+  "buildPresets": [
+    { "name": "debug",       "configurePreset": "debug" },
+    { "name": "release",     "configurePreset": "release" },
+    { "name": "hcs12-gcc",   "configurePreset": "hcs12-gcc" },
+    { "name": "hcs12-chc12", "configurePreset": "hcs12-chc12" }
+  ],
+  "testPresets": [
+    {
+      "name": "debug",
+      "configurePreset": "debug",
+      "output": { "outputOnFailure": true }
+    },
+    {
+      "name": "release",
+      "configurePreset": "release",
+      "output": { "outputOnFailure": true }
+    }
+  ]
+}
