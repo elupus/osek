@@ -35,7 +35,7 @@
 #   define OS_ARCH_RTICTL_VALUE 0x17u
 #   define OS_TICK_US           1024U
 #else
-#   define OS_TICK_US           1000000U
+#   define OS_TICK_US           10000U
 #endif
 
 #define OS_PRETASKHOOK_ENABLE  0
