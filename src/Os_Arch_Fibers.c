@@ -24,6 +24,12 @@
 #include "Os.h"
 #include "Os_Arch_Fibers.h"
 
+/* the tick is driven by a timer queue timer with millisecond period,
+ * a period of zero would make it a one shot timer */
+#if (OS_TICK_US < 1000u)
+#error "Fibers architecture requires OS_TICK_US of at least 1000"
+#endif
+
 typedef struct Os_Arch_StateType {
     LPVOID fiber_old;
     LPVOID fiber;
