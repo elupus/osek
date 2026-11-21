@@ -35,6 +35,26 @@ jobs:
       - name: Test
         run: ctest --preset ${{ matrix.preset }} --timeout 120
 
+  riscv:
+    name: RISC-V (RV32, QEMU)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Install toolchain and QEMU
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build gcc-riscv64-unknown-elf picolibc-riscv64-unknown-elf qemu-system-misc
+
+      - name: Configure
+        run: cmake --preset riscv32-qemu
+
+      - name: Build
+        run: cmake --build --preset riscv32-qemu
+
+      - name: Test
+        run: ctest --preset riscv32-qemu --timeout 120
+
   windows:
     name: Windows (${{ matrix.arch_port }}, ${{ matrix.arch }})
     runs-on: windows-latest
