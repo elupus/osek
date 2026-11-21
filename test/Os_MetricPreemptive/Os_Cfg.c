@@ -36,12 +36,12 @@
 #define NAMED_INIT(a) .a =
 #endif
 
-unsigned char task0_stack[512];
-unsigned char task1_stack[512];
-unsigned char task2_stack[512];
-unsigned char task3_stack[512];
-unsigned char task4_stack[512];
-unsigned char task5_stack[512];
+unsigned char task0_stack[OS_STACK_SIZE(512)];
+unsigned char task1_stack[OS_STACK_SIZE(512)];
+unsigned char task2_stack[OS_STACK_SIZE(512)];
+unsigned char task3_stack[OS_STACK_SIZE(512)];
+unsigned char task4_stack[OS_STACK_SIZE(512)];
+unsigned char task5_stack[OS_STACK_SIZE(512)];
 
 unsigned int  task0_count;
 unsigned int  task1_count;
