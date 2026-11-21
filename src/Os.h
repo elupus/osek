@@ -134,9 +134,14 @@ typedef struct Os_ResourceControlType {
 /**
  * @brief Structure holding configuration setup for each alarm
  */
+typedef void (*Os_AlarmCallbackType)(void); /**< alarm callback, see Os_AlarmConfigType::callback */
+
 typedef struct Os_AlarmConfigType {
-    Os_TaskType     task;         /**< @brief task to activate */
+    Os_TaskType     task;         /**< @brief task to activate, or OS_INVALID_TASK */
     Os_CounterType  counter;      /**< @brief counter driving this alarm */
+    Os_AlarmCallbackType callback;/**< @brief called on expiry if not NULL, at interrupt level
+                                   *          with interrupts disabled, so it may not call
+                                   *          any service except the interrupt ones */
 } Os_AlarmConfigType;
 
 typedef uint8 Os_AlarmQueueIndexType;
