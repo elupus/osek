@@ -44,6 +44,10 @@
 #include "Os_Arch_HCS12.h"
 #endif
 
+#ifdef OS_CFG_ARCH_RISCV
+#include "Os_Arch_RiscV.h"
+#endif
+
 /**
  * @brief Stack space a port needs on every task stack, on top of the task's own usage.
  *
