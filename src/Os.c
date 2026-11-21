@@ -53,6 +53,17 @@ Os_AppModeType                  Os_AppMode;                             /**< app
 #if(OS_ERRORHOOK_ENABLE)
 boolean                         Os_ErrorHookActive;                     /**< error hook is running */
 
+/**
+ * @brief Call the error hook, unless the error comes from inside it
+ */
+void Os_ErrorHookCall(Os_StatusType status)
+{
+    if (!Os_ErrorHookActive) {
+        Os_ErrorHookActive = TRUE;
+        Os_ErrorHook(status);
+        Os_ErrorHookActive = FALSE;
+    }
+}
 #endif
 
 

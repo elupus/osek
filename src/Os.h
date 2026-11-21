@@ -557,15 +557,9 @@ extern void Os_PostTaskHook(Os_TaskType task);
 
 #if(OS_ERRORHOOK_ENABLE)
 extern void    Os_ErrorHook(Os_StatusType status);
-extern boolean Os_ErrorHookActive;
+extern void    Os_ErrorHookCall(Os_StatusType status);
 /* services failing inside the error hook do not call it again */
-#define OS_ERRORHOOK(status) do {                \
-        if (!Os_ErrorHookActive) {               \
-            Os_ErrorHookActive = TRUE;           \
-            Os_ErrorHook(status);                \
-            Os_ErrorHookActive = FALSE;          \
-        }                                        \
-    } while(0)
+#define OS_ERRORHOOK(status) Os_ErrorHookCall(status)
 #else
 #define OS_ERRORHOOK(status)
 #endif
