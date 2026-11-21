@@ -92,7 +92,7 @@ void task5(void)
         Os_ActivateTask(4);
         Os_TerminateTask();
     } else {
-        Os_Shutdown();
+        Os_Shutdown(E_OK);
     }
 }
 
