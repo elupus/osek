@@ -616,7 +616,7 @@ static Os_StatusType Os_ActivateTask_Internal(Os_TaskType task)
         Os_State_Suspended_To_Ready(task);
     }
 #else
-    OS_CHECK_EXT_R(Os_TaskControls[task].state == OS_TASK_SUSPENDED, E_OS_LIMIT);
+    OS_CHECK_R    (Os_TaskControls[task].state == OS_TASK_SUSPENDED, E_OS_LIMIT);
     Os_State_Suspended_To_Ready(task);
 #endif
     return Os_Schedule_Internal();
