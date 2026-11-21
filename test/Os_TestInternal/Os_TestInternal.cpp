@@ -610,3 +610,55 @@ TEST_F(Os_TestAlarm, RandomAgainstModel) {
         }
     }
 }
+
+TEST_F(Os_TestTask, InternalResourceKeptOnError) {
+    Os_SyscallParamType param;
+    m_resources[1].priority = 3;
+    m_tasks[1].resource     = 1;
+    Start(1);
+    EXPECT_EQ(E_OK       , Os_ActivateTask_Internal(0));
+    param.service = OSServiceId_ChainTask;
+    param.p1.task = 0;
+    EXPECT_EQ(E_OS_LIMIT , Os_Syscall_Internal(&param));
+    EXPECT_EQ(1          , Os_ActiveTask);
+    EXPECT_EQ(1          , Os_TaskControls[1].resource) << "Internal resource held after a failed ChainTask";
+    EXPECT_EQ(3          , Os_TaskControls[1].priority);
+}
+
+TEST_F(Os_TestTask, InternalResourceNotTakenWhenIdle) {
+    Os_SyscallParamType param;
+    m_resources[1].priority = 3;
+    m_tasks[1].resource     = 1;
+    Start(1);
+    param.service = OSServiceId_TerminateTask;
+    EXPECT_EQ(E_OK       , Os_Syscall_Internal(&param));
+    EXPECT_EQ(OS_INVALID_RESOURCE, Os_TaskControls[1].resource) << "Terminated task does not hold it";
+    EXPECT_EQ(OS_INVALID_TASK    , Os_ResourceControls[1].task);
+}
+
+TEST_F(Os_TestTask, InternalResourceTerminate) {
+    Os_SyscallParamType param;
+    m_resources[1].priority = 3;
+    m_tasks[1].resource     = 1;
+    m_tasks[2].resource     = 1;
+    Start(1);
+    EXPECT_EQ(E_OK       , Os_ActivateTask_Internal(2));
+    EXPECT_EQ(1          , Os_ActiveTask) << "Same group, does not preempt";
+    param.service = OSServiceId_TerminateTask;
+    EXPECT_EQ(E_OK       , Os_Syscall_Internal(&param)) << "Terminate with only the internal resource held";
+    EXPECT_EQ(2          , Os_ActiveTask);
+    EXPECT_EQ(1          , Os_TaskControls[2].resource) << "Next task in the group takes it";
+    EXPECT_EQ(2          , Os_ResourceControls[1].task);
+}
+
+TEST_F(Os_TestTask, InternalResourceScheduleNoSwitch) {
+    Os_SyscallParamType param;
+    m_resources[1].priority = 3;
+    m_tasks[1].resource     = 1;
+    Start(1);
+    param.service = OSServiceId_Schedule;
+    EXPECT_EQ(E_OK       , Os_Syscall_Internal(&param));
+    EXPECT_EQ(1          , Os_ActiveTask);
+    EXPECT_EQ(1          , Os_TaskControls[1].resource) << "Kept when nothing else runs";
+    EXPECT_EQ(3          , Os_TaskControls[1].priority);
+}
