@@ -43,12 +43,12 @@ unsigned char task3_stack[OS_STACK_SIZE(512)];
 unsigned char task4_stack[OS_STACK_SIZE(512)];
 unsigned char task5_stack[OS_STACK_SIZE(512)];
 
-unsigned int  task0_count;
-unsigned int  task1_count;
-unsigned int  task2_count;
-unsigned int  task3_count;
-unsigned int  task4_count;
-unsigned int  task5_count;
+volatile unsigned int task0_count;
+volatile unsigned int task1_count;
+volatile unsigned int task2_count;
+volatile unsigned int task3_count;
+volatile unsigned int task4_count;
+volatile unsigned int task5_count;
 
 void task0(void)
 {
