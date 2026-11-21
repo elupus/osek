@@ -242,3 +242,51 @@ TEST_F(Os_TestResource, GetResource1) {
 TEST_F(Os_TestResource, ReleaseResource1) {
     EXPECT_EQ(E_OS_ID    , Os_ReleaseResource_Internal(OS_RES_COUNT))   << "Resource of invalid ID";
 }
+
+/**
+ * @brief Fixture with a task running, for services called from task context
+ */
+struct Os_TestTask : public Os_TestInternal
+{
+    virtual void SetUp()
+    {
+        Os_TestInternal::SetUp();
+        for(Os_TaskType i = 0; i < OS_TASK_COUNT; ++i) {
+            m_tasks[i].activation = 1u;
+        }
+    }
+
+    /* initialize and make given task the running one */
+    void Start(Os_TaskType task)
+    {
+        Os_Init(&m_config);
+        Os_CallContext = OS_CONTEXT_TASK;
+        ASSERT_EQ(E_OK, Os_ActivateTask_Internal(task));
+        ASSERT_EQ(task, Os_ActiveTask);
+        ASSERT_EQ(OS_TASK_RUNNING, Os_TaskControls[task].state);
+    }
+};
+
+TEST_F(Os_TestTask, ChainTaskLimit) {
+    Start(1);
+    EXPECT_EQ(E_OK           , Os_ActivateTask_Internal(0)) << "Lower priority task stays ready";
+    EXPECT_EQ(E_OS_LIMIT     , Os_ChainTask_Internal(0))    << "Task already activated";
+    EXPECT_EQ(1              , Os_ActiveTask)               << "Caller keeps running on error";
+    EXPECT_EQ(OS_TASK_RUNNING, Os_TaskControls[1].state)    << "Caller keeps running on error";
+    EXPECT_EQ(1u             , Os_TaskControls[1].activation);
+}
+
+TEST_F(Os_TestTask, ChainTaskSelf) {
+    Start(1);
+    EXPECT_EQ(E_OK           , Os_ChainTask_Internal(1))    << "Chaining itself is within the limit";
+    EXPECT_EQ(1              , Os_ActiveTask);
+    EXPECT_EQ(1u             , Os_TaskControls[1].activation);
+}
+
+TEST_F(Os_TestTask, ChainTaskOther) {
+    Start(1);
+    EXPECT_EQ(E_OK           , Os_ChainTask_Internal(0));
+    EXPECT_EQ(0              , Os_ActiveTask);
+    EXPECT_EQ(OS_TASK_SUSPENDED, Os_TaskControls[1].state);
+    EXPECT_EQ(0u             , Os_TaskControls[1].activation);
+}
