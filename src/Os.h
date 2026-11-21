@@ -205,6 +205,7 @@ typedef enum Os_ServiceIdType {
     OSServiceId_ChainTask,
     OSServiceId_CounterIncrement,
     OSServiceId_Shutdown,
+    OSServiceId_GetTaskState,
 } Os_ServiceIdType;
 
 typedef struct Os_SyscallParamType {
@@ -217,7 +218,9 @@ typedef struct Os_SyscallParamType {
     } p1;
     union {
         Os_TickType  tick[2];
-        Os_TickType* tick_ptr;
+        Os_TickType*      tick_ptr;
+        Os_TaskStateType* state_ptr;
+        Os_StatusType     status;
     } p2;
 } Os_SyscallParamType;
 
@@ -324,10 +327,32 @@ static __inline Os_StatusType Os_IncrementCounter(Os_CounterType counter)
     return Os_Arch_Syscall(&param);
 }
 
-static __inline Os_StatusType Os_Shutdown(void)
+/**
+ * @brief Shut down the operating system
+ * @param error reason for the shutdown, passed to the shutdown hook
+ */
+static __inline Os_StatusType Os_Shutdown(Os_StatusType error)
 {
     Os_SyscallParamType param;
-    param.service  = OSServiceId_Shutdown;
+    param.service   = OSServiceId_Shutdown;
+    param.p2.status = error;
+    return Os_Arch_Syscall(&param);
+}
+
+/**
+ * @brief Get the state of a task
+ * @param[in]  task  task to query
+ * @param[out] state OS_TASK_SUSPENDED, OS_TASK_READY, OS_TASK_WAITING or OS_TASK_RUNNING
+ * @return
+ *  - E_OK on success
+ *  - E_OS_ID if the task is invalid
+ */
+static __inline Os_StatusType Os_GetTaskState(Os_TaskType task, Os_TaskStateType* state)
+{
+    Os_SyscallParamType param;
+    param.service      = OSServiceId_GetTaskState;
+    param.p1.task      = task;
+    param.p2.state_ptr = state;
     return Os_Arch_Syscall(&param);
 }
 

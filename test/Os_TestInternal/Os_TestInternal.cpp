@@ -611,6 +611,22 @@ TEST_F(Os_TestAlarm, RandomAgainstModel) {
     }
 }
 
+TEST_F(Os_TestTask, GetTaskState) {
+    Os_TaskStateType state;
+    Start(1);
+    EXPECT_EQ(E_OK             , Os_ActivateTask_Internal(0));
+    EXPECT_EQ(E_OK             , Os_GetTaskState_Internal(1, &state));
+    EXPECT_EQ(OS_TASK_RUNNING  , state);
+    EXPECT_EQ(E_OK             , Os_GetTaskState_Internal(0, &state));
+    EXPECT_EQ(OS_TASK_READY    , state) << "Activated but not started is ready";
+    EXPECT_EQ(E_OK             , Os_GetTaskState_Internal(2, &state));
+    EXPECT_EQ(OS_TASK_SUSPENDED, state);
+    EXPECT_EQ(E_OK             , Os_ActivateTask_Internal(2));
+    EXPECT_EQ(E_OK             , Os_GetTaskState_Internal(1, &state));
+    EXPECT_EQ(OS_TASK_READY    , state) << "Preempted is ready";
+    EXPECT_EQ(E_OS_ID          , Os_GetTaskState_Internal(OS_TASK_COUNT, &state));
+}
+
 TEST_F(Os_TestTask, InternalResourceKeptOnError) {
     Os_SyscallParamType param;
     m_resources[1].priority = 3;

@@ -69,6 +69,8 @@ typedef enum Os_TaskStateEnum {
     OS_TASK_READY_FIRST = 4,        /**< OS_TASK_READY_FIRST */
 } __attribute__ ((__packed__)) Os_TaskStateEnum;
 
+typedef Os_TaskStateEnum Os_TaskStateType; /**< task state as reported by Os_GetTaskState */
+
 #define OS_RES_SCHEDULER (Os_ResourceType)0
 
 typedef void          (*Os_TaskEntryType)(void); /**< type for the entry point of a task */

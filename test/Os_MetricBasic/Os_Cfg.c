@@ -66,7 +66,7 @@ void task1(void)
         Os_ActivateTask(0);
         Os_TerminateTask();
     } else {
-        Os_Shutdown();
+        Os_Shutdown(E_OK);
     }
 }
 
