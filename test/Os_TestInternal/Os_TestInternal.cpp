@@ -93,6 +93,7 @@ struct Os_TestInternal : public testing::Test {
         m_config.tasks     = &m_tasks;
         m_config.resources = &m_resources;
         m_config.alarms    = &m_alarms;
+        m_config.counters  = NULL;
         active             = this;
     }
 
@@ -556,32 +557,36 @@ TEST_F(Os_TestAlarm, OrderAfterCancel) {
     }
 }
 
-TEST_F(Os_TestAlarm, RandomAgainstModel) {
-    /* every alarm must expire exactly at the tick a simple model predicts */
-    uint32_t    seed = 12345u;
-    auto        rnd  = [&seed](uint32_t n) { seed = seed * 1103515245u + 12345u; return (seed >> 8) % n; };
+/* every alarm must expire exactly at the tick a simple model predicts,
+ * on a counter wrapping after max */
+static void Os_TestRandomAlarms(Os_TickType max, Os_TickType mincycle)
+{
+    uint32_t    range = (uint32_t)max + 1u;
+    uint32_t    seed  = 12345u;
+    auto        rnd   = [&seed](uint32_t n) { seed = seed * 1103515245u + 12345u; return (seed >> 8) % n; };
     bool        armed [OS_ALARM_COUNT] = {};
-    Os_TickType expiry[OS_ALARM_COUNT] = {};
-    Os_TickType cycle [OS_ALARM_COUNT] = {};
-    Os_TickType now = 0u, tick;
+    uint32_t    expiry[OS_ALARM_COUNT] = {};
+    uint32_t    cycle [OS_ALARM_COUNT] = {};
+    uint32_t    now = 0u;
+    Os_TickType tick;
 
     for (int step = 0; step < 20000; ++step) {
         Os_AlarmType a = (Os_AlarmType)rnd(OS_ALARM_COUNT);
         switch (rnd(4)) {
         case 0:
             if (!armed[a]) {
-                Os_TickType inc = (Os_TickType)(1u + rnd(rnd(2) ? 20u : 65535u));
-                cycle[a]  = (Os_TickType)(rnd(3) ? 0u : 1u + rnd(15u));
-                ASSERT_EQ(E_OK, Os_SetRelAlarm_Internal(a, inc, cycle[a]));
-                expiry[a] = (Os_TickType)(now + inc);
+                uint32_t inc = 1u + rnd(rnd(2) ? (max < 20u ? max : 20u) : max);
+                cycle[a]  = rnd(3) ? 0u : mincycle + rnd(15u);
+                ASSERT_EQ(E_OK, Os_SetRelAlarm_Internal(a, (Os_TickType)inc, (Os_TickType)cycle[a]));
+                expiry[a] = (now + inc) % range;
                 armed[a]  = true;
             }
             break;
         case 1:
             if (!armed[a]) {
-                Os_TickType start = (Os_TickType)rnd(65536u);
+                uint32_t start = rnd(range);
                 cycle[a]  = 0u;
-                ASSERT_EQ(E_OK, Os_SetAbsAlarm_Internal(a, start, 0u));
+                ASSERT_EQ(E_OK, Os_SetAbsAlarm_Internal(a, (Os_TickType)start, 0u));
                 expiry[a] = start;
                 armed[a]  = true;
             }
@@ -594,11 +599,12 @@ TEST_F(Os_TestAlarm, RandomAgainstModel) {
             break;
         default:
             ASSERT_EQ(E_OK, Os_IncrementCounter_Internal(OS_COUNTER_SYSTEM));
-            now++;
+            now = (now + 1u) % range;
+            ASSERT_EQ(now, Os_CounterControls[OS_COUNTER_SYSTEM].ticks);
             for (Os_AlarmType i = 0u; i < OS_ALARM_COUNT; ++i) {
                 if (armed[i] && expiry[i] == now) {
                     if (cycle[i]) {
-                        expiry[i] = (Os_TickType)(expiry[i] + cycle[i]);
+                        expiry[i] = (expiry[i] + cycle[i]) % range;
                     } else {
                         armed[i] = false;
                     }
@@ -610,10 +616,14 @@ TEST_F(Os_TestAlarm, RandomAgainstModel) {
             ASSERT_EQ(armed[i] ? E_OK : E_OS_NOFUNC, Os_GetAlarm_Internal(i, &tick))
                 << "alarm " << (int)i << " step " << step;
             if (armed[i]) {
-                ASSERT_EQ((Os_TickType)(expiry[i] - now), tick) << "alarm " << (int)i << " step " << step;
+                ASSERT_EQ((expiry[i] + range - now) % range, tick) << "alarm " << (int)i << " step " << step;
             }
         }
     }
+}
+
+TEST_F(Os_TestAlarm, RandomAgainstModel) {
+    Os_TestRandomAlarms(OS_MAXALLOWEDVALUE, 1u);
 }
 
 TEST_F(Os_TestTask, GetTaskState) {
@@ -658,6 +668,87 @@ TEST_F(Os_TestAlarm, Callback) {
     EXPECT_EQ(1          , Os_TestCallbackCount) << "Callback on expiry";
     Os_TestTicks(3u);
     EXPECT_EQ(2          , Os_TestCallbackCount) << "Callback on every cycle";
+}
+
+struct Os_TestCounter : public Os_TestInternal
+{
+    Os_CounterConfigType m_counters[OS_COUNTER_COUNT];
+
+    void Init(Os_TickType max, Os_TickType ticksperbase, Os_TickType mincycle)
+    {
+        for (Os_CounterType i = 0u; i < OS_COUNTER_COUNT; ++i) {
+            m_counters[i].maxallowedvalue = max;
+            m_counters[i].ticksperbase    = ticksperbase;
+            m_counters[i].mincycle        = mincycle;
+        }
+        m_config.counters = &m_counters;
+        Os_Init(&m_config);
+    }
+};
+
+TEST_F(Os_TestCounter, Defaults) {
+    Os_AlarmBaseType info;
+    Os_Init(&m_config);
+    EXPECT_EQ(E_OK              , Os_GetAlarmBase_Internal(0, &info));
+    EXPECT_EQ(OS_MAXALLOWEDVALUE, info.maxallowedvalue);
+    EXPECT_EQ(OS_TICKSPERBASE   , info.ticksperbase);
+    EXPECT_EQ(OS_MINCYCLE       , info.mincycle);
+    EXPECT_EQ(E_OS_ID           , Os_GetAlarmBase_Internal(OS_ALARM_COUNT, &info));
+}
+
+TEST_F(Os_TestCounter, Configured) {
+    Os_AlarmBaseType info;
+    Init(99u, 10u, 5u);
+    EXPECT_TRUE(Os_Initialized);
+    EXPECT_EQ(E_OK              , Os_GetAlarmBase_Internal(0, &info));
+    EXPECT_EQ(99u               , info.maxallowedvalue);
+    EXPECT_EQ(10u               , info.ticksperbase);
+    EXPECT_EQ(5u                , info.mincycle);
+}
+
+TEST_F(Os_TestCounter, Limits) {
+    Init(99u, 1u, 5u);
+    EXPECT_EQ(E_OS_VALUE        , Os_SetRelAlarm_Internal(0, 100u, 0u)) << "Increment above maxallowedvalue";
+    EXPECT_EQ(E_OS_VALUE        , Os_SetRelAlarm_Internal(0, 10u, 4u))  << "Cycle below mincycle";
+    EXPECT_EQ(E_OS_VALUE        , Os_SetRelAlarm_Internal(0, 10u, 100u))<< "Cycle above maxallowedvalue";
+    EXPECT_EQ(E_OS_VALUE        , Os_SetAbsAlarm_Internal(0, 100u, 0u)) << "Start above maxallowedvalue";
+    EXPECT_EQ(E_OS_VALUE        , Os_SetAbsAlarm_Internal(0, 10u, 4u))  << "Cycle below mincycle";
+    EXPECT_EQ(E_OK              , Os_SetRelAlarm_Internal(0, 99u, 5u));
+    EXPECT_EQ(E_OK              , Os_SetAbsAlarm_Internal(1, 99u, 99u));
+}
+
+TEST_F(Os_TestCounter, Wrap) {
+    Os_TickType tick;
+    Init(99u, 1u, 1u);
+    Os_TestTicks(95u);
+    EXPECT_EQ(E_OK              , Os_SetRelAlarm_Internal(0, 10u, 0u));
+    EXPECT_EQ(E_OK              , Os_SetAbsAlarm_Internal(1, 50u, 0u)); /* reached after the wrap */
+    Os_TestTicks(5u);
+    EXPECT_EQ(0u                , Os_CounterControls[OS_COUNTER_SYSTEM].ticks) << "Counter wraps after maxallowedvalue";
+    EXPECT_EQ(E_OK              , Os_GetAlarm_Internal(0, &tick));
+    EXPECT_EQ(5u                , tick);
+    EXPECT_EQ(E_OK              , Os_GetAlarm_Internal(1, &tick));
+    EXPECT_EQ(50u               , tick);
+    EXPECT_TRUE(Os_TestAdvance(0, 4u));
+    Os_TestTicks(1u);
+    EXPECT_EQ(E_OS_NOFUNC       , Os_GetAlarm_Internal(0, &tick));
+}
+
+TEST_F(Os_TestCounter, InvalidConfig) {
+    Init(99u, 1u, 100u);
+    EXPECT_FALSE(Os_Initialized) << "mincycle above maxallowedvalue";
+    Init(99u, 0u, 1u);
+    EXPECT_FALSE(Os_Initialized) << "ticksperbase of zero";
+    Init(99u, 1u, 1u);
+    EXPECT_TRUE(Os_Initialized);
+    m_alarms[0].counter = OS_COUNTER_COUNT;
+    Os_Init(&m_config);
+    EXPECT_FALSE(Os_Initialized) << "Alarm on a counter that does not exist";
+}
+
+TEST_F(Os_TestCounter, RandomAgainstModelSmallCounter) {
+    Init(99u, 1u, 3u);
+    Os_TestRandomAlarms(99u, 3u);
 }
 
 TEST_F(Os_TestTask, InternalResourceKeptOnError) {

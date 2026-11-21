@@ -77,6 +77,19 @@
 #define OS_COUNTER_SYSTEM (Os_CounterType)0u
 #endif
 
+/* attributes of the system counter when the configuration has no counters */
+#ifndef OS_TICKSPERBASE
+#define OS_TICKSPERBASE   (Os_TickType)1u
+#endif
+
+#ifndef OS_MINCYCLE
+#define OS_MINCYCLE       (Os_TickType)1u
+#endif
+
+#if defined(OS_TICK_US) && !defined(OS_TICKDURATION)
+#define OS_TICKDURATION   ((uint32)OS_TICK_US * 1000u) /**< duration of a system counter tick in nanoseconds */
+#endif
+
 #ifdef __GNUC__
 #define Os_Unlikely(x)  __builtin_expect((x),0)
 #define Os_Likely(x)    __builtin_expect((x),1)
@@ -144,6 +157,17 @@ typedef struct Os_AlarmConfigType {
                                    *          any service except the interrupt ones */
 } Os_AlarmConfigType;
 
+/**
+ * @brief Counter attributes, also returned for an alarm by Os_GetAlarmBase
+ */
+typedef struct Os_AlarmBaseType {
+    Os_TickType     maxallowedvalue; /**< @brief largest counter value, after which it wraps to 0 */
+    Os_TickType     ticksperbase;    /**< @brief ticks needed to reach a counter specific unit */
+    Os_TickType     mincycle;        /**< @brief smallest allowed cycle of a cyclic alarm */
+} Os_AlarmBaseType;
+
+typedef Os_AlarmBaseType Os_CounterConfigType;
+
 typedef uint8 Os_AlarmQueueIndexType;
 
 typedef struct Os_CounterControlType {
@@ -168,6 +192,8 @@ typedef struct Os_ConfigType {
 #ifdef OS_ALARM_COUNT
     const Os_AlarmConfigType    (*alarms)[OS_ALARM_COUNT];  /**< @brief pointer to an array of alarm configurations */
 #endif
+    const Os_CounterConfigType  (*counters)[OS_COUNTER_COUNT]; /**< @brief pointer to an array of counter configurations,
+                                                                *          or NULL for counters using the full tick range */
 } Os_ConfigType;
 
 typedef uint8 Os_ServiceType;
@@ -211,6 +237,7 @@ typedef enum Os_ServiceIdType {
     OSServiceId_CounterIncrement,
     OSServiceId_Shutdown,
     OSServiceId_GetTaskState,
+    OSServiceId_GetAlarmBase,
 } Os_ServiceIdType;
 
 typedef struct Os_SyscallParamType {
@@ -226,6 +253,7 @@ typedef struct Os_SyscallParamType {
         Os_TickType*      tick_ptr;
         Os_TaskStateType* state_ptr;
         Os_StatusType     status;
+        Os_AlarmBaseType* base_ptr;
     } p2;
 } Os_SyscallParamType;
 
@@ -321,6 +349,23 @@ static __inline Os_StatusType Os_GetAlarm   (Os_AlarmType alarm, Os_TickType* ti
     param.service     = OSServiceId_GetAlarm;
     param.p1.alarm    = alarm;
     param.p2.tick_ptr = tick;
+    return Os_Arch_Syscall(&param);
+}
+
+/**
+ * @brief Get the attributes of the counter driving an alarm
+ * @param[in]  alarm alarm to query
+ * @param[out] info  attributes of the alarm's counter
+ * @return
+ *  - E_OK on success
+ *  - E_OS_ID if the alarm is invalid
+ */
+static __inline Os_StatusType Os_GetAlarmBase(Os_AlarmType alarm, Os_AlarmBaseType* info)
+{
+    Os_SyscallParamType param;
+    param.service     = OSServiceId_GetAlarmBase;
+    param.p1.alarm    = alarm;
+    param.p2.base_ptr = info;
     return Os_Arch_Syscall(&param);
 }
 
