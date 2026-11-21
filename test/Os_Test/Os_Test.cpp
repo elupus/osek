@@ -1,6 +1,7 @@
 #include "gtest/gtest.h"
 #include <stack>
 #include <map>
+#include <string>
 #include <vector>
 
 extern "C" {
@@ -16,6 +17,8 @@ struct Os_HooksInterface
     virtual void ErrorHook(Os_StatusType ret)   {};
     virtual void PreTaskHook(Os_TaskType task)  {};
     virtual void PostTaskHook(Os_TaskType task) {};
+    virtual void StartupHook(void)              {};
+    virtual void ShutdownHook(Os_StatusType ret){};
 };
 
 Os_HooksInterface* Os_Hooks;
@@ -23,6 +26,8 @@ Os_HooksInterface* Os_Hooks;
 extern "C" void Os_ErrorHook   (Os_StatusType ret) { Os_Hooks->ErrorHook(ret);     }
 extern "C" void Os_PreTaskHook (Os_TaskType task)  { Os_Hooks->PreTaskHook(task);  }
 extern "C" void Os_PostTaskHook(Os_TaskType task)  { Os_Hooks->PostTaskHook(task); }
+extern "C" void Os_StartupHook (void)              { Os_Hooks->StartupHook();      }
+extern "C" void Os_ShutdownHook(Os_StatusType ret) { Os_Hooks->ShutdownHook(ret);  }
 
 
 template<typename T> struct Os_Test : public testing::Test {
@@ -388,6 +393,47 @@ struct Os_Test_TaskState : public Os_Test_Default
 };
 
 TEST_F(Os_Test_TaskState, Main) {
+    test_main();
+}
+
+struct Os_Test_StartupShutdownHook : public Os_Test_Default
+{
+    struct Hooks : Os_Test_Default::Hooks {
+        std::vector<std::string> calls;
+        Os_StatusType            error = E_OK;
+        virtual void StartupHook(void)
+        {
+            Os_TaskType task;
+            Os_GetTaskId(&task);
+            EXPECT_EQ(OS_INVALID_TASK, task) << "No task runs during the startup hook";
+            calls.push_back("startup");
+        }
+        virtual void ShutdownHook(Os_StatusType ret)
+        {
+            calls.push_back("shutdown");
+            error = ret;
+        }
+    } m_order;
+
+    void test_main(void)
+    {
+        Os_Hooks = &m_order;
+        Os_Test_Default::test_main();
+        ASSERT_EQ(3u           , m_order.calls.size());
+        EXPECT_EQ("startup"    , m_order.calls[0]);
+        EXPECT_EQ("task"       , m_order.calls[1]);
+        EXPECT_EQ("shutdown"   , m_order.calls[2]);
+        EXPECT_EQ(E_OS_STATE   , m_order.error) << "Shutdown hook gets the error";
+    }
+
+    virtual void task_prio0(void)
+    {
+        m_order.calls.push_back("task");
+        Os_Shutdown(E_OS_STATE);
+    }
+};
+
+TEST_F(Os_Test_StartupShutdownHook, Main) {
     test_main();
 }
 
