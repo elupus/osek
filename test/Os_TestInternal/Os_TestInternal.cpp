@@ -290,3 +290,37 @@ TEST_F(Os_TestTask, ChainTaskOther) {
     EXPECT_EQ(OS_TASK_SUSPENDED, Os_TaskControls[1].state);
     EXPECT_EQ(0u             , Os_TaskControls[1].activation);
 }
+
+TEST_F(Os_TestTask, ResourceNestLowerCeiling) {
+    m_resources[1].priority = 3;
+    m_resources[2].priority = 2;
+    Start(1);
+    EXPECT_EQ(E_OK       , Os_GetResource_Internal(1));
+    EXPECT_EQ(3          , Os_TaskControls[1].priority);
+    EXPECT_EQ(E_OK       , Os_GetResource_Internal(2))     << "Nesting a lower ceiling is allowed";
+    EXPECT_EQ(3          , Os_TaskControls[1].priority)    << "Priority must not drop";
+    EXPECT_EQ(E_OK       , Os_ReleaseResource_Internal(2));
+    EXPECT_EQ(3          , Os_TaskControls[1].priority)    << "Back to the priority before taking it";
+    EXPECT_EQ(E_OK       , Os_ReleaseResource_Internal(1));
+    EXPECT_EQ(1          , Os_TaskControls[1].priority)    << "Back to the static priority";
+}
+
+TEST_F(Os_TestTask, ResourceNestHigherCeiling) {
+    m_resources[1].priority = 2;
+    m_resources[2].priority = 3;
+    Start(1);
+    EXPECT_EQ(E_OK       , Os_GetResource_Internal(1));
+    EXPECT_EQ(E_OK       , Os_GetResource_Internal(2));
+    EXPECT_EQ(3          , Os_TaskControls[1].priority);
+    EXPECT_EQ(E_OS_NOFUNC, Os_ReleaseResource_Internal(1)) << "Release must be LIFO";
+    EXPECT_EQ(E_OK       , Os_ReleaseResource_Internal(2));
+    EXPECT_EQ(2          , Os_TaskControls[1].priority);
+    EXPECT_EQ(E_OK       , Os_ReleaseResource_Internal(1));
+    EXPECT_EQ(1          , Os_TaskControls[1].priority);
+}
+
+TEST_F(Os_TestTask, ResourceCeilingBelowTask) {
+    m_resources[1].priority = 0;
+    Start(1);
+    EXPECT_EQ(E_OS_ACCESS, Os_GetResource_Internal(1))     << "Ceiling below the task's priority";
+}

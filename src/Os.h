@@ -125,6 +125,7 @@ typedef struct Os_ResourceConfigType {
  */
 typedef struct Os_ResourceControlType {
     Os_ResourceType next;         /**< @brief linked list of held resources */
+    Os_PriorityType priority;     /**< @brief priority of the holder before it took the resource */
 #if(OS_ERROR_EXT_ENABLE)
     Os_TaskType     task;         /**< @brief task currently holding resource */
 #endif
