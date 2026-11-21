@@ -199,13 +199,15 @@ void Os_Arch_Init(void)
 
     memset(&Os_Arch_State, 0, sizeof(Os_Arch_State));
 
-    DuplicateHandle(GetCurrentProcess()
-                  , GetCurrentThread()
-                  , GetCurrentProcess()
-                  , &Os_Arch_Thread
-                  , 0
-                  , FALSE
-                  , DUPLICATE_SAME_ACCESS);
+    if (!DuplicateHandle(GetCurrentProcess()
+                       , GetCurrentThread()
+                       , GetCurrentProcess()
+                       , &Os_Arch_Thread
+                       , 0
+                       , FALSE
+                       , DUPLICATE_SAME_ACCESS)) {
+        exit(GetLastError());
+    }
 
     Os_Arch_System = ConvertThreadToFiber(NULL);
     if (Os_Arch_System == NULL) {
@@ -214,13 +216,15 @@ void Os_Arch_Init(void)
 
     Os_Arch_DisableAllInterrupts();
 
-    CreateTimerQueueTimer( &Os_Arch_Timer
-                         , NULL
-                         , Os_Arch_TimerCallback
-                         , NULL
-                         , OS_TICK_US / 1000
-                         , OS_TICK_US / 1000
-                         , WT_EXECUTEINTIMERTHREAD);
+    if (!CreateTimerQueueTimer( &Os_Arch_Timer
+                              , NULL
+                              , Os_Arch_TimerCallback
+                              , NULL
+                              , OS_TICK_US / 1000
+                              , OS_TICK_US / 1000
+                              , WT_EXECUTEINTIMERTHREAD)) {
+        exit(GetLastError());
+    }
 }
 
 void Os_Arch_SuspendInterrupts(Os_IrqState* mask)
