@@ -58,6 +58,7 @@ template<typename T> struct Os_Test : public testing::Test {
         m_config.tasks     = &m_tasks;
         m_config.resources = &m_resources;
         m_config.alarms    = &m_alarms;
+        m_config.counters  = NULL;
         active             = (T*)this;
     }
 
