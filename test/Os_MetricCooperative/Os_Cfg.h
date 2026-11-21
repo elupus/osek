@@ -26,7 +26,7 @@
 
 #include "Os_Types.h"
 
-#define OS_TASK_COUNT  (Os_TaskType)7
+#define OS_TASK_COUNT  (Os_TaskType)6
 #define OS_PRIO_COUNT  (Os_PriorityType)2
 #define OS_RES_COUNT   (Os_ResourceType)1
 #define OS_ALARM_COUNT (Os_AlarmType)1
