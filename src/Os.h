@@ -400,10 +400,40 @@ extern void Os_PostTaskHook(Os_TaskType task);
 #endif
 
 #if(OS_ERRORHOOK_ENABLE)
-extern void Os_ErrorHook(Os_StatusType status);
-#define OS_ERRORHOOK(status) Os_ErrorHook(status)
+extern void    Os_ErrorHook(Os_StatusType status);
+extern boolean Os_ErrorHookActive;
+/* services failing inside the error hook do not call it again */
+#define OS_ERRORHOOK(status) do {                \
+        if (!Os_ErrorHookActive) {               \
+            Os_ErrorHookActive = TRUE;           \
+            Os_ErrorHook(status);                \
+            Os_ErrorHookActive = FALSE;          \
+        }                                        \
+    } while(0)
 #else
 #define OS_ERRORHOOK(status)
+#endif
+
+#ifndef OS_STARTUPHOOK_ENABLE
+#define OS_STARTUPHOOK_ENABLE 0
+#endif
+
+#if(OS_STARTUPHOOK_ENABLE)
+extern void Os_StartupHook(void);
+#define OS_STARTUPHOOK() Os_StartupHook()
+#else
+#define OS_STARTUPHOOK()
+#endif
+
+#ifndef OS_SHUTDOWNHOOK_ENABLE
+#define OS_SHUTDOWNHOOK_ENABLE 0
+#endif
+
+#if(OS_SHUTDOWNHOOK_ENABLE)
+extern void Os_ShutdownHook(Os_StatusType error);
+#define OS_SHUTDOWNHOOK(error) Os_ShutdownHook(error)
+#else
+#define OS_SHUTDOWNHOOK(error)
 #endif
 
 #if(OS_ERROR_EXT_ENABLE)

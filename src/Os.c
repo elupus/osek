@@ -49,6 +49,9 @@ Os_ResourceControlType          Os_ResourceControls    [OS_RES_COUNT];  /**< con
 
 volatile boolean                Os_Continue;                            /**< should starting task continue */
 boolean                         Os_Initialized;                         /**< Os_Init accepted the configuration */
+#if(OS_ERRORHOOK_ENABLE)
+boolean                         Os_ErrorHookActive;                     /**< error hook is running */
+#endif
 
 
 #ifdef OS_ALARM_COUNT
@@ -458,6 +461,12 @@ void Os_Start(void)
         return;
     }
 
+    /* after initialisation, before any task runs, interrupts still disabled */
+    OS_STARTUPHOOK();
+    if (!Os_Continue) {
+        return; /* shut down from the startup hook */
+    }
+
     Os_CallContext = OS_CONTEXT_TASK;
     Os_Schedule_Internal();
     Os_Arch_Start();
@@ -476,6 +485,7 @@ void Os_Start(void)
 Os_StatusType Os_Shutdown_Internal(Os_StatusType error)
 {
     (void)error;
+    OS_SHUTDOWNHOOK(error);
 
     Os_Continue = FALSE;
 
