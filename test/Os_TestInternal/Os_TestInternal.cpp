@@ -845,3 +845,129 @@ TEST_F(Os_TestTask, InternalResourceScheduleNoSwitch) {
     EXPECT_EQ(1          , Os_TaskControls[1].resource) << "Kept when nothing else runs";
     EXPECT_EQ(3          , Os_TaskControls[1].priority);
 }
+
+static Os_StatusType Os_TestSyscall(Os_ServiceIdType service, Os_EventMaskType mask)
+{
+    Os_SyscallParamType param;
+    param.service = service;
+    param.p2.mask = mask;
+    return Os_Syscall_Internal(&param);
+}
+
+TEST_F(Os_TestTask, WaitEventAlreadySet) {
+    Os_EventMaskType mask;
+    m_tasks[1].extended = TRUE;
+    Start(1);
+    EXPECT_EQ(E_OK             , Os_SetEvent_Internal(1, 0x2u));
+    EXPECT_EQ(E_OK             , Os_TestSyscall(OSServiceId_WaitEvent, 0x6u));
+    EXPECT_EQ(1                , Os_ActiveTask)              << "Event already set, keeps running";
+    EXPECT_EQ(OS_TASK_RUNNING  , Os_TaskControls[1].state);
+    EXPECT_EQ(E_OK             , Os_GetEvent_Internal(1, &mask));
+    EXPECT_EQ(0x2u             , mask);
+    EXPECT_EQ(E_OK             , Os_ClearEvent_Internal(0x2u));
+    EXPECT_EQ(E_OK             , Os_GetEvent_Internal(1, &mask));
+    EXPECT_EQ(0x0u             , mask);
+}
+
+TEST_F(Os_TestTask, WaitEventBlocks) {
+    Os_EventMaskType mask;
+    Os_TaskStateType state;
+    m_tasks[2].extended = TRUE;
+    Start(2);
+    EXPECT_EQ(E_OK             , Os_ActivateTask_Internal(0));
+    EXPECT_EQ(E_OK             , Os_TestSyscall(OSServiceId_WaitEvent, 0x1u));
+    EXPECT_EQ(0                , Os_ActiveTask)              << "Next ready task runs while waiting";
+    EXPECT_EQ(E_OK             , Os_GetTaskState_Internal(2, &state));
+    EXPECT_EQ(OS_TASK_WAITING  , state);
+    EXPECT_EQ(E_OK             , Os_SetEvent_Internal(2, 0x2u));
+    EXPECT_EQ(0                , Os_ActiveTask)              << "Not an event it waits for";
+    EXPECT_EQ(E_OK             , Os_SetEvent_Internal(2, 0x1u));
+    EXPECT_EQ(2                , Os_ActiveTask)              << "Woken task preempts";
+    EXPECT_EQ(OS_TASK_RUNNING  , Os_TaskControls[2].state);
+    EXPECT_EQ(E_OK             , Os_GetEvent_Internal(2, &mask));
+    EXPECT_EQ(0x3u             , mask);
+}
+
+TEST_F(Os_TestTask, WaitEventIdle) {
+    m_tasks[2].extended = TRUE;
+    Start(2);
+    EXPECT_EQ(E_OK             , Os_TestSyscall(OSServiceId_WaitEvent, 0x1u));
+    EXPECT_FALSE(Os_TaskRunning())                           << "Nothing runs";
+    EXPECT_EQ(E_OK             , Os_SetEvent_Internal(2, 0x1u));
+    EXPECT_EQ(2                , Os_ActiveTask);
+    EXPECT_TRUE(Os_TaskRunning());
+}
+
+TEST_F(Os_TestTask, WaitEventErrors) {
+    Os_EventMaskType mask;
+    m_tasks[2].extended = TRUE;
+    m_resources[1].priority = 3;
+    Start(1);
+    EXPECT_EQ(E_OS_ACCESS      , Os_TestSyscall(OSServiceId_WaitEvent, 0x1u)) << "Basic task cannot wait";
+    EXPECT_EQ(E_OS_ACCESS      , Os_ClearEvent_Internal(0x1u))  << "Basic task has no events";
+    EXPECT_EQ(E_OS_ACCESS      , Os_SetEvent_Internal(1, 0x1u)) << "Basic task has no events";
+    EXPECT_EQ(E_OS_ACCESS      , Os_GetEvent_Internal(1, &mask));
+    EXPECT_EQ(E_OS_STATE       , Os_SetEvent_Internal(2, 0x1u)) << "Suspended task";
+    EXPECT_EQ(E_OS_STATE       , Os_GetEvent_Internal(2, &mask));
+    EXPECT_EQ(E_OS_ID          , Os_SetEvent_Internal(OS_TASK_COUNT, 0x1u));
+    EXPECT_EQ(E_OS_ID          , Os_GetEvent_Internal(OS_TASK_COUNT, &mask));
+
+    EXPECT_EQ(E_OK             , Os_ActivateTask_Internal(2));
+    EXPECT_EQ(2                , Os_ActiveTask);
+    EXPECT_EQ(E_OK             , Os_GetResource_Internal(1));
+    EXPECT_EQ(E_OS_RESOURCE    , Os_TestSyscall(OSServiceId_WaitEvent, 0x1u)) << "Cannot wait holding a resource";
+    EXPECT_EQ(E_OK             , Os_ReleaseResource_Internal(1));
+
+    Os_CallContext = OS_CONTEXT_ISR1;
+    EXPECT_EQ(E_OS_CALLEVEL    , Os_TestSyscall(OSServiceId_WaitEvent, 0x1u)) << "Cannot wait in an interrupt";
+    EXPECT_EQ(E_OS_CALLEVEL    , Os_ClearEvent_Internal(0x1u));
+    Os_CallContext = OS_CONTEXT_TASK;
+}
+
+TEST_F(Os_TestTask, EventsClearedOnActivation) {
+    Os_EventMaskType mask;
+    m_tasks[2].extended = TRUE;
+    Start(1);
+    EXPECT_EQ(E_OK             , Os_ActivateTask_Internal(2));
+    EXPECT_EQ(E_OK             , Os_SetEvent_Internal(2, 0x5u));
+    EXPECT_EQ(E_OK             , Os_TerminateTask_Internal());
+    EXPECT_EQ(E_OK             , Os_ActivateTask_Internal(2));
+    EXPECT_EQ(E_OK             , Os_GetEvent_Internal(2, &mask));
+    EXPECT_EQ(0x0u             , mask) << "Activation clears events";
+}
+
+TEST_F(Os_TestTask, AlarmSetsEvent) {
+    m_tasks[2].extended = TRUE;
+    m_alarms[0].task    = 2;
+    m_alarms[0].event   = 0x4u;
+    Start(2);
+    EXPECT_EQ(E_OK             , Os_SetRelAlarm_Internal(0, 1u, 0u));
+    EXPECT_EQ(E_OK             , Os_TestSyscall(OSServiceId_WaitEvent, 0x4u));
+    EXPECT_FALSE(Os_TaskRunning());
+    Os_Isr();
+    EXPECT_EQ(2                , Os_ActiveTask)              << "Alarm event wakes the task";
+    EXPECT_TRUE(Os_TaskRunning());
+    EXPECT_EQ(1u               , Os_TaskControls[2].activation) << "Not activated again";
+}
+
+TEST_F(Os_TestTask, WaitEventInternalResource) {
+    m_resources[1].priority = 3;
+    m_tasks[1].resource     = 1;
+    m_tasks[1].extended     = TRUE;
+    Start(1);
+    EXPECT_EQ(E_OK             , Os_ActivateTask_Internal(0));
+    EXPECT_EQ(E_OK             , Os_TestSyscall(OSServiceId_WaitEvent, 0x1u));
+    EXPECT_EQ(0                , Os_ActiveTask);
+    EXPECT_EQ(OS_INVALID_RESOURCE, Os_TaskControls[1].resource) << "Released while waiting";
+    EXPECT_EQ(E_OK             , Os_SetEvent_Internal(1, 0x1u));
+    EXPECT_EQ(1                , Os_ActiveTask);
+    EXPECT_EQ(1                , Os_TaskControls[1].resource) << "Taken again when it runs";
+    EXPECT_EQ(3                , Os_TaskControls[1].priority);
+}
+
+TEST_F(Os_TestTask, ExtendedMultipleActivation) {
+    m_tasks[1].extended   = TRUE;
+    m_tasks[1].activation = 2u;
+    Os_Init(&m_config);
+    EXPECT_FALSE(Os_Initialized) << "Extended tasks cannot have multiple activations";
+}

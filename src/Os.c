@@ -87,6 +87,9 @@ static void Os_AlarmTick   (Os_AlarmType queue[], Os_TickType ticks);
 #ifdef OS_ALARM_COUNT
 Os_StatusType Os_SetRelAlarm_Internal(Os_AlarmType alarm, Os_TickType increment, Os_TickType cycle);
 #endif
+#if(OS_EVENTS_ENABLE)
+Os_StatusType Os_SetEvent_Internal(Os_TaskType task, Os_EventMaskType mask);
+#endif
 static void Os_AlarmAdd    (Os_AlarmType queue[], Os_AlarmType alarm);
 
 /**
@@ -298,17 +301,22 @@ void Os_AlarmTick(Os_AlarmType queue[], Os_TickType ticks)
         Os_AlarmType alarm;
         Os_AlarmPop(queue, &alarm);
 
-        /* activate linked task */
+        /* activate linked task, or set its events */
         if (Os_AlarmConfigs[alarm].task != OS_INVALID_TASK) {
-            (void)Os_ActivateTask_Internal(Os_AlarmConfigs[alarm].task);
+#if(OS_EVENTS_ENABLE)
+            if (Os_AlarmConfigs[alarm].event) {
+                (void)Os_SetEvent_Internal(Os_AlarmConfigs[alarm].task, Os_AlarmConfigs[alarm].event);
+            } else
+#endif
+            {
+                (void)Os_ActivateTask_Internal(Os_AlarmConfigs[alarm].task);
+            }
         }
 
         /* call any callback */
         if (Os_AlarmConfigs[alarm].callback) {
             Os_AlarmConfigs[alarm].callback();
         }
-
-        /* trigger any event - TODO */
 
         /* readd cyclic */
         if (Os_AlarmCycles[alarm]) {
@@ -478,9 +486,50 @@ static __inline void Os_State_Suspended_To_Ready(Os_TaskType task)
     prio = Os_TaskConfigs[task].priority;
     Os_TaskControls[task].state    = OS_TASK_READY_FIRST;
     Os_TaskControls[task].priority = prio;
+#if(OS_EVENTS_ENABLE)
+    Os_TaskControls[task].events   = 0u; /* events are cleared on activation */
+    Os_TaskControls[task].waiting  = 0u;
+#endif
 
     Os_ReadyListPushTail(&Os_TaskReady[prio], task);
 }
+
+#if(OS_EVENTS_ENABLE)
+/**
+ * @brief Perform the state transition from running to waiting
+ * @param task task to transition to the waiting state
+ */
+static __inline void Os_State_Running_To_Waiting(Os_TaskType task)
+{
+    OS_CHECK_EXT(Os_TaskControls[task].state == OS_TASK_RUNNING, E_OS_STATE);
+
+    Os_TaskControls[task].state    = OS_TASK_WAITING;
+    Os_TaskControls[task].priority = Os_TaskConfigs[task].priority;
+
+    OS_POSTTASKHOOK(task);
+}
+
+/**
+ * @brief Perform the state transition from waiting to ready
+ * @param task task to transition to the ready state
+ *
+ * The task continues where it waited, so it is ready but not started anew,
+ * and goes last among the ready tasks of its priority.
+ */
+static __inline void Os_State_Waiting_To_Ready(Os_TaskType task)
+{
+    Os_PriorityType prio;
+
+    OS_CHECK_EXT(Os_TaskControls[task].state == OS_TASK_WAITING, E_OS_STATE);
+
+    prio = Os_TaskConfigs[task].priority;
+    Os_TaskControls[task].state    = OS_TASK_READY;
+    Os_TaskControls[task].priority = prio;
+    Os_TaskControls[task].waiting  = 0u;
+
+    Os_ReadyListPushTail(&Os_TaskReady[prio], task);
+}
+#endif
 
 /**
  * @brief Perform the state transition from ready to running
@@ -651,6 +700,134 @@ void Os_Isr(void)
     Os_Schedule_Internal();
     Os_CallContext = OS_CONTEXT_TASK;
 }
+
+#if(OS_EVENTS_ENABLE)
+/**
+ * @brief Wait until any of the given events is set for the calling task
+ * @param mask events to wait for
+ * @return
+ *  - E_OK on success
+ *  - E_OS_ACCESS the calling task is not an extended task
+ *  - E_OS_RESOURCE the calling task holds a resource other than its internal one
+ *  - E_OS_CALLEVEL called from interrupt level
+ *
+ * If none of the events is set the task waits, and the next ready task
+ * runs. The task's internal resource is released while it waits.
+ *
+ * Call contexts: TASK
+ */
+Os_StatusType Os_WaitEvent_Internal(Os_EventMaskType mask)
+{
+    OS_CHECK_EXT_R(Os_CallContext == OS_CONTEXT_TASK                              , E_OS_CALLEVEL);
+    OS_CHECK_EXT_R(Os_TaskRunning()                                               , E_OS_CALLEVEL);
+    OS_CHECK_EXT_R(Os_TaskConfigs[Os_ActiveTask].extended                         , E_OS_ACCESS);
+    OS_CHECK_EXT_R(Os_TaskControls[Os_ActiveTask].resource == OS_INVALID_RESOURCE , E_OS_RESOURCE);
+
+    if ((Os_TaskControls[Os_ActiveTask].events & mask) == 0u) {
+        Os_TaskControls[Os_ActiveTask].waiting = mask;
+        Os_State_Running_To_Waiting(Os_ActiveTask);
+        return Os_Schedule_Internal();
+    }
+    return E_OK;
+
+OS_ERRORCHECK_EXIT_POINT:
+    Os_Error.service   = OSServiceId_WaitEvent;
+    Os_Error.params[0] = mask;
+    OS_ERRORHOOK(Os_Error.status);
+    return Os_Error.status;
+}
+
+/**
+ * @brief Set events for a task
+ * @param task task to set the events for
+ * @param mask events to set
+ * @return
+ *  - E_OK on success
+ *  - E_OS_ID the task is invalid
+ *  - E_OS_ACCESS the task is not an extended task
+ *  - E_OS_STATE the task is suspended
+ *
+ * A task waiting for any of the events becomes ready, and may preempt the
+ * caller.
+ *
+ * Call contexts: TASK, ISR2
+ */
+Os_StatusType Os_SetEvent_Internal(Os_TaskType task, Os_EventMaskType mask)
+{
+    OS_CHECK_EXT_R(task < OS_TASK_COUNT                                           , E_OS_ID);
+    OS_CHECK_EXT_R(Os_TaskConfigs[task].extended                                  , E_OS_ACCESS);
+    OS_CHECK_EXT_R(Os_TaskControls[task].state != OS_TASK_SUSPENDED               , E_OS_STATE);
+
+    Os_TaskControls[task].events |= mask;
+    if (  (Os_TaskControls[task].state == OS_TASK_WAITING)
+       && (Os_TaskControls[task].events & Os_TaskControls[task].waiting)) {
+        Os_State_Waiting_To_Ready(task);
+        return Os_Schedule_Internal();
+    }
+    return E_OK;
+
+OS_ERRORCHECK_EXIT_POINT:
+    Os_Error.service   = OSServiceId_SetEvent;
+    Os_Error.params[0] = task;
+    Os_Error.params[1] = mask;
+    OS_ERRORHOOK(Os_Error.status);
+    return Os_Error.status;
+}
+
+/**
+ * @brief Clear events of the calling task
+ * @param mask events to clear
+ * @return
+ *  - E_OK on success
+ *  - E_OS_ACCESS the calling task is not an extended task
+ *  - E_OS_CALLEVEL called from interrupt level
+ *
+ * Call contexts: TASK
+ */
+Os_StatusType Os_ClearEvent_Internal(Os_EventMaskType mask)
+{
+    OS_CHECK_EXT_R(Os_CallContext == OS_CONTEXT_TASK                              , E_OS_CALLEVEL);
+    OS_CHECK_EXT_R(Os_TaskRunning()                                               , E_OS_CALLEVEL);
+    OS_CHECK_EXT_R(Os_TaskConfigs[Os_ActiveTask].extended                         , E_OS_ACCESS);
+
+    Os_TaskControls[Os_ActiveTask].events &= (Os_EventMaskType)~mask;
+    return E_OK;
+
+OS_ERRORCHECK_EXIT_POINT:
+    Os_Error.service   = OSServiceId_ClearEvent;
+    Os_Error.params[0] = mask;
+    OS_ERRORHOOK(Os_Error.status);
+    return Os_Error.status;
+}
+
+/**
+ * @brief Get the events set for a task
+ * @param[in]  task task to query
+ * @param[out] mask events set for the task
+ * @return
+ *  - E_OK on success
+ *  - E_OS_ID the task is invalid
+ *  - E_OS_ACCESS the task is not an extended task
+ *  - E_OS_STATE the task is suspended
+ *
+ * Call contexts: TASK, ISR2, ERRORHOOK, PRETASKHOOK, POSTTASKHOOK
+ */
+Os_StatusType Os_GetEvent_Internal(Os_TaskType task, Os_EventMaskType* mask)
+{
+    OS_CHECK_EXT_R(task < OS_TASK_COUNT                                           , E_OS_ID);
+    OS_CHECK_EXT_R(Os_TaskConfigs[task].extended                                  , E_OS_ACCESS);
+    OS_CHECK_EXT_R(Os_TaskControls[task].state != OS_TASK_SUSPENDED               , E_OS_STATE);
+
+    *mask = Os_TaskControls[task].events;
+    return E_OK;
+
+OS_ERRORCHECK_EXIT_POINT:
+    Os_Error.service   = OSServiceId_GetEvent;
+    Os_Error.params[0] = task;
+    OS_ERRORHOOK(Os_Error.status);
+    return Os_Error.status;
+}
+#endif /* OS_EVENTS_ENABLE */
 
 /**
  * @brief Get the state of a task
@@ -1271,6 +1448,30 @@ Os_StatusType Os_Syscall_Internal(Os_SyscallParamType* param)
             break;
         }
 
+#if(OS_EVENTS_ENABLE)
+        case OSServiceId_WaitEvent: {
+            Os_TaskInternalResource_Release();
+            res = Os_WaitEvent_Internal(param->p2.mask);
+            Os_TaskInternalResource_Get(); /* still running if it did not wait */
+            break;
+        }
+
+        case OSServiceId_SetEvent: {
+            res = Os_SetEvent_Internal(param->p1.task, param->p2.mask);
+            break;
+        }
+
+        case OSServiceId_ClearEvent: {
+            res = Os_ClearEvent_Internal(param->p2.mask);
+            break;
+        }
+
+        case OSServiceId_GetEvent: {
+            res = Os_GetEvent_Internal(param->p1.task, param->p2.mask_ptr);
+            break;
+        }
+#endif
+
         case OSServiceId_GetTaskState: {
             res = Os_GetTaskState_Internal(param->p1.task, param->p2.state_ptr);
             break;
@@ -1304,6 +1505,11 @@ static Os_StatusType Os_CheckConfig(void)
     for (task = 0u; task < OS_TASK_COUNT; ++task) {
         OS_CHECK_EXT_R(  (Os_TaskConfigs[task].priority >= 0)
                       && (Os_TaskConfigs[task].priority <  OS_PRIO_COUNT)  , E_OS_VALUE);
+
+#if(OS_CONFORMANCE == OS_CONFORMANCE_ECC2)
+        /* only basic tasks may have multiple activations */
+        OS_CHECK_EXT_R(!Os_TaskConfigs[task].extended || (Os_TaskConfigs[task].activation <= 1u), E_OS_VALUE);
+#endif
 
         res = Os_TaskConfigs[task].resource;
         if (res != OS_INVALID_RESOURCE) {
