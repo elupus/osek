@@ -199,11 +199,13 @@ struct Os_Test_ResourceOrder : public Os_Test_Default
         EXPECT_EQ(E_OK       , Os_ReleaseResource(OS_RES_PRIO2));
         EXPECT_EQ(E_OK       , Os_ReleaseResource(OS_RES_PRIO1));
 
-        /* check invalid order */
+        /* nesting a lower ceiling is allowed, release must be LIFO */
         EXPECT_EQ(E_OK       , Os_GetResource    (OS_RES_PRIO2));
-        EXPECT_EQ(E_OS_ACCESS, Os_GetResource    (OS_RES_PRIO1)) << "Lower prio resource grabbed";
-        EXPECT_EQ(E_OS_NOFUNC, Os_ReleaseResource(OS_RES_PRIO1)) << "Non held resource released";
+        EXPECT_EQ(E_OK       , Os_GetResource    (OS_RES_PRIO1)) << "Lower prio resource nested";
+        EXPECT_EQ(E_OS_NOFUNC, Os_ReleaseResource(OS_RES_PRIO2)) << "Released out of order";
+        EXPECT_EQ(E_OK       , Os_ReleaseResource(OS_RES_PRIO1));
         EXPECT_EQ(E_OK       , Os_ReleaseResource(OS_RES_PRIO2));
+        EXPECT_EQ(E_OS_NOFUNC, Os_ReleaseResource(OS_RES_PRIO1)) << "Non held resource released";
 
         Os_TerminateTask();
     }

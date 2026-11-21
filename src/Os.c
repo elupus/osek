@@ -643,16 +643,21 @@ OS_ERRORCHECK_EXIT_POINT:
 static Os_StatusType Os_GetResource_Internal(Os_ResourceType res)
 {
     OS_CHECK_EXT_R(res < OS_RES_COUNT                                               , E_OS_ID);
-    OS_CHECK_EXT_R(Os_TaskControls[Os_ActiveTask].priority  <= Os_ResourceConfigs[res].priority, E_OS_ACCESS);
+    OS_CHECK_EXT_R(Os_TaskConfigs[Os_ActiveTask].priority <= Os_ResourceConfigs[res].priority, E_OS_ACCESS);
 
 #if(OS_ERROR_EXT_ENABLE)
     OS_CHECK_EXT_R(Os_ResourceControls[res].task == OS_INVALID_TASK                 , E_OS_ACCESS);
     Os_ResourceControls[res].task            = Os_ActiveTask;
 #endif
 
+    /* resources may nest in any order, so never lower the priority and
+     * remember what to go back to on release */
     Os_ResourceControls[res].next            = Os_TaskControls[Os_ActiveTask].resource;
+    Os_ResourceControls[res].priority        = Os_TaskControls[Os_ActiveTask].priority;
     Os_TaskControls[Os_ActiveTask].resource  = res;
-    Os_TaskControls[Os_ActiveTask].priority  = Os_ResourceConfigs[res].priority;
+    if (Os_TaskControls[Os_ActiveTask].priority < Os_ResourceConfigs[res].priority) {
+        Os_TaskControls[Os_ActiveTask].priority = Os_ResourceConfigs[res].priority;
+    }
 
     return E_OK;
 
@@ -681,6 +686,7 @@ Os_StatusType Os_ReleaseResource_Internal(Os_ResourceType res)
 {
     OS_CHECK_EXT_R(res < OS_RES_COUNT                             , E_OS_ID);
     OS_CHECK_EXT_R(Os_TaskControls[Os_ActiveTask].resource == res , E_OS_NOFUNC);
+    OS_CHECK_EXT_R(Os_TaskConfigs[Os_ActiveTask].priority <= Os_ResourceConfigs[res].priority, E_OS_ACCESS);
 
 #if(OS_ERROR_EXT_ENABLE)
     OS_CHECK_EXT_R(Os_ResourceControls[res].task == Os_ActiveTask , E_OS_NOFUNC);
@@ -688,13 +694,8 @@ Os_StatusType Os_ReleaseResource_Internal(Os_ResourceType res)
 #endif
 
     Os_TaskControls[Os_ActiveTask].resource = Os_ResourceControls[res].next;
+    Os_TaskControls[Os_ActiveTask].priority = Os_ResourceControls[res].priority;
     Os_ResourceControls[res].next  = OS_INVALID_RESOURCE;
-
-    if (Os_TaskControls[Os_ActiveTask].resource == OS_INVALID_RESOURCE) {
-        Os_TaskControls[Os_ActiveTask].priority = Os_TaskConfigs[Os_ActiveTask].priority;
-    } else {
-        Os_TaskControls[Os_ActiveTask].priority = Os_ResourceConfigs[Os_TaskControls[Os_ActiveTask].resource].priority;
-    }
 
     return Os_Schedule_Internal();
 
