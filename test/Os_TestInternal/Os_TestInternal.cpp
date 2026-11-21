@@ -1,5 +1,6 @@
 #include "gtest/gtest.h"
 #include <stack>
+#include <vector>
 #include <map>
 
 extern "C" {
@@ -970,4 +971,31 @@ TEST_F(Os_TestTask, ExtendedMultipleActivation) {
     m_tasks[1].activation = 2u;
     Os_Init(&m_config);
     EXPECT_FALSE(Os_Initialized) << "Extended tasks cannot have multiple activations";
+}
+
+TEST_F(Os_TestCounter, Arithmetic) {
+    /* compare against plain modular arithmetic for every pair near the edges */
+    const Os_TickType maxes[] = { 1u, 2u, 99u, 1000u, 0x7FFFu, 0xFFFEu, OS_MAXALLOWEDVALUE };
+    for (Os_TickType max : maxes) {
+        Init(max, 1u, 1u);
+        uint32_t range = (uint32_t)max + 1u;
+        std::vector<Os_TickType> values = { 0u, 1u, 2u };
+        for (uint32_t d = 0u; d < 3u; ++d) {
+            if (max >= d) {
+                values.push_back((Os_TickType)(max - d));
+                values.push_back((Os_TickType)(max / 2u + d));
+            }
+        }
+        for (Os_TickType lh : values) {
+            for (Os_TickType rh : values) {
+                if (lh > max || rh > max) {
+                    continue;
+                }
+                EXPECT_EQ((Os_TickType)(((uint32_t)lh + rh) % range)        , Os_CounterAdd(0u, lh, rh))
+                    << "max " << max << " " << lh << " + " << rh;
+                EXPECT_EQ((Os_TickType)(((uint32_t)lh + range - rh) % range), Os_CounterSub(0u, lh, rh))
+                    << "max " << max << " " << lh << " - " << rh;
+            }
+        }
+    }
 }
