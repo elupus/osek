@@ -72,6 +72,9 @@
 #define OS_CONFORMANCE OS_CONFORMANCE_ECC2
 #endif
 
+/** extended conformance classes have events */
+#define OS_EVENTS_ENABLE ((OS_CONFORMANCE == OS_CONFORMANCE_ECC1) || (OS_CONFORMANCE == OS_CONFORMANCE_ECC2))
+
 #ifndef OS_COUNTER_COUNT
 #define OS_COUNTER_COUNT  (Os_CounterType)1u
 #define OS_COUNTER_SYSTEM (Os_CounterType)0u
@@ -112,6 +115,9 @@ typedef struct Os_TaskConfigType {
     uint8            activation;  /**< @brief maximum number of activations allowed */
 #endif
     Os_ResourceType  resource;    /**< @brief internal resource of task, can be Os_TaskIdNone */
+#if(OS_EVENTS_ENABLE)
+    boolean          extended;    /**< @brief extended task, which can wait for events (ECC1/ECC2) */
+#endif
 } Os_TaskConfigType;
 
 /**
@@ -125,6 +131,10 @@ typedef struct Os_TaskControlType {
     Os_TaskType      next;        /**< @brief next task in the same ready list */
     Os_ResourceType  resource;    /**< @brief last taken resource for task (rest is linked list */
     Os_PriorityType  priority;
+#if(OS_EVENTS_ENABLE)
+    Os_EventMaskType events;      /**< @brief events set for the task */
+    Os_EventMaskType waiting;     /**< @brief events the task waits for */
+#endif
 } Os_TaskControlType;
 
 /**
@@ -159,6 +169,9 @@ typedef struct Os_AlarmConfigType {
     Os_AppModeMaskType autostart; /**< @brief application modes the alarm starts automatically in */
     Os_TickType     alarmtime;    /**< @brief ticks from start until first expiry when autostarted */
     Os_TickType     cycletime;    /**< @brief cycle when autostarted, 0 for a single expiry */
+#if(OS_EVENTS_ENABLE)
+    Os_EventMaskType event;       /**< @brief if not 0, set these events for task instead of activating it (ECC1/ECC2) */
+#endif
 } Os_AlarmConfigType;
 
 /**
@@ -252,6 +265,10 @@ typedef enum Os_ServiceIdType {
     OSServiceId_Shutdown,
     OSServiceId_GetTaskState,
     OSServiceId_GetAlarmBase,
+    OSServiceId_WaitEvent,
+    OSServiceId_SetEvent,
+    OSServiceId_ClearEvent,
+    OSServiceId_GetEvent,
 } Os_ServiceIdType;
 
 typedef struct Os_SyscallParamType {
@@ -268,6 +285,8 @@ typedef struct Os_SyscallParamType {
         Os_TaskStateType* state_ptr;
         Os_StatusType     status;
         Os_AlarmBaseType* base_ptr;
+        Os_EventMaskType  mask;
+        Os_EventMaskType* mask_ptr;
     } p2;
 } Os_SyscallParamType;
 
@@ -365,6 +384,79 @@ static __inline Os_StatusType Os_GetAlarm   (Os_AlarmType alarm, Os_TickType* ti
     param.p2.tick_ptr = tick;
     return Os_Arch_Syscall(&param);
 }
+
+#if(OS_EVENTS_ENABLE)
+/**
+ * @brief Wait until any of the given events is set for the calling extended task
+ * @param mask events to wait for
+ * @return
+ *  - E_OK on success
+ *  - E_OS_ACCESS the calling task is not an extended task
+ *  - E_OS_RESOURCE the calling task holds a resource
+ *  - E_OS_CALLEVEL called from interrupt level
+ */
+static __inline Os_StatusType Os_WaitEvent(Os_EventMaskType mask)
+{
+    Os_SyscallParamType param;
+    param.service  = OSServiceId_WaitEvent;
+    param.p2.mask  = mask;
+    return Os_Arch_Syscall(&param);
+}
+
+/**
+ * @brief Set events for an extended task, waking it if it waits for any of them
+ * @param task task to set the events for
+ * @param mask events to set
+ * @return
+ *  - E_OK on success
+ *  - E_OS_ID the task is invalid
+ *  - E_OS_ACCESS the task is not an extended task
+ *  - E_OS_STATE the task is suspended
+ */
+static __inline Os_StatusType Os_SetEvent(Os_TaskType task, Os_EventMaskType mask)
+{
+    Os_SyscallParamType param;
+    param.service  = OSServiceId_SetEvent;
+    param.p1.task  = task;
+    param.p2.mask  = mask;
+    return Os_Arch_Syscall(&param);
+}
+
+/**
+ * @brief Clear events of the calling extended task
+ * @param mask events to clear
+ * @return
+ *  - E_OK on success
+ *  - E_OS_ACCESS the calling task is not an extended task
+ *  - E_OS_CALLEVEL called from interrupt level
+ */
+static __inline Os_StatusType Os_ClearEvent(Os_EventMaskType mask)
+{
+    Os_SyscallParamType param;
+    param.service  = OSServiceId_ClearEvent;
+    param.p2.mask  = mask;
+    return Os_Arch_Syscall(&param);
+}
+
+/**
+ * @brief Get the events set for an extended task
+ * @param[in]  task task to query
+ * @param[out] mask events set for the task
+ * @return
+ *  - E_OK on success
+ *  - E_OS_ID the task is invalid
+ *  - E_OS_ACCESS the task is not an extended task
+ *  - E_OS_STATE the task is suspended
+ */
+static __inline Os_StatusType Os_GetEvent(Os_TaskType task, Os_EventMaskType* mask)
+{
+    Os_SyscallParamType param;
+    param.service     = OSServiceId_GetEvent;
+    param.p1.task     = task;
+    param.p2.mask_ptr = mask;
+    return Os_Arch_Syscall(&param);
+}
+#endif /* OS_EVENTS_ENABLE */
 
 /**
  * @brief Get the attributes of the counter driving an alarm
