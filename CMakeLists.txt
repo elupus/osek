@@ -165,7 +165,8 @@ if(BUILD_ARCH STREQUAL "Posix")
     # ucontext functions are marked deprecated by POSIX but still required.
     set_source_files_properties(src/Os_Arch_Posix.c DIRECTORY ${_osek_dirs}
         PROPERTIES COMPILE_OPTIONS "-Wno-deprecated-declarations")
-elseif(BUILD_ARCH STREQUAL "Fibers")
+elseif(BUILD_ARCH STREQUAL "Fibers" AND CMAKE_SIZEOF_VOID_P EQUAL 4)
+    # SAFESEH only exists for 32 bit, ml64 rejects the option.
     set_source_files_properties(src/Os_Arch_Fibers_Asm.asm DIRECTORY ${_osek_dirs}
         PROPERTIES COMPILE_OPTIONS "-safeseh")
 endif()
