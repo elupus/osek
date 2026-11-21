@@ -24,6 +24,12 @@
 
 typedef    sigset_t Os_IrqState;
 
+/* The tick is a signal delivered on the running task's stack. The kernel's
+ * signal frame holds the full register state, several KB and growing with the
+ * vector extensions of the CPU (AVX-512, SVE, SME), and the handler and the
+ * scheduler run on top of it. */
+#define OS_ARCH_STACK_EXTRA (64u * 1024u)
+
 void       Os_Arch_Init(void);
 
 void       Os_Arch_DisableAllInterrupts(void);

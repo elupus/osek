@@ -44,6 +44,26 @@
 #include "Os_Arch_HCS12.h"
 #endif
 
+/**
+ * @brief Stack space a port needs on every task stack, on top of the task's own usage.
+ *
+ * Covers what an interrupt or context switch pushes on the interrupted task's stack.
+ * Ports where that is negligible, or where the stack is not taken from the
+ * configuration, leave it at zero.
+ */
+#ifndef OS_ARCH_STACK_EXTRA
+#define OS_ARCH_STACK_EXTRA 0u
+#endif
+
+/**
+ * @brief Size of a task stack that needs @p size bytes for the task itself.
+ *
+ * Use this when declaring task stacks, so the configured size stays the task's
+ * own need and the port adds what it requires, e.g.
+ * `unsigned char task_stack[OS_STACK_SIZE(512)];`
+ */
+#define OS_STACK_SIZE(size) ((size) + OS_ARCH_STACK_EXTRA)
+
 #ifndef OS_ERROR_EXT_ENABLE
 #define OS_ERROR_EXT_ENABLE 1
 #endif
