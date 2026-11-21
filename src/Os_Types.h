@@ -36,7 +36,7 @@ typedef uint8  Os_AlarmType;      /**< alarm identifier */
 typedef uint8  Os_CounterType;    /**< counter identifer */
 typedef uint16 Os_TickType;       /**< tick value identifier */
 
-#define OS_MAXALLOWEDVALUE UINT8_MAX
+#define OS_MAXALLOWEDVALUE ((Os_TickType)UINT16_MAX) /**< counters use the full tick range */
 
 #define OS_INVALID_TASK      (Os_TaskType)(-1)
 #define OS_INVALID_RESOURCE  (Os_ResourceType)(-1)

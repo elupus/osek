@@ -427,3 +427,86 @@ TEST_F(Os_TestTask, InitValid) {
     EXPECT_TRUE(Os_Errors.empty());
     EXPECT_TRUE(Os_Initialized);
 }
+
+/* advance the system counter */
+static void Os_TestTicks(uint32_t ticks)
+{
+    for (uint32_t i = 0; i < ticks; ++i) {
+        Os_IncrementCounter_Internal(OS_COUNTER_SYSTEM);
+    }
+}
+
+/* advance the system counter, returns false if alarm expired before all ticks */
+static bool Os_TestAdvance(Os_AlarmType alarm, uint32_t ticks)
+{
+    Os_TickType tick;
+    for (uint32_t i = 0; i < ticks; ++i) {
+        if (Os_GetAlarm_Internal(alarm, &tick) != E_OK) {
+            return false;
+        }
+        Os_IncrementCounter_Internal(OS_COUNTER_SYSTEM);
+    }
+    return true;
+}
+
+TEST_F(Os_TestAlarm, RelAlarmLargeIncrement) {
+    Os_TickType tick;
+    EXPECT_EQ(E_OK       , Os_SetRelAlarm_Internal(0, 40000u, 0));
+    EXPECT_TRUE(Os_TestAdvance(0, 39999u))                    << "Expired early";
+    EXPECT_EQ(E_OK       , Os_GetAlarm_Internal(0, &tick));
+    EXPECT_EQ(1u         , tick);
+    EXPECT_EQ(E_OK       , Os_IncrementCounter_Internal(OS_COUNTER_SYSTEM));
+    EXPECT_EQ(E_OS_NOFUNC, Os_GetAlarm_Internal(0, &tick))    << "Expired after the increment";
+}
+
+TEST_F(Os_TestAlarm, RelAlarmMaxIncrement) {
+    Os_TickType tick;
+    EXPECT_EQ(E_OK       , Os_SetRelAlarm_Internal(0, OS_MAXALLOWEDVALUE, 0));
+    EXPECT_TRUE(Os_TestAdvance(0, OS_MAXALLOWEDVALUE - 1u))   << "Expired early";
+    EXPECT_EQ(E_OK       , Os_IncrementCounter_Internal(OS_COUNTER_SYSTEM));
+    EXPECT_EQ(E_OS_NOFUNC, Os_GetAlarm_Internal(0, &tick));
+}
+
+TEST_F(Os_TestAlarm, AbsAlarmInPast) {
+    Os_TickType tick;
+    Os_TestTicks(10u);
+    EXPECT_EQ(E_OK       , Os_SetAbsAlarm_Internal(0, 5u, 0));
+    EXPECT_TRUE(Os_TestAdvance(0, 65535u - 10u + 5u))         << "Start already passed, waits for the counter to wrap";
+    EXPECT_EQ(E_OK       , Os_IncrementCounter_Internal(OS_COUNTER_SYSTEM));
+    EXPECT_EQ(5u         , Os_CounterControls[OS_COUNTER_SYSTEM].ticks);
+    EXPECT_EQ(E_OS_NOFUNC, Os_GetAlarm_Internal(0, &tick))    << "Expired when the counter reached start";
+}
+
+TEST_F(Os_TestAlarm, AbsAlarmNow) {
+    Os_TickType tick;
+    Os_TestTicks(10u);
+    EXPECT_EQ(E_OK       , Os_SetAbsAlarm_Internal(0, 10u, 0));
+    EXPECT_TRUE(Os_TestAdvance(0, 65535u))                    << "Start reached, waits a full counter period";
+    EXPECT_EQ(E_OK       , Os_IncrementCounter_Internal(OS_COUNTER_SYSTEM));
+    EXPECT_EQ(E_OS_NOFUNC, Os_GetAlarm_Internal(0, &tick));
+}
+
+TEST_F(Os_TestAlarm, CyclicEveryTick) {
+    Os_TickType tick;
+    EXPECT_EQ(E_OK       , Os_SetRelAlarm_Internal(0, 1u, 1u));
+    for (int i = 0; i < 3; ++i) {
+        EXPECT_EQ(E_OK   , Os_IncrementCounter_Internal(OS_COUNTER_SYSTEM));
+        EXPECT_EQ(E_OK   , Os_GetAlarm_Internal(0, &tick))    << "Cyclic alarm re-armed";
+        EXPECT_EQ(1u     , tick)                              << "Cyclic alarm expires once per tick";
+    }
+}
+
+TEST_F(Os_TestAlarm, OrderAcrossWrap) {
+    Os_TickType tick;
+    Os_TestTicks(65530u);
+    EXPECT_EQ(E_OK       , Os_SetRelAlarm_Internal(0, 10u, 0)); /* expires at 4, after the wrap */
+    EXPECT_EQ(E_OK       , Os_SetRelAlarm_Internal(1,  3u, 0)); /* expires at 65533 */
+    EXPECT_EQ(E_OK       , Os_SetAbsAlarm_Internal(2,  2u, 0)); /* expires at 2, after the wrap */
+    EXPECT_TRUE(Os_TestAdvance(1, 2u));
+    EXPECT_EQ(E_OK       , Os_IncrementCounter_Internal(OS_COUNTER_SYSTEM));
+    EXPECT_EQ(E_OS_NOFUNC, Os_GetAlarm_Internal(1, &tick))    << "Alarm before the wrap expires first";
+    EXPECT_EQ(E_OK       , Os_GetAlarm_Internal(2, &tick));
+    EXPECT_EQ(5u         , tick);
+    EXPECT_EQ(E_OK       , Os_GetAlarm_Internal(0, &tick));
+    EXPECT_EQ(7u         , tick);
+}

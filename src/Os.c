@@ -71,7 +71,7 @@ static Os_StatusType Os_GetResource_Internal(Os_ResourceType res);
 static Os_StatusType Os_ReleaseResource_Internal(Os_ResourceType res);
 static Os_StatusType Os_IncrementCounter_Internal(Os_CounterType counter);
 
-static void Os_AlarmTick   (Os_AlarmType queue[]);
+static void Os_AlarmTick   (Os_AlarmType queue[], Os_TickType ticks);
 static void Os_AlarmAdd    (Os_AlarmType queue[], Os_AlarmType alarm);
 
 /**
@@ -136,11 +136,27 @@ static void Os_ReadyListInit(Os_ReadyListType* list)
 
 #pragma INLINE
 /**
- * @brief Check if lh < rh is true with allowed wraps on both values
+ * @brief Number of ticks after the next one until the alarm expires
+ *
+ * Alarms are ordered by how far ahead of their counter they expire, so the
+ * whole tick range can be used. An alarm expiring at the next tick has
+ * distance 0, and one expiring at the current counter value has the largest
+ * distance, since it will only be reached again after the counter wraps.
  */
-static __inline boolean Os_TickLessThan(Os_TickType lh, Os_TickType rh)
+static __inline Os_TickType Os_AlarmDistance(Os_AlarmType alarm)
 {
-    return !((Os_TickType)(rh - lh) > ((Os_TickType)1u << (sizeof(Os_TickType)*8u - 1u)));
+    return (Os_TickType)(  Os_AlarmTicks[alarm]
+                         - Os_CounterControls[Os_AlarmConfigs[alarm].counter].ticks
+                         - 1u);
+}
+
+#pragma INLINE
+/**
+ * @brief Check if alarm lh expires before alarm rh, both on the same counter
+ */
+static __inline boolean Os_AlarmBefore(Os_AlarmType lh, Os_AlarmType rh)
+{
+    return Os_AlarmDistance(lh) < Os_AlarmDistance(rh);
 }
 
 /**
@@ -154,12 +170,12 @@ void Os_AlarmHeapify(Os_AlarmType queue[]
 
     while (1u) {
         child = index * 2u;
-        if ((child <= queue[0u]) && Os_TickLessThan(Os_AlarmTicks[queue[child]], Os_AlarmTicks[queue[index]]) ) {
+        if ((child <= queue[0u]) && Os_AlarmBefore(queue[child], queue[index]) ) {
             goto OS_ALARMHEAPIFY_SWAP;
         }
 
         child++;
-        if ((child <= queue[0u]) && Os_TickLessThan(Os_AlarmTicks[queue[child]], Os_AlarmTicks[queue[index]]) ) {
+        if ((child <= queue[0u]) && Os_AlarmBefore(queue[child], queue[index]) ) {
             goto OS_ALARMHEAPIFY_SWAP;
         }
         break;
@@ -192,13 +208,18 @@ static void Os_AlarmPop(Os_AlarmType queue[], Os_AlarmType* alarm)
 }
 
 /**
- * @brief Ticks the given alarm chain
- * @param[in,out] head start of chain to tick, will be updated to current head
+ * @brief Expire the alarms of a counter that is about to reach the given tick
+ * @param[in,out] queue alarm queue of the counter
+ * @param[in]     ticks the counter's next value
+ *
+ * Must be called before the counter is advanced, since the queue is ordered
+ * relative to the counter's current value. Cyclic alarms are added back
+ * at least one tick later, so they do not expire twice.
  */
-void Os_AlarmTick(Os_AlarmType queue[])
+void Os_AlarmTick(Os_AlarmType queue[], Os_TickType ticks)
 {
     /* trigger and consume any expired */
-    while (queue[0] > 0u && Os_TickLessThan(Os_AlarmTicks[queue[1]], Os_CounterControls[Os_AlarmConfigs[queue[1]].counter].ticks) ) {
+    while (queue[0] > 0u && Os_AlarmTicks[queue[1]] == ticks) {
         Os_AlarmType alarm;
         Os_AlarmPop(queue, &alarm);
 
@@ -226,8 +247,7 @@ void Os_AlarmAdd(Os_AlarmType queue[], Os_AlarmType alarm)
 
     index  = queue[0u];
     parent = queue[0u] / 2u;
-    while (index > 1u && Os_TickLessThan(Os_AlarmTicks[alarm]
-                                       , Os_AlarmTicks[queue[parent]]) ) {
+    while (index > 1u && Os_AlarmBefore(alarm, queue[parent]) ) {
         queue[index] = queue[parent];
         index   = parent;
         parent /= 2u;
@@ -940,8 +960,9 @@ void Os_CounterInit(Os_CounterType counter)
 Os_StatusType Os_IncrementCounter_Internal(Os_CounterType counter)
 {
     OS_CHECK_EXT_R(counter < OS_COUNTER_COUNT, E_OS_VALUE);
+    Os_AlarmTick(Os_CounterControls[counter].queue
+               , (Os_TickType)(Os_CounterControls[counter].ticks + 1u));
     Os_CounterControls[counter].ticks++;
-    Os_AlarmTick(Os_CounterControls[counter].queue);
     return E_OK;
 
 OS_ERRORCHECK_EXIT_POINT:
