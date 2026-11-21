@@ -191,24 +191,30 @@ void Os_Arch_Deinit(void)
 
     Os_TaskType task;
     for (task = 0; task < OS_TASK_COUNT; ++task) {
-        if (Os_Arch_State[task].thread != INVALID_HANDLE_VALUE) {
+        /* state is zero initialized before the first Os_Arch_Init */
+        if (Os_Arch_State[task].thread != NULL
+        &&  Os_Arch_State[task].thread != INVALID_HANDLE_VALUE) {
             CloseHandle(Os_Arch_State[task].thread);
-            Os_Arch_State[task].thread = INVALID_HANDLE_VALUE;
         }
+        Os_Arch_State[task].thread = INVALID_HANDLE_VALUE;
     }
 
 
     if (Os_Arch_ThreadAttribute) {
         DeleteProcThreadAttributeList(Os_Arch_ThreadAttribute);
+        HeapFree(GetProcessHeap(), 0, Os_Arch_ThreadAttribute);
+        Os_Arch_ThreadAttribute = NULL;
     }
 
     if (Os_Arch_CompletionList) {
         /* todo make sure it's empty */
         DeleteUmsCompletionList(Os_Arch_CompletionList);
+        Os_Arch_CompletionList = NULL;
     }
 
     if (Os_Arch_Context) {
         DeleteUmsThreadContext(Os_Arch_Context);
+        Os_Arch_Context = NULL;
     }
 }
 
