@@ -64,6 +64,14 @@ const Os_AlarmConfigType *      Os_AlarmConfigs;                         /**< co
 
 #ifdef OS_COUNTER_COUNT
 Os_CounterControlType           Os_CounterControls     [OS_COUNTER_COUNT]; /**< control array for counters */
+const Os_CounterConfigType *    Os_CounterConfigs;                         /**< config array for counters, NULL for defaults */
+
+/** attributes of counters when the configuration has none */
+static const Os_CounterConfigType Os_CounterDefault = {
+    OS_MAXALLOWEDVALUE,
+    OS_TICKSPERBASE,
+    OS_MINCYCLE,
+};
 #endif
 
 static Os_StatusType Os_Schedule_Internal(void);
@@ -139,18 +147,58 @@ static void Os_ReadyListInit(Os_ReadyListType* list)
 
 #pragma INLINE
 /**
+ * @brief Attributes of a counter
+ */
+static __inline const Os_CounterConfigType* Os_CounterConfig(Os_CounterType counter)
+{
+    if (Os_CounterConfigs) {
+        return &Os_CounterConfigs[counter];
+    }
+    return &Os_CounterDefault;
+}
+
+/**
+ * @brief Add two tick values modulo the counter's range, maxallowedvalue + 1
+ */
+static Os_TickType Os_CounterAdd(Os_CounterType counter, Os_TickType lh, Os_TickType rh)
+{
+    uint32 range = (uint32)Os_CounterConfig(counter)->maxallowedvalue + 1u;
+    return (Os_TickType)(((uint32)lh + (uint32)rh) % range);
+}
+
+/**
+ * @brief Subtract two tick values modulo the counter's range, maxallowedvalue + 1
+ */
+static Os_TickType Os_CounterSub(Os_CounterType counter, Os_TickType lh, Os_TickType rh)
+{
+    uint32 range = (uint32)Os_CounterConfig(counter)->maxallowedvalue + 1u;
+    return (Os_TickType)(((uint32)lh + range - ((uint32)rh % range)) % range);
+}
+
+/**
+ * @brief Check a cycle against the counter's limits
+ */
+static boolean Os_CounterCycleValid(Os_CounterType counter, Os_TickType cycle)
+{
+    const Os_CounterConfigType* cfg = Os_CounterConfig(counter);
+    return (cycle == 0u)
+        || ((cycle >= cfg->mincycle) && (cycle <= cfg->maxallowedvalue));
+}
+
+/**
  * @brief Number of ticks after the next one until the alarm expires
  *
  * Alarms are ordered by how far ahead of their counter they expire, so the
- * whole tick range can be used. An alarm expiring at the next tick has
+ * whole counter range can be used. An alarm expiring at the next tick has
  * distance 0, and one expiring at the current counter value has the largest
  * distance, since it will only be reached again after the counter wraps.
  */
-static __inline Os_TickType Os_AlarmDistance(Os_AlarmType alarm)
+static Os_TickType Os_AlarmDistance(Os_AlarmType alarm)
 {
-    return (Os_TickType)(  Os_AlarmTicks[alarm]
-                         - Os_CounterControls[Os_AlarmConfigs[alarm].counter].ticks
-                         - 1u);
+    Os_CounterType counter = Os_AlarmConfigs[alarm].counter;
+    return Os_CounterSub(counter
+                       , Os_AlarmTicks[alarm]
+                       , Os_CounterAdd(counter, Os_CounterControls[counter].ticks, 1u));
 }
 
 #pragma INLINE
@@ -260,7 +308,9 @@ void Os_AlarmTick(Os_AlarmType queue[], Os_TickType ticks)
 
         /* readd cyclic */
         if (Os_AlarmCycles[alarm]) {
-            Os_AlarmTicks[alarm] += Os_AlarmCycles[alarm];
+            Os_AlarmTicks[alarm] = Os_CounterAdd(Os_AlarmConfigs[alarm].counter
+                                               , Os_AlarmTicks[alarm]
+                                               , Os_AlarmCycles[alarm]);
             Os_AlarmAdd(queue, alarm);
         }
     }
@@ -860,10 +910,14 @@ Os_StatusType Os_SetRelAlarm_Internal(Os_AlarmType alarm, Os_TickType increment,
 {
     OS_CHECK_EXT_R(alarm < OS_ALARM_COUNT             , E_OS_ID);
     OS_CHECK_R    (increment != 0u                    , E_OS_VALUE); /**< @req SWS_Os_00304 */
+    OS_CHECK_EXT_R(increment <= Os_CounterConfig(Os_AlarmConfigs[alarm].counter)->maxallowedvalue, E_OS_VALUE);
+    OS_CHECK_EXT_R(Os_CounterCycleValid(Os_AlarmConfigs[alarm].counter, cycle), E_OS_VALUE);
     OS_CHECK_R    (Os_AlarmQueued[alarm] == FALSE, E_OS_STATE);
 
     Os_AlarmCycles[alarm] = cycle;
-    Os_AlarmTicks [alarm] = Os_CounterControls[Os_AlarmConfigs[alarm].counter].ticks + increment;
+    Os_AlarmTicks [alarm] = Os_CounterAdd(Os_AlarmConfigs[alarm].counter
+                                        , Os_CounterControls[Os_AlarmConfigs[alarm].counter].ticks
+                                        , increment);
     Os_AlarmAdd( Os_CounterControls[Os_AlarmConfigs[alarm].counter].queue
               ,  alarm);
     return E_OK;
@@ -917,6 +971,8 @@ OS_ERRORCHECK_EXIT_POINT:
 Os_StatusType Os_SetAbsAlarm_Internal(Os_AlarmType alarm, Os_TickType start, Os_TickType cycle)
 {
     OS_CHECK_EXT_R(alarm < OS_ALARM_COUNT, E_OS_ID);
+    OS_CHECK_EXT_R(start <= Os_CounterConfig(Os_AlarmConfigs[alarm].counter)->maxallowedvalue, E_OS_VALUE);
+    OS_CHECK_EXT_R(Os_CounterCycleValid(Os_AlarmConfigs[alarm].counter, cycle), E_OS_VALUE);
     OS_CHECK_R    (Os_AlarmQueued[alarm] == FALSE, E_OS_STATE);
 
     Os_AlarmCycles[alarm] = cycle;
@@ -1009,11 +1065,37 @@ Os_StatusType Os_GetAlarm_Internal(Os_AlarmType alarm, Os_TickType* tick)
     OS_CHECK_EXT_R(alarm < OS_ALARM_COUNT, E_OS_ID);
     OS_CHECK_R(Os_AlarmQueued[alarm] == TRUE, E_OS_NOFUNC);
 
-    *tick = Os_AlarmTicks[alarm] - Os_CounterControls[Os_AlarmConfigs[alarm].counter].ticks;
+    *tick = Os_CounterSub(Os_AlarmConfigs[alarm].counter
+                        , Os_AlarmTicks[alarm]
+                        , Os_CounterControls[Os_AlarmConfigs[alarm].counter].ticks);
     return E_OK;
 
 OS_ERRORCHECK_EXIT_POINT:
     Os_Error.service   = OSServiceId_GetAlarm;
+    Os_Error.params[0] = alarm;
+    OS_ERRORHOOK(Os_Error.status);
+    return Os_Error.status;
+}
+
+/**
+ * @brief Get the attributes of the counter driving an alarm
+ * @param[in]  alarm alarm to query
+ * @param[out] info  attributes of the alarm's counter
+ * @return
+ *  - E_OK on success
+ *  - E_OS_ID Alarm <AlarmID> is invalid
+ *
+ * Call contexts: TASK, ISR2, ERRORHOOK, PRETASKHOOK, POSTTASKHOOK
+ */
+Os_StatusType Os_GetAlarmBase_Internal(Os_AlarmType alarm, Os_AlarmBaseType* info)
+{
+    OS_CHECK_EXT_R(alarm < OS_ALARM_COUNT, E_OS_ID);
+
+    *info = *Os_CounterConfig(Os_AlarmConfigs[alarm].counter);
+    return E_OK;
+
+OS_ERRORCHECK_EXIT_POINT:
+    Os_Error.service   = OSServiceId_GetAlarmBase;
     Os_Error.params[0] = alarm;
     OS_ERRORHOOK(Os_Error.status);
     return Os_Error.status;
@@ -1044,10 +1126,12 @@ void Os_CounterInit(Os_CounterType counter)
  */
 Os_StatusType Os_IncrementCounter_Internal(Os_CounterType counter)
 {
+    Os_TickType next;
+
     OS_CHECK_EXT_R(counter < OS_COUNTER_COUNT, E_OS_VALUE);
-    Os_AlarmTick(Os_CounterControls[counter].queue
-               , (Os_TickType)(Os_CounterControls[counter].ticks + 1u));
-    Os_CounterControls[counter].ticks++;
+    next = Os_CounterAdd(counter, Os_CounterControls[counter].ticks, 1u);
+    Os_AlarmTick(Os_CounterControls[counter].queue, next);
+    Os_CounterControls[counter].ticks = next;
     return E_OK;
 
 OS_ERRORCHECK_EXIT_POINT:
@@ -1118,6 +1202,11 @@ Os_StatusType Os_Syscall_Internal(Os_SyscallParamType* param)
             res = Os_GetAlarm_Internal(param->p1.alarm, param->p2.tick_ptr);
             break;
         }
+
+        case OSServiceId_GetAlarmBase: {
+            res = Os_GetAlarmBase_Internal(param->p1.alarm, param->p2.base_ptr);
+            break;
+        }
 #endif
 
 #ifdef OS_COUNTER_COUNT
@@ -1146,21 +1235,21 @@ Os_StatusType Os_Syscall_Internal(Os_SyscallParamType* param)
 }
 
 /**
- * @brief Initializes OS internal structures with given config
- * @param config Configuration to use
- */
-/**
  * @brief Check the static configuration before using it
  * @return
  *  - E_OK on success
- *  - E_OS_VALUE a task priority is outside the configured priority levels
- *  - E_OS_ID a task refers to an internal resource that does not exist
+ *  - E_OS_VALUE a task priority is outside the configured priority levels,
+ *               or counter attributes are inconsistent
+ *  - E_OS_ID a task refers to an internal resource that does not exist,
+ *            or an alarm to a counter that does not exist
  *  - E_OS_RESOURCE a task's internal resource has a ceiling below the task's priority
  */
 static Os_StatusType Os_CheckConfig(void)
 {
     Os_TaskType     task;
     Os_ResourceType res;
+    Os_CounterType  counter;
+    Os_AlarmType    alarm;
 
     for (task = 0u; task < OS_TASK_COUNT; ++task) {
         OS_CHECK_EXT_R(  (Os_TaskConfigs[task].priority >= 0)
@@ -1172,6 +1261,20 @@ static Os_StatusType Os_CheckConfig(void)
             OS_CHECK_EXT_R(Os_TaskConfigs[task].priority <= Os_ResourceConfigs[res].priority, E_OS_RESOURCE);
         }
     }
+
+    for (counter = 0u; counter < OS_COUNTER_COUNT; ++counter) {
+        const Os_CounterConfigType* cfg = Os_CounterConfig(counter);
+        OS_CHECK_EXT_R(cfg->maxallowedvalue >= 1u                          , E_OS_VALUE);
+        OS_CHECK_EXT_R(cfg->ticksperbase    >= 1u                          , E_OS_VALUE);
+        OS_CHECK_EXT_R(  (cfg->mincycle >= 1u)
+                      && (cfg->mincycle <= cfg->maxallowedvalue)           , E_OS_VALUE);
+    }
+
+#ifdef OS_ALARM_COUNT
+    for (alarm = 0u; alarm < OS_ALARM_COUNT; ++alarm) {
+        OS_CHECK_EXT_R(Os_AlarmConfigs[alarm].counter < OS_COUNTER_COUNT   , E_OS_ID);
+    }
+#endif
     return E_OK;
 
 OS_ERRORCHECK_EXIT_POINT:
@@ -1181,6 +1284,10 @@ OS_ERRORCHECK_EXIT_POINT:
     return Os_Error.status;
 }
 
+/**
+ * @brief Initializes OS internal structures with given config
+ * @param config Configuration to use
+ */
 void Os_Init(const Os_ConfigType* config)
 {
     Os_TaskType     task;
@@ -1192,6 +1299,7 @@ void Os_Init(const Os_ConfigType* config)
     Os_TaskConfigs     = *config->tasks;
     Os_ResourceConfigs = *config->resources;
     Os_AlarmConfigs    = *config->alarms;
+    Os_CounterConfigs  = config->counters ? *config->counters : NULL;
     Os_Initialized     = FALSE;
 
     /* refuse a bad configuration before touching any state, Os_Start
