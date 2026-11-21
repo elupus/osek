@@ -390,3 +390,40 @@ TEST_F(Os_TestTask, GetTaskIdAfterTerminate) {
     EXPECT_EQ(E_OK           , Os_GetTaskId(&task));
     EXPECT_EQ(OS_INVALID_TASK, task) << "Nothing running after the last task terminated";
 }
+
+TEST_F(Os_TestTask, InitInternalResourceCeiling) {
+    m_resources[1].priority = 0;
+    m_tasks[1].resource     = 1;
+    m_tasks[2].autostart    = TRUE;
+    Os_Init(&m_config);
+    ASSERT_FALSE(Os_Errors.empty());
+    EXPECT_EQ(E_OS_RESOURCE, Os_Errors.top()) << "Ceiling below the task's priority";
+    EXPECT_FALSE(Os_Initialized);
+    Os_ActiveTask = OS_INVALID_TASK; /* Os_Init left it untouched, clear what earlier tests left */
+    Os_Start();
+    EXPECT_EQ(OS_INVALID_TASK, Os_ActiveTask) << "Os_Start does not start on a bad configuration";
+}
+
+TEST_F(Os_TestTask, InitInternalResourceId) {
+    m_tasks[1].resource     = OS_RES_COUNT;
+    Os_Init(&m_config);
+    ASSERT_FALSE(Os_Errors.empty());
+    EXPECT_EQ(E_OS_ID      , Os_Errors.top()) << "Internal resource does not exist";
+    EXPECT_FALSE(Os_Initialized);
+}
+
+TEST_F(Os_TestTask, InitTaskPriority) {
+    m_tasks[1].priority     = OS_PRIO_COUNT;
+    Os_Init(&m_config);
+    ASSERT_FALSE(Os_Errors.empty());
+    EXPECT_EQ(E_OS_VALUE   , Os_Errors.top()) << "Priority outside the configured levels";
+    EXPECT_FALSE(Os_Initialized);
+}
+
+TEST_F(Os_TestTask, InitValid) {
+    m_resources[1].priority = 3;
+    m_tasks[1].resource     = 1;
+    Os_Init(&m_config);
+    EXPECT_TRUE(Os_Errors.empty());
+    EXPECT_TRUE(Os_Initialized);
+}
