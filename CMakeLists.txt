@@ -1,170 +1,171 @@
-cmake_minimum_required (VERSION 2.8.4)
+cmake_minimum_required(VERSION 3.21)
 
-set(BUILD_TESTS ON CACHE BOOL   "Enable Testing")
-set(BUILD_ARCH  "" CACHE STRING "Target architecture")
-
-if(BUILD_TESTS)
-    project (OsekOs C CXX)
-else()
-    project (OsekOs C)
-endif()
-
-set (OsekOs_VERSION_MAJOR 1)
-set (OsekOs_VERSION_MINOR 0)
-
-set (Os_SRCS
-    src/Os.c
+project(OsekOs
+    VERSION 1.0
+    DESCRIPTION "OSEK operating system"
+    LANGUAGES C
 )
 
-# we must add these to get all defines even in C++ programs
-add_definitions(-D__STDC_LIMIT_MACROS -D__STDC_CONSTANT_MACROS)
-if (BUILD_ARCH)
-    set (Os_Arch ${BUILD_ARCH})
-elseif (WIN32 OR CYGWIN)
-    set (Os_Arch "Fibers")
-elseif (UNIX)
-    set (Os_Arch "Posix")
-elseif (HC12_CORE)
-    set (Os_Arch "HCS12")
-endif()
+# ---------------------------------------------------------------------------
+# Options
+# ---------------------------------------------------------------------------
 
-if (Os_Arch MATCHES "WinApi")
-    set (Os_SRCS ${Os_SRCS}
-        src/Os_Arch_WinApi.c
-    )
-    add_definitions(-DOS_CFG_ARCH_WINAPI)
-    set (Os_Run 1)
-elseif (Os_Arch MATCHES "Ums")
-    set (Os_SRCS ${Os_SRCS}
-        src/Os_Arch_Ums.c
-    )
-
-    add_definitions(-DOS_CFG_ARCH_UMS)
-    add_definitions(-D_WIN32_WINNT=0x0601)
-    set (Os_Run 1)
-    set (Os_Metric 0)
-elseif (Os_Arch MATCHES "Fibers")
-	enable_language(ASM_MASM)
-    set (Os_SRCS ${Os_SRCS}
-        src/Os_Arch_Fibers.c
-        src/Os_Arch_Fibers_Asm.asm
-    )
-
-    set_property(
-        SOURCE src/Os_Arch_Fibers_Asm.asm
-        PROPERTY COMPILE_FLAGS "-safeseh"
-    )
-
-    add_definitions(-DOS_CFG_ARCH_FIBERS)
-    set (Os_Run 1)
-    set (Os_Metric 1)
-elseif (Os_Arch MATCHES "Posix")
-    set (Os_SRCS ${Os_SRCS}
-        src/Os_Arch_Posix.c
-    )
-
-    set_property(
-        SOURCE src/Os_Arch_Posix.c
-        PROPERTY COMPILE_FLAGS -Wno-deprecated-declarations
-    )
-
-    add_definitions(-D_XOPEN_SOURCE=600 -DOS_CFG_ARCH_POSIX)
-    set (Os_Run 1)
-    set (Os_Metric 1)
-elseif (Os_Arch MATCHES "HCS12")
-    set (Os_SRCS ${Os_SRCS}
-        src/Os_Arch_HCS12.c
-        test/common/hcs12/trap.c
-    )
-
-    add_definitions(-DOS_CFG_ARCH_HCS12)
-    set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${CMAKE_CURRENT_SOURCE_DIR}/test/common/hcs12/link.prm")
-    set (Os_HCS12 1)
-	set (Os_Metric 1)
-endif()
-
-include_directories(include src)
-
-if (CMAKE_C_COMPILER_ID MATCHES chc12)
-    include_directories(include/chc)
-elseif (MSVC)
-    include_directories(include/msvc)
+# Host tests need a host compiler and GoogleTest, so default them off when
+# cross compiling (e.g. with the HC12 toolchain files).
+if(CMAKE_CROSSCOMPILING)
+    set(_osek_tests_default OFF)
 else()
-    include_directories(include/gcc)
+    set(_osek_tests_default ON)
 endif()
+option(BUILD_TESTS "Build the GoogleTest based unit tests" ${_osek_tests_default})
+option(OSEK_COVERAGE "Instrument unit tests for coverage (GCC/Clang)" ON)
 
+# Architecture port. Defaults to a sensible value for the target platform but
+# can be overridden with -DBUILD_ARCH=<arch>.
+if(WIN32 OR CYGWIN)
+    set(_osek_arch_default Fibers)
+elseif(UNIX)
+    set(_osek_arch_default Posix)
+elseif(HC12_CORE)
+    set(_osek_arch_default HCS12)
+else()
+    set(_osek_arch_default "")
+endif()
+set(BUILD_ARCH "${_osek_arch_default}" CACHE STRING "OS architecture port")
+set_property(CACHE BUILD_ARCH PROPERTY STRINGS Posix Fibers Ums HCS12)
+
+if(NOT BUILD_ARCH)
+    message(FATAL_ERROR "Unable to determine BUILD_ARCH for this platform, set it with -DBUILD_ARCH=<Posix|Fibers|Ums|HCS12>")
+endif()
+message(STATUS "OSEK architecture port: ${BUILD_ARCH}")
 
 if(BUILD_TESTS)
-    find_package(Threads)
-    set(gtest_force_shared_crt ON CACHE BOOL "")
-    add_subdirectory("externals/googletest")
-
-    set(Os_Test         1)
-    set(Os_TestInternal 1)
+    enable_language(CXX)
 endif()
 
-if (Os_Test)
-    # GTest type test
-    add_executable(Os_Test ${Os_SRCS} test/Os_Test/Os_Test.cpp)
-    target_include_directories(Os_Test PRIVATE test/Os_Test ${gtest_SOURCE_DIR}/include)
-    target_link_libraries(Os_Test gtest gtest_main Threads::Threads)
+# ---------------------------------------------------------------------------
+# OS targets
+#
+# Os.h includes the application specific Os_Cfg.h, so the OS sources must be
+# compiled once per application with that application's include path. They
+# are therefore exposed as INTERFACE sources: every target linking OsekOs
+# compiles its own copy against its own Os_Cfg.h.
+# ---------------------------------------------------------------------------
 
-    set_target_properties(Os_Test PROPERTIES LINKER_LANGUAGE "CXX")
+# Headers, definitions and platform includes only.
+add_library(OsekOs_Headers INTERFACE)
+add_library(OsekOs::Headers ALIAS OsekOs_Headers)
 
-    if (CMAKE_COMPILER_IS_GNUCXX)
-        set_target_properties(Os_Test PROPERTIES COMPILE_FLAGS "--coverage -O0")
-        set_target_properties(Os_Test PROPERTIES LINK_FLAGS    "--coverage -O0")
-    endif()
+target_include_directories(OsekOs_Headers INTERFACE
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
+)
+
+if(CMAKE_C_COMPILER_ID MATCHES "chc12")
+    target_include_directories(OsekOs_Headers INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/include/chc)
+elseif(MSVC)
+    target_include_directories(OsekOs_Headers INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/include/msvc)
+else()
+    target_include_directories(OsekOs_Headers INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/include/gcc)
 endif()
 
-if(Os_TestInternal)
-    # GTest type test
-    add_executable(Os_TestInternal test/Os_TestInternal/Os_TestInternal.cpp)
-    target_include_directories(Os_TestInternal PRIVATE test/Os_TestInternal ${gtest_SOURCE_DIR}/include)
-    target_link_libraries(Os_TestInternal gtest gtest_main Threads::Threads)
+# Needed to get all stdint.h macros even in C++ translation units.
+target_compile_definitions(OsekOs_Headers INTERFACE
+    __STDC_LIMIT_MACROS
+    __STDC_CONSTANT_MACROS
+)
 
-    set_target_properties(Os_TestInternal PROPERTIES LINKER_LANGUAGE "CXX")
+# Full OS: headers plus the kernel and architecture sources.
+add_library(OsekOs INTERFACE)
+add_library(OsekOs::OsekOs ALIAS OsekOs)
+target_link_libraries(OsekOs INTERFACE OsekOs_Headers)
+target_sources(OsekOs INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/src/Os.c)
 
-    if (CMAKE_COMPILER_IS_GNUCXX)
-        set_target_properties(Os_TestInternal PROPERTIES COMPILE_FLAGS "--coverage -O0")
-        set_target_properties(Os_TestInternal PROPERTIES LINK_FLAGS    "--coverage -O0")
-    endif()
-
+if(BUILD_ARCH STREQUAL "Fibers")
+    enable_language(ASM_MASM)
+    target_sources(OsekOs INTERFACE
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/Os_Arch_Fibers.c
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/Os_Arch_Fibers_Asm.asm
+    )
+    target_compile_definitions(OsekOs_Headers INTERFACE OS_CFG_ARCH_FIBERS)
+elseif(BUILD_ARCH STREQUAL "Ums")
+    target_sources(OsekOs INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/src/Os_Arch_Ums.c)
+    target_compile_definitions(OsekOs_Headers INTERFACE OS_CFG_ARCH_UMS _WIN32_WINNT=0x0601)
+elseif(BUILD_ARCH STREQUAL "Posix")
+    target_sources(OsekOs INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/src/Os_Arch_Posix.c)
+    target_compile_definitions(OsekOs_Headers INTERFACE _XOPEN_SOURCE=600 OS_CFG_ARCH_POSIX)
+elseif(BUILD_ARCH STREQUAL "HCS12")
+    target_sources(OsekOs INTERFACE
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/Os_Arch_HCS12.c
+        ${CMAKE_CURRENT_SOURCE_DIR}/test/common/hcs12/trap.c
+    )
+    target_compile_definitions(OsekOs_Headers INTERFACE OS_CFG_ARCH_HCS12)
+    target_link_options(OsekOs INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/test/common/hcs12/link.prm)
+else()
+    message(FATAL_ERROR "Unknown BUILD_ARCH '${BUILD_ARCH}'")
 endif()
 
-if(Os_Metric)
-    # Preemtive test
-    add_executable(Os_MetricBasic ${Os_SRCS} test/Os_MetricBasic/Os_Cfg.c)
-    target_include_directories(Os_MetricBasic PRIVATE test/Os_MetricBasic)
-
-    # Cooperative test
-    add_executable(Os_MetricCooperative ${Os_SRCS} test/Os_MetricCooperative/Os_Cfg.c)
-    target_include_directories(Os_MetricCooperative PRIVATE test/Os_MetricCooperative)
-
-    # Preemtive test
-    add_executable(Os_MetricPreemptive ${Os_SRCS} test/Os_MetricPreemptive/Os_Cfg.c)
-    target_include_directories(Os_MetricPreemptive PRIVATE test/Os_MetricPreemptive)
+# Coverage instrumentation for unit tests, link to enable.
+add_library(OsekOs_Coverage INTERFACE)
+add_library(OsekOs::Coverage ALIAS OsekOs_Coverage)
+if(OSEK_COVERAGE)
+    set(_osek_cov $<OR:$<C_COMPILER_ID:GNU,Clang,AppleClang>,$<CXX_COMPILER_ID:GNU,Clang,AppleClang>>)
+    target_compile_options(OsekOs_Coverage INTERFACE $<${_osek_cov}:--coverage -O0>)
+    target_link_options(OsekOs_Coverage INTERFACE $<${_osek_cov}:--coverage>)
 endif()
 
-if(Os_Run)
-    # Simple Os_Run test
-    add_executable(Os_Run ${Os_SRCS} test/Os_Run/Os_Cfg.c)
-    target_include_directories(Os_Run PRIVATE test/Os_Run)
+# ---------------------------------------------------------------------------
+# Applications and tests, one directory each
+# ---------------------------------------------------------------------------
+
+if(BUILD_ARCH STREQUAL "Posix")
+    add_subdirectory(test/Os_Run)
+    add_subdirectory(test/Os_MetricBasic)
+    add_subdirectory(test/Os_MetricCooperative)
+    add_subdirectory(test/Os_MetricPreemptive)
+elseif(BUILD_ARCH STREQUAL "Fibers")
+    add_subdirectory(test/Os_Run)
+    add_subdirectory(test/Os_MetricBasic)
+    add_subdirectory(test/Os_MetricCooperative)
+    add_subdirectory(test/Os_MetricPreemptive)
+elseif(BUILD_ARCH STREQUAL "Ums")
+    add_subdirectory(test/Os_Run)
+elseif(BUILD_ARCH STREQUAL "HCS12")
+    add_subdirectory(test/Os_HCS12)
+    add_subdirectory(test/Os_MetricBasic)
+    add_subdirectory(test/Os_MetricCooperative)
+    add_subdirectory(test/Os_MetricPreemptive)
 endif()
 
-if(Os_HCS12)
-    # Simple Os_Run test
-    add_executable(Os_HCS12 ${Os_SRCS} test/Os_HCS12/Os_Cfg.c)
-    target_include_directories(Os_HCS12 PRIVATE test/Os_HCS12)
-    if(CMAKE_OBJCOPY AND CMAKE_OBJDUMP)
-        add_custom_command(TARGET Os_HCS12 POST_BUILD
-                           COMMAND ${CMAKE_OBJCOPY} --output-format=srec $<TARGET_FILE:Os_HCS12> Os_HCS12.s19
-                           COMMAND ${CMAKE_OBJDUMP} $<TARGET_FILE:Os_HCS12> -S --disassemble   > Os_HCS12.lst)
-    endif()
-    if(CHC12_BURNER)
-        add_custom_command(TARGET Os_HCS12 POST_BUILD
-                           COMMAND ${CHC12_PIPER} ${CHC12_BURNER} -ViewHidden -EnvABS_FILE=$<TARGET_FILE:Os_HCS12> -F ${CMAKE_CURRENT_SOURCE_DIR}/test/common/hcs12/burner.bbl)
-    endif()
+if(BUILD_TESTS)
+    enable_testing()
+
+    set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+    set(INSTALL_GTEST OFF CACHE BOOL "" FORCE)
+    set(BUILD_GMOCK OFF CACHE BOOL "" FORCE)
+    add_subdirectory(externals/googletest EXCLUDE_FROM_ALL)
+
+    include(GoogleTest)
+
+    add_subdirectory(test/Os_Test)
+    add_subdirectory(test/Os_TestInternal)
 endif()
 
+# ---------------------------------------------------------------------------
+# Per-source options for the OS sources
+#
+# Source file properties are scoped to a directory, and INTERFACE sources are
+# compiled in the directory of the consuming target, so apply them to every
+# subdirectory that may build the OS.
+# ---------------------------------------------------------------------------
 
+get_property(_osek_dirs DIRECTORY PROPERTY SUBDIRECTORIES)
+list(APPEND _osek_dirs ${CMAKE_CURRENT_SOURCE_DIR})
+if(BUILD_ARCH STREQUAL "Posix")
+    # ucontext functions are marked deprecated by POSIX but still required.
+    set_source_files_properties(src/Os_Arch_Posix.c DIRECTORY ${_osek_dirs}
+        PROPERTIES COMPILE_OPTIONS "-Wno-deprecated-declarations")
+elseif(BUILD_ARCH STREQUAL "Fibers")
+    set_source_files_properties(src/Os_Arch_Fibers_Asm.asm DIRECTORY ${_osek_dirs}
+        PROPERTIES COMPILE_OPTIONS "-safeseh")
+endif()
