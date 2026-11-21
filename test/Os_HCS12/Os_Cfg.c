@@ -120,7 +120,7 @@ void exit(int err)
 int main(void)
 {
     Os_Init(&Os_DefaultConfig);
-    Os_Start(); /* NO RETURN */
+    Os_Start(OS_DEFAULTAPPMODE); /* NO RETURN */
     return 0;
 }
 

@@ -49,6 +49,7 @@ Os_ResourceControlType          Os_ResourceControls    [OS_RES_COUNT];  /**< con
 
 volatile boolean                Os_Continue;                            /**< should starting task continue */
 boolean                         Os_Initialized;                         /**< Os_Init accepted the configuration */
+Os_AppModeType                  Os_AppMode;                             /**< application mode the OS was started in */
 #if(OS_ERRORHOOK_ENABLE)
 boolean                         Os_ErrorHookActive;                     /**< error hook is running */
 #endif
@@ -83,6 +84,9 @@ static Os_StatusType Os_ReleaseResource_Internal(Os_ResourceType res);
 static Os_StatusType Os_IncrementCounter_Internal(Os_CounterType counter);
 
 static void Os_AlarmTick   (Os_AlarmType queue[], Os_TickType ticks);
+#ifdef OS_ALARM_COUNT
+Os_StatusType Os_SetRelAlarm_Internal(Os_AlarmType alarm, Os_TickType increment, Os_TickType cycle);
+#endif
 static void Os_AlarmAdd    (Os_AlarmType queue[], Os_AlarmType alarm);
 
 /**
@@ -508,13 +512,59 @@ static __inline void Os_State_Ready_To_Running(Os_TaskType task)
 }
 
 /**
- * @brief Start scheduler activity
+ * @brief Start the tasks and alarms configured to start automatically in a mode
+ * @param mode application mode being started
  */
-void Os_Start(void)
+static void Os_Autostart(Os_AppModeType mode)
+{
+    Os_TaskType  task;
+    Os_AlarmType alarm;
+
+    for (task = 0u; task < OS_TASK_COUNT; ++task) {
+        if (Os_TaskConfigs[task].autostart & OS_APPMODE_MASK(mode)) {
+#if( (OS_CONFORMANCE == OS_CONFORMANCE_ECC2) ||  (OS_CONFORMANCE == OS_CONFORMANCE_BCC2) )
+            Os_TaskControls[task].activation = 1;
+#endif
+            Os_State_Suspended_To_Ready(task);
+        }
+    }
+
+#ifdef OS_ALARM_COUNT
+    for (alarm = 0u; alarm < OS_ALARM_COUNT; ++alarm) {
+        if (Os_AlarmConfigs[alarm].autostart & OS_APPMODE_MASK(mode)) {
+            (void)Os_SetRelAlarm_Internal(alarm
+                                        , Os_AlarmConfigs[alarm].alarmtime
+                                        , Os_AlarmConfigs[alarm].cycletime);
+        }
+    }
+#endif
+}
+
+/**
+ * @brief Start the operating system
+ * @param mode application mode to start in, OS_DEFAULTAPPMODE unless the
+ *             application defines more
+ *
+ * Starts the tasks and alarms configured for the mode, calls the startup
+ * hook and starts scheduling. Returns once the OS has been shut down, or
+ * at once if the configuration or mode is invalid.
+ */
+void Os_Start(Os_AppModeType mode)
 {
     if (!Os_Initialized) {
         return;
     }
+
+    if (mode >= OS_APPMODE_COUNT) {
+        Os_Error.service   = OSServiceId_None;
+        Os_Error.status    = E_OS_VALUE;
+        Os_Error.params[0] = mode;
+        OS_ERRORHOOK(E_OS_VALUE);
+        return;
+    }
+
+    Os_AppMode = mode;
+    Os_Autostart(mode);
 
     /* after initialisation, before any task runs, interrupts still disabled */
     OS_STARTUPHOOK();
@@ -1273,6 +1323,11 @@ static Os_StatusType Os_CheckConfig(void)
 #ifdef OS_ALARM_COUNT
     for (alarm = 0u; alarm < OS_ALARM_COUNT; ++alarm) {
         OS_CHECK_EXT_R(Os_AlarmConfigs[alarm].counter < OS_COUNTER_COUNT   , E_OS_ID);
+        if (Os_AlarmConfigs[alarm].autostart) {
+            OS_CHECK_EXT_R(  (Os_AlarmConfigs[alarm].alarmtime >= 1u)
+                          && (Os_AlarmConfigs[alarm].alarmtime <= Os_CounterConfig(Os_AlarmConfigs[alarm].counter)->maxallowedvalue)
+                          && Os_CounterCycleValid(Os_AlarmConfigs[alarm].counter, Os_AlarmConfigs[alarm].cycletime), E_OS_VALUE);
+        }
     }
 #endif
     return E_OK;
@@ -1345,18 +1400,7 @@ void Os_Init(const Os_ConfigType* config)
     /* run arch init */
     Os_Arch_Init();
 
-    /* make sure any activated task is in ready list */
-    for (task = 0u; task < OS_TASK_COUNT; ++task) {
-
-        /* ready any activated task */
-        if (Os_TaskConfigs[task].autostart) {
-#if( (OS_CONFORMANCE == OS_CONFORMANCE_ECC2) ||  (OS_CONFORMANCE == OS_CONFORMANCE_BCC2) )
-            Os_TaskControls[task].activation = 1;
-#endif
-            Os_State_Suspended_To_Ready(task);
-        }
-    }
-
+    Os_AppMode     = OS_DEFAULTAPPMODE;
     Os_Initialized = TRUE;
 }
 

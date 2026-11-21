@@ -113,7 +113,7 @@ const Os_ConfigType Os_DefaultConfig = {
 int main(void)
 {
     Os_Init(&Os_DefaultConfig);
-    Os_Start();
+    Os_Start(OS_DEFAULTAPPMODE);
     printf("Execution counts %u\n"
             , task0_count);
     return 0;

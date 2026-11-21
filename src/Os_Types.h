@@ -71,6 +71,13 @@ typedef enum Os_TaskStateEnum {
 
 typedef Os_TaskStateEnum Os_TaskStateType; /**< task state as reported by Os_GetTaskState */
 
+typedef uint8 Os_AppModeType;     /**< application mode */
+typedef uint8 Os_AppModeMaskType; /**< set of application modes, bit n for mode n */
+
+#define OS_DEFAULTAPPMODE    (Os_AppModeType)0u
+#define OS_APPMODE_COUNT     (Os_AppModeType)(sizeof(Os_AppModeMaskType) * 8u) /**< number of modes a mask can hold */
+#define OS_APPMODE_MASK(mode) (Os_AppModeMaskType)(1u << (mode))
+
 #define OS_RES_SCHEDULER (Os_ResourceType)0
 
 typedef void          (*Os_TaskEntryType)(void); /**< type for the entry point of a task */
