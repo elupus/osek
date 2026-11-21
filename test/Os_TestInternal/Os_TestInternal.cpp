@@ -12,10 +12,14 @@ extern "C" {
 }
 
 std::stack<Os_StatusType>  Os_Errors;
+void                     (*Os_ErrorHookExtra)(void);
 
 extern "C" void Os_ErrorHook   (Os_StatusType ret)
 {
     Os_Errors.push(ret);
+    if (Os_ErrorHookExtra) {
+        Os_ErrorHookExtra();
+    }
 }
 
 extern "C" void Os_PreTaskHook (Os_TaskType task)
@@ -95,6 +99,7 @@ struct Os_TestInternal : public testing::Test {
     virtual void TearDown()
     {
         Os_Errors = std::stack<Os_StatusType>();
+        Os_ErrorHookExtra = NULL;
         for(Os_TaskType i = 0; i < OS_TASK_COUNT; ++i) {
             ;
         }
@@ -625,6 +630,16 @@ TEST_F(Os_TestTask, GetTaskState) {
     EXPECT_EQ(E_OK             , Os_GetTaskState_Internal(1, &state));
     EXPECT_EQ(OS_TASK_READY    , state) << "Preempted is ready";
     EXPECT_EQ(E_OS_ID          , Os_GetTaskState_Internal(OS_TASK_COUNT, &state));
+}
+
+TEST_F(Os_TestTask, ErrorHookNotRecursive) {
+    Start(1);
+    Os_ErrorHookExtra = []() {
+        EXPECT_EQ(E_OS_ID, Os_ActivateTask_Internal(OS_TASK_COUNT)) << "Service fails inside the hook";
+    };
+    EXPECT_EQ(E_OS_ID  , Os_ActivateTask_Internal(OS_TASK_COUNT));
+    EXPECT_EQ(1u       , Os_Errors.size()) << "Hook not called again from inside the hook";
+    EXPECT_FALSE(Os_ErrorHookActive);
 }
 
 TEST_F(Os_TestTask, InternalResourceKeptOnError) {
