@@ -750,7 +750,7 @@ Os_StatusType Os_SetRelAlarm_Internal(Os_AlarmType alarm, Os_TickType increment,
 {
     OS_CHECK_EXT_R(alarm < OS_ALARM_COUNT             , E_OS_ID);
     OS_CHECK_R    (increment != 0u                    , E_OS_VALUE); /**< @req SWS_Os_00304 */
-    OS_CHECK_R    (Os_AlarmTicks[alarm] == 0u, E_OS_STATE); /* TODO can fail this check */
+    OS_CHECK_R    (Os_AlarmQueued[alarm] == FALSE, E_OS_STATE);
 
     Os_AlarmCycles[alarm] = cycle;
     Os_AlarmTicks [alarm] = Os_CounterControls[Os_AlarmConfigs[alarm].counter].ticks + increment;
@@ -807,7 +807,7 @@ OS_ERRORCHECK_EXIT_POINT:
 Os_StatusType Os_SetAbsAlarm_Internal(Os_AlarmType alarm, Os_TickType start, Os_TickType cycle)
 {
     OS_CHECK_EXT_R(alarm < OS_ALARM_COUNT, E_OS_ID);
-    OS_CHECK_R    (Os_AlarmTicks[alarm] == 0u, E_OS_STATE); /* TODO can fail this check */
+    OS_CHECK_R    (Os_AlarmQueued[alarm] == FALSE, E_OS_STATE);
 
     Os_AlarmCycles[alarm] = cycle;
     Os_AlarmTicks [alarm] = start;
