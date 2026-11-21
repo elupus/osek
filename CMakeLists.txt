@@ -118,6 +118,11 @@ endif()
 # Applications and tests, one directory each
 # ---------------------------------------------------------------------------
 
+# Before the applications, so those that can run on the host register tests.
+if(BUILD_TESTS)
+    enable_testing()
+endif()
+
 if(BUILD_ARCH STREQUAL "Posix")
     add_subdirectory(test/Os_Run)
     add_subdirectory(test/Os_MetricBasic)
@@ -138,8 +143,6 @@ elseif(BUILD_ARCH STREQUAL "HCS12")
 endif()
 
 if(BUILD_TESTS)
-    enable_testing()
-
     set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
     set(INSTALL_GTEST OFF CACHE BOOL "" FORCE)
     set(BUILD_GMOCK OFF CACHE BOOL "" FORCE)
