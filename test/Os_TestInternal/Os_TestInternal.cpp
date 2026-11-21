@@ -324,3 +324,43 @@ TEST_F(Os_TestTask, ResourceCeilingBelowTask) {
     Start(1);
     EXPECT_EQ(E_OS_ACCESS, Os_GetResource_Internal(1))     << "Ceiling below the task's priority";
 }
+
+TEST_F(Os_TestTask, InternalResourceOnActivate) {
+    m_resources[1].priority = 3;
+    m_tasks[2].resource     = 1;
+    Start(2);
+    EXPECT_EQ(1          , Os_TaskControls[2].resource) << "Internal resource held when started by activation";
+    EXPECT_EQ(3          , Os_TaskControls[2].priority);
+}
+
+TEST_F(Os_TestTask, InternalResourceOnAlarm) {
+    m_resources[1].priority = 3;
+    m_tasks[2].resource     = 1;
+    m_alarms[0].task        = 2;
+    Start(0);
+    EXPECT_EQ(E_OK       , Os_SetRelAlarm_Internal(0, 1, 0));
+    Os_Isr();
+    EXPECT_EQ(2          , Os_ActiveTask)               << "Alarm activated task preempts";
+    EXPECT_EQ(1          , Os_TaskControls[2].resource) << "Internal resource held when started from the tick";
+    EXPECT_EQ(3          , Os_TaskControls[2].priority);
+}
+
+TEST_F(Os_TestTask, InternalResourceNonPreemptive) {
+    m_resources[1].priority = 3;
+    m_tasks[1].resource     = 1;
+    Start(1);
+    EXPECT_EQ(E_OK       , Os_ActivateTask_Internal(2));
+    EXPECT_EQ(1          , Os_ActiveTask)               << "Higher priority task below the ceiling does not preempt";
+
+    Os_SyscallParamType param;
+    param.service = OSServiceId_Schedule;
+    EXPECT_EQ(E_OK       , Os_Syscall_Internal(&param));
+    EXPECT_EQ(2          , Os_ActiveTask)               << "Schedule lets it run";
+    EXPECT_EQ(OS_INVALID_RESOURCE, Os_TaskControls[1].resource) << "Internal resource released while preempted";
+
+    param.service = OSServiceId_TerminateTask;
+    EXPECT_EQ(E_OK       , Os_Syscall_Internal(&param));
+    EXPECT_EQ(1          , Os_ActiveTask);
+    EXPECT_EQ(1          , Os_TaskControls[1].resource) << "Internal resource taken again on resume";
+    EXPECT_EQ(3          , Os_TaskControls[1].priority);
+}

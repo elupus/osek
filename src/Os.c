@@ -462,6 +462,11 @@ Os_StatusType Os_Schedule_Internal(void)
         Os_State_Ready_To_Running(task);
         Os_ActiveTask = task;
     }
+
+    /* the running task holds its internal resource, however it got to run */
+    if (Os_TaskControls[Os_ActiveTask].state == OS_TASK_RUNNING) {
+        Os_TaskInternalResource_Get();
+    }
     return E_OK;
 }
 
@@ -955,14 +960,12 @@ Os_StatusType Os_Syscall_Internal(Os_SyscallParamType* param)
         case OSServiceId_Schedule: {
             Os_TaskInternalResource_Release();
             res = Os_Schedule_Internal();
-            Os_TaskInternalResource_Get();
             break;
         }
 
         case OSServiceId_TerminateTask: {
             Os_TaskInternalResource_Release();
             res = Os_TerminateTask_Internal();
-            Os_TaskInternalResource_Get();
             break;
         }
 
@@ -974,7 +977,6 @@ Os_StatusType Os_Syscall_Internal(Os_SyscallParamType* param)
         case OSServiceId_ChainTask: {
             Os_TaskInternalResource_Release();
             res = Os_ChainTask_Internal(param->p1.task);
-            Os_TaskInternalResource_Get();
             break;
         }
 
