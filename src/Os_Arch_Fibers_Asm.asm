@@ -30,8 +30,23 @@ IFDEF RAX
     push rbp
     mov  rbp, rsp
     and  rsp, -16
+    ; xmm0-xmm5 are volatile and may be clobbered by the ISR
+    sub  rsp, 60h
+    movdqa [rsp + 00h], xmm0
+    movdqa [rsp + 10h], xmm1
+    movdqa [rsp + 20h], xmm2
+    movdqa [rsp + 30h], xmm3
+    movdqa [rsp + 40h], xmm4
+    movdqa [rsp + 50h], xmm5
     sub  rsp, 20h
     call rdx
+    add  rsp, 20h
+    movdqa xmm0, [rsp + 00h]
+    movdqa xmm1, [rsp + 10h]
+    movdqa xmm2, [rsp + 20h]
+    movdqa xmm3, [rsp + 30h]
+    movdqa xmm4, [rsp + 40h]
+    movdqa xmm5, [rsp + 50h]
     mov  rsp, rbp
     pop  rbp
     pop rax
