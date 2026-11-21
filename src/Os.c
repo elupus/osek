@@ -557,6 +557,16 @@ Os_StatusType Os_ChainTask_Internal(Os_TaskType task)
     OS_CHECK_EXT_R(Os_TaskControls[Os_ActiveTask].resource == OS_INVALID_RESOURCE , E_OS_RESOURCE);
     OS_CHECK_EXT_R(task < OS_TASK_COUNT                                           , E_OS_ID);
 
+    /* check the activation limit before terminating, chaining to
+     * itself never exceeds it since the caller's activation ends */
+#if( (OS_CONFORMANCE == OS_CONFORMANCE_ECC2) ||  (OS_CONFORMANCE == OS_CONFORMANCE_BCC2) )
+    OS_CHECK_R    (  (task == Os_ActiveTask)
+                  || (Os_TaskControls[task].activation < Os_TaskConfigs[task].activation), E_OS_LIMIT);
+#else
+    OS_CHECK_R    (  (task == Os_ActiveTask)
+                  || (Os_TaskControls[task].state == OS_TASK_SUSPENDED), E_OS_LIMIT);
+#endif
+
     Os_State_Running_To_Suspended(Os_ActiveTask);
 
 #if( (OS_CONFORMANCE == OS_CONFORMANCE_ECC2) ||  (OS_CONFORMANCE == OS_CONFORMANCE_BCC2) )
@@ -564,18 +574,12 @@ Os_StatusType Os_ChainTask_Internal(Os_TaskType task)
     if (Os_TaskControls[Os_ActiveTask].activation > 0u) {
         Os_State_Suspended_To_Ready(Os_ActiveTask);
     }
-#endif
-
-    /* may return early here after activation limit is reached */
-#if( (OS_CONFORMANCE == OS_CONFORMANCE_ECC2) ||  (OS_CONFORMANCE == OS_CONFORMANCE_BCC2) )
-    OS_CHECK_R    (Os_TaskControls[task].activation < Os_TaskConfigs[task].activation, E_OS_LIMIT);
 
     Os_TaskControls[task].activation++;
     if (Os_TaskControls[task].activation == 1u) {
         Os_State_Suspended_To_Ready(task);
     }
 #else
-    OS_CHECK_R    (Os_TaskControls[task].state == OS_TASK_SUSPENDED, E_OS_LIMIT);
     Os_State_Suspended_To_Ready(task);
 #endif
 
