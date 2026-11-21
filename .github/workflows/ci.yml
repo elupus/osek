@@ -1,0 +1,71 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  linux:
+    name: Linux (Posix, ${{ matrix.preset }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        preset: [debug, release]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Install Ninja
+        run: sudo apt-get update && sudo apt-get install -y ninja-build
+
+      - name: Configure
+        run: cmake --preset ${{ matrix.preset }}
+
+      - name: Build
+        run: cmake --build --preset ${{ matrix.preset }}
+
+      - name: Test
+        run: ctest --preset ${{ matrix.preset }} --timeout 120
+
+  windows:
+    name: Windows (${{ matrix.arch_port }}, ${{ matrix.arch }})
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { arch: x64, arch_port: Fibers, tests: ON }
+          - { arch: x86, arch_port: Fibers, tests: ON }
+          # UMS has no tick yet (#8), so only check that it builds.
+          - { arch: x64, arch_port: Ums, tests: OFF }
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Set up MSVC environment
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: ${{ matrix.arch }}
+
+      - name: Configure
+        run: >
+          cmake --preset debug
+          -DCMAKE_C_COMPILER=cl -DCMAKE_CXX_COMPILER=cl
+          -DBUILD_ARCH=${{ matrix.arch_port }}
+          -DBUILD_TESTS=${{ matrix.tests }}
+
+      - name: Build
+        run: cmake --build --preset debug
+
+      - name: Test
+        if: matrix.tests == 'ON'
+        run: ctest --preset debug --timeout 120
