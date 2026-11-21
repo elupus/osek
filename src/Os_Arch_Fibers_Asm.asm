@@ -24,7 +24,16 @@ ENDIF
 
 Os_Arch_Trampoline PROC
 IFDEF RAX
+    ; The interrupted stack pointer may have any alignment, and the
+    ; x64 calling convention requires a 16 byte aligned stack and 32
+    ; bytes of shadow space owned by the callee at the call.
+    push rbp
+    mov  rbp, rsp
+    and  rsp, -16
+    sub  rsp, 20h
     call rdx
+    mov  rsp, rbp
+    pop  rbp
     pop rax
     pop rcx
     pop rdx
