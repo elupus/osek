@@ -39,8 +39,8 @@
 unsigned char task0_stack[OS_STACK_SIZE(512)];
 unsigned char task1_stack[OS_STACK_SIZE(512)];
 
-unsigned int  task0_count;
-unsigned int  task1_count;
+volatile unsigned int task0_count;
+volatile unsigned int task1_count;
 unsigned int  task0_array[1024];
 
 void task0(void)
