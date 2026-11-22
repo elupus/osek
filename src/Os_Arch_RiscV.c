@@ -22,13 +22,9 @@
 
 /* saved context slots, see Os_Arch_RiscV_Asm.S */
 #define OS_ARCH_FRAME_MEPC     0u
-#define OS_ARCH_FRAME_RA       1u
 #define OS_ARCH_FRAME_MSTATUS  2u
-#define OS_ARCH_FRAME_FP       8u   /* s0 */
 #define OS_ARCH_FRAME_A0       10u
 
-#define OS_ARCH_MSTATUS_MPIE   0x80u
-#define OS_ARCH_MSTATUS_MPP_M  0x1800u
 #define OS_ARCH_MIE_MTIE       0x80u
 
 #define OS_ARCH_MCAUSE_INTERRUPT ((uintptr_t)1u << (sizeof(uintptr_t) * 8u - 1u))
@@ -53,7 +49,8 @@ static uintptr_t Os_Arch_KernelStack[OS_ARCH_KERNEL_STACK_SIZE / sizeof(uintptr_
 /** top of the kernel stack, loaded by the trap entry */
 uintptr_t* const Os_Arch_KernelStackTop = &Os_Arch_KernelStack[OS_ARCH_KERNEL_STACK_SIZE / sizeof(uintptr_t)];
 
-/** saved context of each task, and of the code that called Os_Start */
+/** saved context of each task, NULL for a task to start from scratch, and
+ * of the code that called Os_Start */
 static uintptr_t* Os_Arch_Context[OS_TASK_COUNT];
 static uintptr_t* Os_Arch_ContextNone;
 
@@ -102,13 +99,21 @@ static void Os_Arch_WriteMtimecmp(uint64_t value)
 #endif
 }
 
+/* a task function returned instead of terminating */
+void Os_Arch_TaskReturned(void)
+{
+    exit(127);
+}
+
 /**
  * @brief Handle a trap, called by the trap entry on the kernel stack
  * @param frame saved context of the interrupted code
- * @return saved context to resume
+ * @return saved context to resume, or for a task to start from scratch the
+ *         top of its stack with bit 0 set, with mepc set to its entry
  */
-uintptr_t* Os_Arch_Trap(uintptr_t* frame)
+uintptr_t Os_Arch_Trap(uintptr_t* frame)
 {
+    Os_TaskType task;
     uintptr_t cause;
 
     __asm__ __volatile__ ("csrr %0, mcause" : "=r"(cause));
@@ -144,7 +149,14 @@ uintptr_t* Os_Arch_Trap(uintptr_t* frame)
     }
 
     Os_Arch_Current = Os_Arch_GetContext();
-    return *Os_Arch_Current;
+    if (*Os_Arch_Current == NULL) {
+        /* nothing to restore for a fresh start, the trap exit only needs
+         * the top of the stack and the entry */
+        (void)Os_GetTaskId(&task);
+        __asm__ __volatile__ ("csrw mepc, %0" :: "r"((uintptr_t)Os_TaskConfigs[task].entry));
+        return (((uintptr_t)Os_TaskConfigs[task].stack + Os_TaskConfigs[task].stack_size) & ~(uintptr_t)15u) | 1u;
+    }
+    return (uintptr_t)*Os_Arch_Current;
 }
 
 Os_StatusType Os_Arch_Syscall(Os_SyscallParamType* param)
@@ -154,24 +166,10 @@ Os_StatusType Os_Arch_Syscall(Os_SyscallParamType* param)
     return (Os_StatusType)a0;
 }
 
-/* a task function returned instead of terminating */
-static void Os_Arch_TaskReturned(void)
-{
-    exit(127);
-}
-
 void Os_Arch_PrepareState(Os_TaskType task)
 {
-    uintptr_t  top   = ((uintptr_t)Os_TaskConfigs[task].stack + Os_TaskConfigs[task].stack_size) & ~(uintptr_t)15u;
-    uintptr_t* frame = (uintptr_t*)top - OS_ARCH_FRAME_WORDS;
-
-    /* only these matter to a task starting in a C function without
-     * arguments, the others are scratch or restored only on its return */
-    frame[OS_ARCH_FRAME_MEPC]    = (uintptr_t)Os_TaskConfigs[task].entry;
-    frame[OS_ARCH_FRAME_RA]      = (uintptr_t)Os_Arch_TaskReturned;
-    frame[OS_ARCH_FRAME_MSTATUS] = OS_ARCH_MSTATUS_MPP_M | OS_ARCH_MSTATUS_MPIE; /* starts with interrupts enabled */
-    frame[OS_ARCH_FRAME_FP]      = 0u; /* ends frame pointer backtraces at the task entry */
-    Os_Arch_Context[task] = frame;
+    /* started from scratch by the trap exit, see Os_Arch_Trap */
+    Os_Arch_Context[task] = NULL;
 }
 
 void Os_Arch_Init(void)

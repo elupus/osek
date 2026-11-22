@@ -25,8 +25,13 @@
  * tasks and are left alone.
  *
  * The kernel runs on its own stack. Os_Arch_Trap gets the saved context and
- * returns the one to resume, which may belong to another task.
+ * returns the one to resume, which may belong to another task. A task that
+ * starts from scratch has no saved context: Os_Arch_Trap then returns the
+ * top of its stack with bit 0 set and its entry in mepc, and only the stack
+ * pointer and the registers a C function expects at entry are set up.
  */
+
+#define MSTATUS_START 0x1880 /* MPP machine mode, MPIE: interrupts enabled once started */
 
 #if __riscv_xlen == 64
 #define STORE   sd
@@ -86,6 +91,8 @@ Os_Arch_TrapEntry:
     mv      a0, sp
     LOAD    sp, Os_Arch_KernelStackTop
     call    Os_Arch_Trap
+    andi    t0, a0, 1
+    bnez    t0, Os_Arch_TrapStart
     mv      sp, a0
 
     LOAD    t0,  SLOT(0)(sp)
@@ -123,5 +130,13 @@ Os_Arch_TrapEntry:
     LOAD    x31, SLOT(31)(sp)
 #endif
     addi    sp, sp, FRAME
+    mret
+
+Os_Arch_TrapStart:
+    andi    sp, a0, -2
+    li      t0, MSTATUS_START
+    csrw    mstatus, t0
+    la      ra, Os_Arch_TaskReturned
+    li      s0, 0               /* ends frame pointer backtraces at the task entry */
     mret
     .size   Os_Arch_TrapEntry, . - Os_Arch_TrapEntry
