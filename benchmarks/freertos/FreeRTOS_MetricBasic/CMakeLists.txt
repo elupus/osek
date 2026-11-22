@@ -1,0 +1,2 @@
+add_executable(FreeRTOS_MetricBasic FreeRTOS_MetricBasic.c)
+target_link_libraries(FreeRTOS_MetricBasic PRIVATE FreeRTOS_Kernel)

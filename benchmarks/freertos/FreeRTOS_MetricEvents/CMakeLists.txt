@@ -1,0 +1,2 @@
+add_executable(FreeRTOS_MetricEvents FreeRTOS_MetricEvents.c)
+target_link_libraries(FreeRTOS_MetricEvents PRIVATE FreeRTOS_Kernel)

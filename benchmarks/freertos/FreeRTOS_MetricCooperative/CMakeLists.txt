@@ -1,0 +1,2 @@
+add_executable(FreeRTOS_MetricCooperative FreeRTOS_MetricCooperative.c)
+target_link_libraries(FreeRTOS_MetricCooperative PRIVATE FreeRTOS_Kernel)

@@ -1,0 +1,2 @@
+add_executable(FreeRTOS_MetricPreemptive FreeRTOS_MetricPreemptive.c)
+target_link_libraries(FreeRTOS_MetricPreemptive PRIVATE FreeRTOS_Kernel)
