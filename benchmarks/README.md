@@ -163,3 +163,9 @@ directory is a standalone CMake project that:
 A metric the RTOS does not implement is shown as `-`. Add a section above
 that maps each metric to the RTOS's primitives, and its numbers to the
 results.
+
+## On GitHub
+
+The `Benchmark` workflow runs `compare.sh` and shows the table in the run's
+summary. It is not part of the checks on each commit; start it by hand from
+the Actions tab, or with `gh workflow run benchmark.yml --ref <branch>`.

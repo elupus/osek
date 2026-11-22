@@ -1,0 +1,28 @@
+name: Benchmark
+
+# Compares the metric apps with the other RTOSes in benchmarks/, see
+# benchmarks/README.md. Only run when started by hand, it is not part of the
+# checks on each commit.
+on:
+  workflow_dispatch:
+
+jobs:
+  compare:
+    name: OSEK vs other RTOSes (RISC-V, QEMU)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Install toolchain and QEMU
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build gcc-riscv64-unknown-elf picolibc-riscv64-unknown-elf
+          # newer releases split RISC-V out of qemu-system-misc
+          sudo apt-get install -y qemu-system-riscv || sudo apt-get install -y qemu-system-misc
+          qemu-system-riscv32 --version
+
+      - name: Compare
+        run: |
+          echo "### OSEK vs other RTOSes (instructions under QEMU -icount)" >> "$GITHUB_STEP_SUMMARY"
+          benchmarks/compare.sh | tee -a "$GITHUB_STEP_SUMMARY"
