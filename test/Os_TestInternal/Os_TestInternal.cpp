@@ -1004,3 +1004,39 @@ TEST_F(Os_TestCounter, Arithmetic) {
         }
     }
 }
+
+TEST_F(Os_TestTask, ChainTaskSelfRoundRobin) {
+    m_tasks[2].priority = 1;
+    Start(1);
+    EXPECT_EQ(E_OK             , Os_ActivateTask_Internal(2));
+    EXPECT_EQ(1                , Os_ActiveTask)            << "Same priority, does not preempt";
+    EXPECT_EQ(E_OK             , Os_ChainTask_Internal(1));
+    EXPECT_EQ(2                , Os_ActiveTask)            << "Chained task goes last among its priority";
+    EXPECT_EQ(OS_TASK_READY_FIRST, Os_TaskControls[1].state) << "Ready to start again";
+    EXPECT_EQ(1u               , Os_TaskControls[1].activation);
+    EXPECT_EQ(E_OK             , Os_TerminateTask_Internal());
+    EXPECT_EQ(1                , Os_ActiveTask)            << "Starts again";
+}
+
+TEST_F(Os_TestTask, ChainTaskSelfQueuedActivation) {
+    m_tasks[1].activation = 2u;
+    Start(1);
+    EXPECT_EQ(E_OK             , Os_ActivateTask_Internal(1)) << "Queue a second activation";
+    EXPECT_EQ(2u               , Os_TaskControls[1].activation);
+    EXPECT_EQ(E_OK             , Os_ChainTask_Internal(1));
+    EXPECT_EQ(2u               , Os_TaskControls[1].activation) << "Chaining itself is not a new request";
+    EXPECT_EQ(E_OK             , Os_TerminateTask_Internal());
+    EXPECT_EQ(1                , Os_ActiveTask)            << "Queued activation runs";
+    EXPECT_EQ(E_OK             , Os_TerminateTask_Internal());
+    EXPECT_FALSE(Os_TaskControls[Os_ActiveTask].state == OS_TASK_RUNNING) << "No activation left";
+}
+
+TEST_F(Os_TestTask, ChainTaskSelfClearsEvents) {
+    Os_EventMaskType mask;
+    m_tasks[1].extended = TRUE;
+    Start(1);
+    EXPECT_EQ(E_OK             , Os_SetEvent_Internal(1, 0x3u));
+    EXPECT_EQ(E_OK             , Os_ChainTask_Internal(1));
+    EXPECT_EQ(E_OK             , Os_GetEvent_Internal(1, &mask));
+    EXPECT_EQ(0x0u             , mask) << "Events are cleared for the new start";
+}

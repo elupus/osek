@@ -515,11 +515,9 @@ static __inline void Os_State_Running_To_Ready(Os_TaskType task)
  * This will prepare the stack structure for execution of this task's
  * main function and push the task into the tail of the ready list
  */
-static __inline void Os_State_Suspended_To_Ready(Os_TaskType task)
+static __inline void Os_State_Ready_First(Os_TaskType task)
 {
     Os_PriorityType prio;
-
-    OS_CHECK_EXT(Os_TaskControls[task].state == OS_TASK_SUSPENDED, E_OS_STATE);
 
     prio = Os_TaskConfigs[task].priority;
     Os_TaskControls[task].state    = OS_TASK_READY_FIRST;
@@ -530,6 +528,17 @@ static __inline void Os_State_Suspended_To_Ready(Os_TaskType task)
 #endif
 
     Os_ReadyListPushTail(&Os_TaskReady[prio], task);
+}
+
+/**
+ * @brief Perform the state transition from suspended to the ready list
+ * @param task task to transition to the ready state
+ */
+static __inline void Os_State_Suspended_To_Ready(Os_TaskType task)
+{
+    OS_CHECK_EXT(Os_TaskControls[task].state == OS_TASK_SUSPENDED, E_OS_STATE);
+
+    Os_State_Ready_First(task);
 }
 
 #if(OS_EVENTS_ENABLE)
@@ -981,14 +990,20 @@ Os_StatusType Os_ChainTask_Internal(Os_TaskType task)
     OS_CHECK_EXT_R(Os_TaskControls[Os_ActiveTask].resource == OS_INVALID_RESOURCE , E_OS_RESOURCE);
     OS_CHECK_EXT_R(task < OS_TASK_COUNT                                           , E_OS_ID);
 
-    /* check the activation limit before terminating, chaining to
-     * itself never exceeds it since the caller's activation ends */
+    if (task == Os_ActiveTask) {
+        /* chaining itself is not a new activation: the task is not
+         * suspended but ends and becomes ready to start again at once,
+         * last among the tasks of its priority */
+        OS_POSTTASKHOOK(task);
+        Os_State_Ready_First(task);
+        return Os_Schedule_Internal();
+    }
+
+    /* check the activation limit before terminating */
 #if( (OS_CONFORMANCE == OS_CONFORMANCE_ECC2) ||  (OS_CONFORMANCE == OS_CONFORMANCE_BCC2) )
-    OS_CHECK_R    (  (task == Os_ActiveTask)
-                  || (Os_TaskControls[task].activation < Os_TaskConfigs[task].activation), E_OS_LIMIT);
+    OS_CHECK_R    (Os_TaskControls[task].activation < Os_TaskConfigs[task].activation, E_OS_LIMIT);
 #else
-    OS_CHECK_R    (  (task == Os_ActiveTask)
-                  || (Os_TaskControls[task].state == OS_TASK_SUSPENDED), E_OS_LIMIT);
+    OS_CHECK_R    (Os_TaskControls[task].state == OS_TASK_SUSPENDED                 , E_OS_LIMIT);
 #endif
 
     Os_State_Running_To_Suspended(Os_ActiveTask);
