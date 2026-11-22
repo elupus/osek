@@ -7,6 +7,7 @@ here has the same apps written for another RTOS:
 | Directory | RTOS | Version |
 |---|---|---|
 | `freertos/` | [FreeRTOS](https://github.com/FreeRTOS/FreeRTOS-Kernel) | V11.1.0 |
+| `threadx/` | [Eclipse ThreadX](https://github.com/eclipse-threadx/threadx) | v6.5.2.202603b |
 
 `compare.sh` builds OSEK and every RTOS here, runs them on the same machine
 with the same compiler, flags and C library, and prints one table, so the
@@ -124,24 +125,83 @@ How the kernels map:
 - In the **event ping-pong**, `Os_SetEvent`/`Os_WaitEvent` are the OSEK
   services closest to task notifications.
 
+## ThreadX
+
+`threadx/ThreadX_Metric<Name>` is the counterpart of `test/Os_Metric<Name>`,
+`threadx/ThreadX_Metric.h` has the start up they share, and
+`threadx/ThreadX_Metric_Port.S` what ThreadX leaves to the application:
+`_tx_initialize_low_level`, the trap entry and the tick, a CLINT machine
+timer interrupt every 10 ms that calls `_tx_timer_interrupt`, as in the
+port's `qemu_virt` example. The project fetches ThreadX at tag
+`v6.5.2.202603b_rel`, the latest release, and builds the generic sources
+and the `ports/risc-v32/gnu` port; to build against a local checkout, pass
+`-DFETCHCONTENT_SOURCE_DIR_THREADX=<path>` when configuring
+`benchmarks/threadx`.
+
+That port is a real RV32 port, so ThreadX runs on the same RV32IMAC target
+as the others. It supports ilp32 (soft float, no FP state saved) as well as
+ilp32d; its own example is built for `rv32gc`/`ilp32d`, but nothing in the
+port needs more than RV32IMA and Zicsr.
+
+It is configured by `threadx/tx_user.h`: 100 Hz tick, timers expired in the
+tick interrupt (`TX_TIMER_PROCESS_IN_ISR`) as OSEK alarms and FreeRTOS
+delays are, instead of in a timer thread, no parameter checking
+(`TX_DISABLE_ERROR_CHECKING`, as OSEK without extended status), and no
+preemption threshold, notify callbacks or stack filling. Threads are
+created with `TX_NO_TIME_SLICE`. ThreadX priorities are reversed: the
+supervisor runs at 0, the highest.
+
+| Metric | ThreadX app | ThreadX primitives |
+|---|---|---|
+| Basic | `ThreadX_MetricBasic` | none |
+| Cooperative | `ThreadX_MetricCooperative` | `tx_thread_relinquish` |
+| Preemptive | `ThreadX_MetricPreemptive` | `tx_semaphore_put` to a thread blocked in `tx_semaphore_get` |
+| Events | `ThreadX_MetricEvents` | `tx_event_flags_set` and `tx_event_flags_get` with `TX_OR_CLEAR` |
+
+How the kernels map:
+
+- ThreadX threads do not terminate and restart either, so an OSEK
+  **activation** is modelled as for FreeRTOS: a thread that loops and
+  blocks on a **semaphore** in place of terminating, and is woken with
+  `tx_semaphore_put` in place of being activated. A counting semaphore is
+  ThreadX's equivalent of a FreeRTOS task notification, and like an OSEK
+  activation a put is not lost when the thread is not waiting yet.
+  `tx_thread_resume`/`tx_thread_suspend` would be a little lighter, about
+  636000 rounds instead of 611737, but a resume of a thread that is not suspended
+  is an error and is lost, so it does not have the semantics of an
+  activation.
+- **Cooperative is not like-for-like**, as for FreeRTOS:
+  `tx_thread_relinquish` only moves the thread behind the others of its
+  priority, while `ChainTask` restarts it.
+- The **event ping-pong** uses event flags, the ThreadX service closest to
+  OSEK events: `tx_event_flags_set` is `SetEvent`, and
+  `tx_event_flags_get` with `TX_OR_CLEAR` is `WaitEvent` followed by
+  `ClearEvent`. Event flags are a separate object rather than part of the
+  thread, and `tx_event_flags_set` has to search the group's waiting
+  threads, so they cost a little more than a task notification.
+
 ## Results
 
 Measured with `compare.sh` on OSEK master at a8d90eb, FreeRTOS V11.1.0,
-GCC 14.2.0, picolibc and QEMU 10.0. Counts are per second of
-virtual time, i.e. per 10^9 instructions.
+ThreadX v6.5.2.202603b, GCC 14.2.0, picolibc and QEMU 10.0. Counts are per
+second of virtual time, i.e. per 10^9 instructions.
 
-| Metric | OSEK | FreeRTOS | OSEK ins/op | FreeRTOS ins/op |
-|---|--:|--:|--:|--:|
-| Basic | 140780 | 140782 | 7103 | 7103 |
-| Cooperative | 686123 | 1765706 | 291 | 113 |
-| Preemptive | 375874 | 523850 | 2660 | 1909 |
-| Events | 1359319 | 2086747 | 736 | 479 |
+| Metric | OSEK | FreeRTOS | ThreadX | OSEK ins/op | FreeRTOS ins/op | ThreadX ins/op |
+|---|--:|--:|--:|--:|--:|--:|
+| Basic | 140780 | 140782 | 140781 | 7103 | 7103 | 7103 |
+| Cooperative | 686123 | 1765706 | 1819783 | 291 | 113 | 110 |
+| Preemptive | 375874 | 523850 | 611737 | 2660 | 1909 | 1635 |
+| Events | 1359319 | 2086747 | 1984245 | 736 | 479 | 504 |
 
 Basic matches, so the kernels run the same task code with the same tick
 overhead. In the event ping-pong FreeRTOS needs about two thirds of the
-instructions OSEK does per round. Cooperative and Preemptive include
-OSEK's task restarts, which FreeRTOS does not do, and so overstate the
-difference in switch cost.
+instructions OSEK does per round, and ThreadX about the same as FreeRTOS.
+Cooperative and Preemptive include OSEK's task restarts, which the others
+do not do, and so overstate the difference in switch cost. When a thread
+blocks or wakes a higher priority one through a service call, ThreadX
+switches without a trap and saves only the callee-saved registers, while
+the FreeRTOS RISC-V port yields with an `ecall` and saves the full
+context; that is likely most of ThreadX's lead in Preemptive.
 
 ## Adding an RTOS
 
@@ -154,7 +214,7 @@ directory is a standalone CMake project that:
 - fetches the RTOS with `FetchContent` at a pinned release tag;
 - has one directory `<Prefix>_Metric<Name>` per metric, with a target of
   the same name, where `<Name>` is that of `test/Os_Metric<Name>` and
-  `<Prefix>` is the RTOS's usual spelling (`FreeRTOS`). The script takes
+  `<Prefix>` is the RTOS's usual spelling (`FreeRTOS`, `ThreadX`). The script takes
   the column title from the prefix and runs
   `build/bench-<os>/<Prefix>_Metric<Name>/<Prefix>_Metric<Name>`;
 - prints `Execution counts N (...)` from a highest priority supervisor
