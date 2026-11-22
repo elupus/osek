@@ -40,6 +40,7 @@
 Os_ErrorType                    Os_Error;
 Os_TaskControlType              Os_TaskControls        [OS_TASK_COUNT]; /**< control array for tasks */
 Os_ReadyListType                Os_TaskReady           [OS_PRIO_COUNT]; /**< array of ready lists based on priority */
+Os_PriorityType                 Os_TaskReadyTop;                        /**< highest priority with a ready task, -1 if none */
 Os_TaskType                     Os_ActiveTask;                         /**< running task, or the last one that ran, or task 0
                                                                          *   before any task has run: always a valid index,
                                                                          *   so its state tells if a task runs */
@@ -107,46 +108,61 @@ Os_StatusType Os_SetEvent_Internal(Os_TaskType task, Os_EventMaskType mask);
 static void Os_AlarmAdd    (Os_AlarmType queue[], Os_AlarmType alarm);
 
 /**
- * @brief Add task to the given ready list at the head of the list
- * @param[in] list ready list to add task to
+ * @brief Add task to the ready list of a priority, at the head of the list
+ * @param[in] prio priority of the ready list
  * @param[in] task task to add to list
  */
-static void Os_ReadyListPushHead(Os_ReadyListType* list, Os_TaskType task)
+static void Os_ReadyListPushHead(Os_PriorityType prio, Os_TaskType task)
 {
+    Os_ReadyListType* list = &Os_TaskReady[prio];
+
     Os_TaskControls[task].next = list->head;
     list->head = task;
     if (list->tail == OS_INVALID_TASK) {
         list->tail = task;
     }
-}
-
-/**
- * @brief Pop task from the head of the ready list
- * @param[in]  list ready list to add task to
- * @param[out] task popped from list, Os_TaskIdNone if nothing available.
- */
-static void Os_ReadyListPopHead(Os_ReadyListType* list, Os_TaskType* task)
-{
-    if (list->tail == OS_INVALID_TASK) {
-        *task = OS_INVALID_TASK;
-    } else {
-        *task = list->head;
-        if (list->tail == *task) {
-            list->tail = OS_INVALID_TASK;
-            list->head = OS_INVALID_TASK;
-        }
-        list->head = Os_TaskControls[*task].next;
+    if (prio > Os_TaskReadyTop) {
+        Os_TaskReadyTop = prio;
     }
-    Os_TaskControls[*task].next = OS_INVALID_TASK;
 }
 
 /**
- * @brief Add task to given ready list at the tail of the list
- * @param[in] list ready list to add task to
+ * @brief Pop the task from the head of the ready list of a priority
+ * @param[in] prio priority of the ready list, which must not be empty
+ * @return the popped task
+ *
+ * When the list becomes empty and was the highest one with ready tasks,
+ * the next lower one with ready tasks becomes the highest.
+ */
+static Os_TaskType Os_ReadyListPopHead(Os_PriorityType prio)
+{
+    Os_ReadyListType* list = &Os_TaskReady[prio];
+    Os_TaskType       task = list->head;
+
+    list->head = Os_TaskControls[task].next;
+    Os_TaskControls[task].next = OS_INVALID_TASK;
+
+    if (list->head == OS_INVALID_TASK) {
+        list->tail = OS_INVALID_TASK;
+        if (prio == Os_TaskReadyTop) {
+            do {
+                --prio;
+            } while ((prio >= 0) && (Os_TaskReady[prio].head == OS_INVALID_TASK));
+            Os_TaskReadyTop = prio;
+        }
+    }
+    return task;
+}
+
+/**
+ * @brief Add task to the ready list of a priority, at the tail of the list
+ * @param[in] prio priority of the ready list
  * @param[in] task task to add to list
  */
-static void Os_ReadyListPushTail(Os_ReadyListType* list, Os_TaskType task)
+static void Os_ReadyListPushTail(Os_PriorityType prio, Os_TaskType task)
 {
+    Os_ReadyListType* list = &Os_TaskReady[prio];
+
     Os_TaskControls[task].next = OS_INVALID_TASK;
     if (list->head == OS_INVALID_TASK) {
         list->head = task;
@@ -154,6 +170,9 @@ static void Os_ReadyListPushTail(Os_ReadyListType* list, Os_TaskType task)
         Os_TaskControls[list->tail].next = task;
     }
     list->tail = task;
+    if (prio > Os_TaskReadyTop) {
+        Os_TaskReadyTop = prio;
+    }
 }
 
 /**
@@ -380,10 +399,10 @@ static void Os_TaskInit(Os_TaskType task)
  */
 static __inline void Os_TaskPeek(Os_PriorityType min_priority, Os_TaskType* task)
 {
-    Os_PriorityType prio;
-    *task = OS_INVALID_TASK;
-    for(prio = OS_PRIO_COUNT - 1; (prio > min_priority) && (*task == OS_INVALID_TASK); --prio) {
-        *task = Os_TaskReady[prio].head;
+    if (Os_TaskReadyTop > min_priority) {
+        *task = Os_TaskReady[Os_TaskReadyTop].head;
+    } else {
+        *task = OS_INVALID_TASK;
     }
 }
 
@@ -502,7 +521,7 @@ static __inline void Os_State_Running_To_Ready(Os_TaskType task)
 
     prio = Os_TaskControls[task].priority;
 
-    Os_ReadyListPushHead(&Os_TaskReady[prio], task);
+    Os_ReadyListPushHead(prio, task);
     Os_TaskControls[task].state = OS_TASK_READY;
 
     OS_POSTTASKHOOK(task);
@@ -527,7 +546,7 @@ static __inline void Os_State_Ready_First(Os_TaskType task)
     Os_TaskControls[task].waiting  = 0u;
 #endif
 
-    Os_ReadyListPushTail(&Os_TaskReady[prio], task);
+    Os_ReadyListPushTail(prio, task);
 }
 
 /**
@@ -574,7 +593,7 @@ static __inline void Os_State_Waiting_To_Ready(Os_TaskType task)
     Os_TaskControls[task].priority = prio;
     Os_TaskControls[task].waiting  = 0u;
 
-    Os_ReadyListPushTail(&Os_TaskReady[prio], task);
+    Os_ReadyListPushTail(prio, task);
 }
 #endif
 
@@ -594,7 +613,7 @@ static __inline void Os_State_Ready_To_Running(Os_TaskType task)
                || Os_TaskControls[task].state == OS_TASK_READY_FIRST, E_OS_STATE);
 
     prio = Os_TaskControls[task].priority;
-    Os_ReadyListPopHead(&Os_TaskReady[prio], &task2);
+    task2 = Os_ReadyListPopHead(prio);
 
     OS_CHECK_EXT(task2 == task, E_OS_STATE);
 
@@ -1632,6 +1651,7 @@ void Os_Init(const Os_ConfigType* config)
     for (prio = 0u; prio < OS_PRIO_COUNT; ++prio) {
         Os_ReadyListInit(&Os_TaskReady[prio]);
     }
+    Os_TaskReadyTop = -1;
 
     /* initialize task */
     for (task = 0u; task < OS_TASK_COUNT; ++task) {

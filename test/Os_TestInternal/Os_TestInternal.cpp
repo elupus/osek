@@ -1040,3 +1040,55 @@ TEST_F(Os_TestTask, ChainTaskSelfClearsEvents) {
     EXPECT_EQ(E_OK             , Os_GetEvent_Internal(1, &mask));
     EXPECT_EQ(0x0u             , mask) << "Events are cleared for the new start";
 }
+
+/* highest priority with a ready task by scanning, as the scheduler used to */
+static Os_PriorityType Os_TestReadyTopScan(void)
+{
+    for (Os_PriorityType prio = OS_PRIO_COUNT - 1; prio >= 0; --prio) {
+        if (Os_TaskReady[prio].head != OS_INVALID_TASK) {
+            return prio;
+        }
+    }
+    return -1;
+}
+
+TEST_F(Os_TestTask, ReadyTopRandom) {
+    uint32_t seed = 4711u;
+    auto     rnd  = [&seed](uint32_t n) { seed = seed * 1103515245u + 12345u; return (seed >> 8) % n; };
+    /* two tasks share a priority, so lists hold more than one task */
+    m_tasks[0].priority = 0; m_tasks[1].priority = 1; m_tasks[2].priority = 1; m_tasks[3].priority = 3;
+    for (Os_TaskType i = 0; i < OS_TASK_COUNT; ++i) {
+        m_tasks[i].activation = 3u;
+    }
+    Os_Init(&m_config);
+    Os_CallContext = OS_CONTEXT_TASK;
+
+    for (int step = 0; step < 20000; ++step) {
+        bool running = Os_TaskControls[Os_ActiveTask].state == OS_TASK_RUNNING;
+        switch (rnd(4)) {
+        case 0:
+            (void)Os_ActivateTask_Internal((Os_TaskType)rnd(OS_TASK_COUNT));
+            break;
+        case 1:
+            if (running) {
+                (void)Os_TerminateTask_Internal();
+            }
+            break;
+        case 2:
+            if (running) {
+                (void)Os_ChainTask_Internal((Os_TaskType)rnd(OS_TASK_COUNT));
+            }
+            break;
+        default:
+            (void)Os_Schedule_Internal();
+            break;
+        }
+        ASSERT_EQ(Os_TestReadyTopScan(), Os_TaskReadyTop) << "step " << step;
+        if (Os_TaskControls[Os_ActiveTask].state == OS_TASK_RUNNING) {
+            ASSERT_LE(Os_TaskReadyTop, Os_TaskControls[Os_ActiveTask].priority)
+                << "a ready task outranks the running one, step " << step;
+        } else {
+            ASSERT_EQ(-1, Os_TaskReadyTop) << "a task is ready but none runs, step " << step;
+        }
+    }
+}
