@@ -79,6 +79,31 @@ jobs:
       - name: Test
         run: ctest --preset cortexm3-qemu --timeout 120
 
+  avr:
+    name: AVR (ATmega2560, QEMU)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Install toolchain and QEMU
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build gcc-avr avr-libc
+          # qemu-system-avr is part of qemu-system-misc on Ubuntu, newer
+          # Debian releases split it out
+          sudo apt-get install -y --no-install-recommends qemu-system-avr || sudo apt-get install -y --no-install-recommends qemu-system-misc
+          qemu-system-avr --version
+          avr-gcc --version
+
+      - name: Configure
+        run: cmake --preset avr-qemu
+
+      - name: Build
+        run: cmake --build --preset avr-qemu
+
+      - name: Test
+        run: ctest --preset avr-qemu --timeout 120
+
   windows:
     name: Windows (${{ matrix.arch_port }}, ${{ matrix.arch }})
     runs-on: windows-latest
