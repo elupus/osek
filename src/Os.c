@@ -37,6 +37,17 @@
 #include "Os_Types.h"
 #include "Os.h"
 
+/* a static function inlined even when optimising for size, for small
+ * helpers on the task switch path where the call costs about as much as
+ * the body and the compiler keeps the call */
+#if defined(__GNUC__)
+#define OS_FORCE_INLINE static __inline __attribute__((always_inline))
+#elif defined(_MSC_VER)
+#define OS_FORCE_INLINE static __forceinline
+#else
+#define OS_FORCE_INLINE static __inline
+#endif
+
 Os_ErrorType                    Os_Error;
 Os_TaskControlType              Os_TaskControls        [OS_TASK_COUNT]; /**< control array for tasks */
 Os_ReadyListType                Os_TaskReady           [OS_PRIO_COUNT]; /**< array of ready lists based on priority */
@@ -159,7 +170,7 @@ static Os_TaskType Os_ReadyListPopHead(Os_PriorityType prio)
  * @param[in] prio priority of the ready list
  * @param[in] task task to add to list
  */
-static void Os_ReadyListPushTail(Os_PriorityType prio, Os_TaskType task)
+OS_FORCE_INLINE void Os_ReadyListPushTail(Os_PriorityType prio, Os_TaskType task)
 {
     Os_ReadyListType* list = &Os_TaskReady[prio];
 
