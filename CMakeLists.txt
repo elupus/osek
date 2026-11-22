@@ -126,11 +126,15 @@ elseif(BUILD_ARCH STREQUAL "CortexM")
     target_compile_definitions(OsekOs_Headers INTERFACE OS_CFG_ARCH_CORTEXM)
 elseif(BUILD_ARCH STREQUAL "Avr")
     enable_language(ASM)
+    # console.c puts stdout on USART0 and reports the exit code, as QEMU
+    # has no semihosting for AVR, see toolchain/avr-qemu-run.py
     target_sources(OsekOs INTERFACE
         ${CMAKE_CURRENT_SOURCE_DIR}/src/Os_Arch_Avr.c
         ${CMAKE_CURRENT_SOURCE_DIR}/src/Os_Arch_Avr_Asm.S
+        ${CMAKE_CURRENT_SOURCE_DIR}/test/common/avr/console.c
     )
     target_compile_definitions(OsekOs_Headers INTERFACE OS_CFG_ARCH_AVR)
+    target_link_options(OsekOs INTERFACE -Wl,--wrap=exit)
 else()
     message(FATAL_ERROR "Unknown BUILD_ARCH '${BUILD_ARCH}'")
 endif()
@@ -188,6 +192,11 @@ elseif(BUILD_ARCH STREQUAL "CortexM")
     add_subdirectory(test/Os_MetricCooperative)
     add_subdirectory(test/Os_MetricPreemptive)
     add_subdirectory(test/Os_MetricEvents)
+elseif(BUILD_ARCH STREQUAL "Avr")
+    # Os_Run's stacks do not fit in the 8 KiB RAM of an ATmega2560
+    add_subdirectory(test/Os_MetricBasic)
+    add_subdirectory(test/Os_MetricCooperative)
+    add_subdirectory(test/Os_MetricPreemptive)
 elseif(BUILD_ARCH STREQUAL "HCS12")
     add_subdirectory(test/Os_HCS12)
     add_subdirectory(test/Os_MetricBasic)
