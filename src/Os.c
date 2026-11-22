@@ -417,22 +417,16 @@ static void Os_ResourceUnlink(Os_ResourceType res)
 }
 
 /**
- * @brief Release the internal resource of running task
- *
- * If running task has an associated internal resource,
- * this will be released by call to this function.
+ * @brief Release the internal resource of running task, if it holds one
  *
  * Can only be called from task context
  */
-void Os_TaskInternalResource_Release(void)
+static void Os_TaskInternalResource_ReleaseHeld(Os_ResourceType res)
 {
-    Os_ResourceType res;
-
     OS_CHECK_EXT(Os_CallContext == OS_CONTEXT_TASK, E_OS_STATE);
     OS_CHECK_EXT(Os_TaskControls[Os_ActiveTask].state == OS_TASK_RUNNING        , E_OS_STATE);
 
-    res = Os_TaskConfigs[Os_ActiveTask].resource;
-    if (res != OS_INVALID_RESOURCE && Os_TaskControls[Os_ActiveTask].resource == res) {
+    if (Os_TaskControls[Os_ActiveTask].resource == res) {
         /* no rescheduling here, the scheduler would just take it back, the
          * service releasing it schedules itself */
         Os_ResourceUnlink(res);
@@ -440,23 +434,42 @@ void Os_TaskInternalResource_Release(void)
 }
 
 /**
+ * @brief Make the running task hold its internal resource
+ */
+static void Os_TaskInternalResource_Take(Os_ResourceType res)
+{
+    if (  (Os_TaskControls[Os_ActiveTask].state    == OS_TASK_RUNNING)
+       && (Os_TaskControls[Os_ActiveTask].resource == OS_INVALID_RESOURCE)) {
+        (void)Os_GetResource_Internal(res);
+    }
+}
+
+/**
+ * @brief Release the internal resource of running task
+ *
+ * If running task has an associated internal resource,
+ * this will be released by call to this function. Most tasks have none,
+ * so that is checked here, where it can be inlined.
+ */
+static __inline void Os_TaskInternalResource_Release(void)
+{
+    Os_ResourceType res = Os_TaskConfigs[Os_ActiveTask].resource;
+    if (res != OS_INVALID_RESOURCE) {
+        Os_TaskInternalResource_ReleaseHeld(res);
+    }
+}
+
+/**
  * @brief Get the internal resource of running task
  *
- * If the running (or to be running) task has an associated internal
- * resource, this function will make sure the task holds that resource.
- *
+ * If the running task has an associated internal resource, this function
+ * will make sure the task holds that resource.
  */
-void Os_TaskInternalResource_Get(void)
+static __inline void Os_TaskInternalResource_Get(void)
 {
-    Os_ResourceType res;
-
-    if (Os_TaskControls[Os_ActiveTask].state != OS_TASK_RUNNING) {
-        return;
-    }
-
-    res = Os_TaskConfigs[Os_ActiveTask].resource;
-    if (res != OS_INVALID_RESOURCE && Os_TaskControls[Os_ActiveTask].resource == OS_INVALID_RESOURCE) {
-        (void)Os_GetResource_Internal(res);
+    Os_ResourceType res = Os_TaskConfigs[Os_ActiveTask].resource;
+    if (res != OS_INVALID_RESOURCE) {
+        Os_TaskInternalResource_Take(res);
     }
 }
 

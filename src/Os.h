@@ -235,8 +235,6 @@ extern Os_TaskType                     Os_ActiveTask;
 extern Os_ContextType                  Os_CallContext;
 extern const Os_TaskConfigType *       Os_TaskConfigs;
 
-void       Os_TaskInternalResource_Release(void);
-void       Os_TaskInternalResource_Get(void);
 
 void       Os_Init(const Os_ConfigType* config);
 void       Os_Start(Os_AppModeType mode);
