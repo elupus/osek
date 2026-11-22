@@ -1,0 +1,2 @@
+add_executable(ThreadX_MetricPreemptive ThreadX_MetricPreemptive.c)
+target_link_libraries(ThreadX_MetricPreemptive PRIVATE ThreadX_Metric)

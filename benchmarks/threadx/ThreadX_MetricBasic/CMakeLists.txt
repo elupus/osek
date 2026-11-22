@@ -1,0 +1,2 @@
+add_executable(ThreadX_MetricBasic ThreadX_MetricBasic.c)
+target_link_libraries(ThreadX_MetricBasic PRIVATE ThreadX_Metric)
