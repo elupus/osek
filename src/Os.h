@@ -52,6 +52,10 @@
 #include "Os_Arch_CortexM.h"
 #endif
 
+#ifdef OS_CFG_ARCH_AVR
+#include "Os_Arch_Avr.h"
+#endif
+
 /**
  * @brief Stack space a port needs on every task stack, on top of the task's own usage.
  *
