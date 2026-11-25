@@ -48,6 +48,10 @@
 #include "Os_Arch_RiscV.h"
 #endif
 
+#ifdef OS_CFG_ARCH_CORTEXM
+#include "Os_Arch_CortexM.h"
+#endif
+
 /**
  * @brief Stack space a port needs on every task stack, on top of the task's own usage.
  *
