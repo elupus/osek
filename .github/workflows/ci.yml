@@ -58,6 +58,27 @@ jobs:
       - name: Test
         run: ctest --preset riscv32-qemu --timeout 120
 
+  cortexm:
+    name: Cortex-M3 (QEMU mps2-an385)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Install toolchain and QEMU
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build gcc-arm-none-eabi picolibc-arm-none-eabi qemu-system-arm
+          qemu-system-arm --version
+
+      - name: Configure
+        run: cmake --preset cortexm3-qemu
+
+      - name: Build
+        run: cmake --build --preset cortexm3-qemu
+
+      - name: Test
+        run: ctest --preset cortexm3-qemu --timeout 120
+
   windows:
     name: Windows (${{ matrix.arch_port }}, ${{ matrix.arch }})
     runs-on: windows-latest
