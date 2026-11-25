@@ -46,6 +46,13 @@
       "inherits": "base",
       "toolchainFile": "${sourceDir}/toolchain/Toolchain-riscv32-elf.cmake",
       "cacheVariables": { "CMAKE_BUILD_TYPE": "MinSizeRel" }
+    },
+    {
+      "name": "cortexm3-qemu",
+      "displayName": "ARM Cortex-M3 bare metal, apps run under QEMU",
+      "inherits": "base",
+      "toolchainFile": "${sourceDir}/toolchain/Toolchain-cortex-m3.cmake",
+      "cacheVariables": { "CMAKE_BUILD_TYPE": "MinSizeRel" }
     }
   ],
   "buildPresets": [
@@ -53,7 +60,8 @@
     { "name": "release",     "configurePreset": "release" },
     { "name": "hcs12-gcc",   "configurePreset": "hcs12-gcc" },
     { "name": "hcs12-chc12", "configurePreset": "hcs12-chc12" },
-    { "name": "riscv32-qemu", "configurePreset": "riscv32-qemu" }
+    { "name": "riscv32-qemu", "configurePreset": "riscv32-qemu" },
+    { "name": "cortexm3-qemu", "configurePreset": "cortexm3-qemu" }
   ],
   "testPresets": [
     {
@@ -69,6 +77,11 @@
     {
       "name": "riscv32-qemu",
       "configurePreset": "riscv32-qemu",
+      "output": { "outputOnFailure": true }
+    },
+    {
+      "name": "cortexm3-qemu",
+      "configurePreset": "cortexm3-qemu",
       "output": { "outputOnFailure": true }
     }
   ]
