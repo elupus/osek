@@ -53,6 +53,13 @@
       "inherits": "base",
       "toolchainFile": "${sourceDir}/toolchain/Toolchain-cortex-m3.cmake",
       "cacheVariables": { "CMAKE_BUILD_TYPE": "MinSizeRel" }
+    },
+    {
+      "name": "avr-qemu",
+      "displayName": "AVR ATmega2560, apps run under QEMU",
+      "inherits": "base",
+      "toolchainFile": "${sourceDir}/toolchain/Toolchain-avr.cmake",
+      "cacheVariables": { "CMAKE_BUILD_TYPE": "MinSizeRel" }
     }
   ],
   "buildPresets": [
@@ -61,7 +68,8 @@
     { "name": "hcs12-gcc",   "configurePreset": "hcs12-gcc" },
     { "name": "hcs12-chc12", "configurePreset": "hcs12-chc12" },
     { "name": "riscv32-qemu", "configurePreset": "riscv32-qemu" },
-    { "name": "cortexm3-qemu", "configurePreset": "cortexm3-qemu" }
+    { "name": "cortexm3-qemu", "configurePreset": "cortexm3-qemu" },
+    { "name": "avr-qemu",      "configurePreset": "avr-qemu" }
   ],
   "testPresets": [
     {
@@ -82,6 +90,11 @@
     {
       "name": "cortexm3-qemu",
       "configurePreset": "cortexm3-qemu",
+      "output": { "outputOnFailure": true }
+    },
+    {
+      "name": "avr-qemu",
+      "configurePreset": "avr-qemu",
       "output": { "outputOnFailure": true }
     }
   ]

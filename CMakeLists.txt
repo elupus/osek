@@ -32,14 +32,16 @@ elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "^riscv")
     set(_osek_arch_default RiscV)
 elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "^(arm|cortex-m|thumb)")
     set(_osek_arch_default CortexM)
+elseif(CMAKE_SYSTEM_PROCESSOR STREQUAL "avr")
+    set(_osek_arch_default Avr)
 else()
     set(_osek_arch_default "")
 endif()
 set(BUILD_ARCH "${_osek_arch_default}" CACHE STRING "OS architecture port")
-set_property(CACHE BUILD_ARCH PROPERTY STRINGS Posix Fibers Ums HCS12 RiscV CortexM)
+set_property(CACHE BUILD_ARCH PROPERTY STRINGS Posix Fibers Ums HCS12 RiscV CortexM Avr)
 
 if(NOT BUILD_ARCH)
-    message(FATAL_ERROR "Unable to determine BUILD_ARCH for this platform, set it with -DBUILD_ARCH=<Posix|Fibers|Ums|HCS12|RiscV|CortexM>")
+    message(FATAL_ERROR "Unable to determine BUILD_ARCH for this platform, set it with -DBUILD_ARCH=<Posix|Fibers|Ums|HCS12|RiscV|CortexM|Avr>")
 endif()
 message(STATUS "OSEK architecture port: ${BUILD_ARCH}")
 
@@ -122,6 +124,17 @@ elseif(BUILD_ARCH STREQUAL "CortexM")
         ${CMAKE_CURRENT_SOURCE_DIR}/test/common/cortexm/vectors.c
     )
     target_compile_definitions(OsekOs_Headers INTERFACE OS_CFG_ARCH_CORTEXM)
+elseif(BUILD_ARCH STREQUAL "Avr")
+    enable_language(ASM)
+    # console.c puts stdout on USART0 and reports the exit code, as QEMU
+    # has no semihosting for AVR, see toolchain/avr-qemu-run.py
+    target_sources(OsekOs INTERFACE
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/Os_Arch_Avr.c
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/Os_Arch_Avr_Asm.S
+        ${CMAKE_CURRENT_SOURCE_DIR}/test/common/avr/console.c
+    )
+    target_compile_definitions(OsekOs_Headers INTERFACE OS_CFG_ARCH_AVR)
+    target_link_options(OsekOs INTERFACE -Wl,--wrap=exit)
 else()
     message(FATAL_ERROR "Unknown BUILD_ARCH '${BUILD_ARCH}'")
 endif()
@@ -175,6 +188,12 @@ elseif(BUILD_ARCH STREQUAL "RiscV")
     add_subdirectory(test/Os_MetricEvents)
 elseif(BUILD_ARCH STREQUAL "CortexM")
     add_subdirectory(test/Os_Run)
+    add_subdirectory(test/Os_MetricBasic)
+    add_subdirectory(test/Os_MetricCooperative)
+    add_subdirectory(test/Os_MetricPreemptive)
+    add_subdirectory(test/Os_MetricEvents)
+elseif(BUILD_ARCH STREQUAL "Avr")
+    # Os_Run's stacks do not fit in the 8 KiB RAM of an ATmega2560
     add_subdirectory(test/Os_MetricBasic)
     add_subdirectory(test/Os_MetricCooperative)
     add_subdirectory(test/Os_MetricPreemptive)

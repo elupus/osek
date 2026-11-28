@@ -178,15 +178,15 @@ const Os_ConfigType Os_DefaultConfig = {
 
 int main(void)
 {
-    unsigned int total;
+    unsigned long total;
     Os_Init(&Os_DefaultConfig);
     Os_Start(OS_DEFAULTAPPMODE);
-    total = task0_count
+    total = (unsigned long)task0_count
           + task1_count
           + task2_count
           + task3_count
           + task4_count;
-    printf("Execution counts %u (%u, %u, %u, %u, %u)\n"
+    printf("Execution counts %lu (%u, %u, %u, %u, %u)\n"
             , total / 5
             , task0_count
             , task1_count
